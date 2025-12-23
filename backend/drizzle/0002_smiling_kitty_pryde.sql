@@ -1,0 +1,1 @@
+ALTER TABLE `messages` ADD `is_forwarded` boolean DEFAULT false NOT NULL;

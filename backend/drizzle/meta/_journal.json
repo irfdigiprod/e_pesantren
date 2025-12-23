@@ -1,0 +1,55 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1766113003845,
+      "tag": "0000_daily_roulette",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1766297608078,
+      "tag": "0001_known_red_hulk",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1766303145482,
+      "tag": "0002_smiling_kitty_pryde",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1766360965950,
+      "tag": "0003_tearful_payback",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1766369382889,
+      "tag": "0004_opposite_vengeance",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1766457458691,
+      "tag": "0005_romantic_maximus",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1766462164676,
+      "tag": "0006_pretty_toad_men",
+      "breakpoints": true
+    }
+  ]
+}

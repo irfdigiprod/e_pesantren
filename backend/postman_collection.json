@@ -1,0 +1,2093 @@
+{
+  "info": {
+    "_postman_id": "pesantren-api-collection",
+    "name": "Sistem Informasi Manajemen Pesantren API",
+    "description": "RESTful API untuk aplikasi manajemen sistem informasi pesantren/sekolah",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Health Check",
+      "item": [
+        {
+          "name": "Root",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/",
+              "host": ["{{baseUrl}}"],
+              "path": [""]
+            }
+          }
+        },
+        {
+          "name": "API Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "health"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.data && jsonData.data.token) {",
+                  "    pm.collectionVariables.set('token', jsonData.data.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"admin@pesantren.id\",\n    \"password\": \"admin123\",\n    \"role\": \"admin\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.data && jsonData.data.token) {",
+                  "    pm.collectionVariables.set('token', jsonData.data.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"admin@pesantren.id\",\n    \"password\": \"admin123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "me"]
+            }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "logout"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Students",
+      "item": [
+        {
+          "name": "Get All Students",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/students",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "students"]
+            }
+          }
+        },
+        {
+          "name": "Get Student by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/students/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "students", "1"]
+            }
+          }
+        },
+        {
+          "name": "Create Student",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"nis\": \"2024001\",\n    \"fullName\": \"Ahmad Fauzi\",\n    \"birthDate\": \"2010-05-15\",\n    \"birthPlace\": \"Jakarta\",\n    \"gender\": \"male\",\n    \"address\": \"Jl. Pesantren No. 1\",\n    \"phone\": \"081234567890\",\n    \"status\": \"active\",\n    \"email\": \"ahmad.fauzi@student.pesantren.id\",\n    \"password\": \"student123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/students",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "students"]
+            }
+          }
+        },
+        {
+          "name": "Update Student",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"fullName\": \"Ahmad Fauzi Updated\",\n    \"phone\": \"081234567899\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/students/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "students", "1"]
+            }
+          }
+        },
+        {
+          "name": "Delete Student",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/students/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "students", "1"]
+            }
+          }
+        },
+        {
+          "name": "Get Student Parents",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/students/1/parents",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "students", "1", "parents"]
+            }
+          }
+        },
+        {
+          "name": "Link Parent to Student",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"parentId\": 1,\n    \"isPrimary\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/students/1/parents",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "students", "1", "parents"]
+            }
+          }
+        },
+        {
+          "name": "Update Student-Parent Relation",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"isPrimary\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/students/1/parents/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "students", "1", "parents", "1"]
+            }
+          }
+        },
+        {
+          "name": "Unlink Parent from Student",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/students/1/parents/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "students", "1", "parents", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Parents",
+      "item": [
+        {
+          "name": "Get All Parents",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/parents",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "parents"]
+            }
+          }
+        },
+        {
+          "name": "Get Parent by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/parents/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "parents", "1"]
+            }
+          }
+        },
+        {
+          "name": "Create Parent",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"fatherName\": \"Budi Santoso\",\n    \"motherName\": \"Siti Aminah\",\n    \"fatherOccupation\": \"Wiraswasta\",\n    \"motherOccupation\": \"Ibu Rumah Tangga\",\n    \"phone\": \"081234567891\",\n    \"address\": \"Jl. Keluarga No. 10\",\n    \"email\": \"budi.santoso@parent.pesantren.id\",\n    \"password\": \"parent123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/parents",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "parents"]
+            }
+          }
+        },
+        {
+          "name": "Update Parent",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"phone\": \"081234567899\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/parents/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "parents", "1"]
+            }
+          }
+        },
+        {
+          "name": "Delete Parent",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/parents/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "parents", "1"]
+            }
+          }
+        },
+        {
+          "name": "Get Parent Children",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/parents/1/children",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "parents", "1", "children"]
+            }
+          }
+        },
+        {
+          "name": "Link Child to Parent",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"studentId\": 1,\n    \"isPrimary\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/parents/1/children",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "parents", "1", "children"]
+            }
+          }
+        },
+        {
+          "name": "Unlink Child from Parent",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/parents/1/children/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "parents", "1", "children", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Teachers",
+      "item": [
+        {
+          "name": "Get All Teachers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/teachers",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "teachers"]
+            }
+          }
+        },
+        {
+          "name": "Get Teacher by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/teachers/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "teachers", "1"]
+            }
+          }
+        },
+        {
+          "name": "Create Teacher",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"nip\": \"198501012010011001\",\n    \"fullName\": \"Ustadz Ahmad Hidayat\",\n    \"birthDate\": \"1985-01-01\",\n    \"birthPlace\": \"Bandung\",\n    \"gender\": \"male\",\n    \"address\": \"Jl. Guru No. 5\",\n    \"phone\": \"081234567892\",\n    \"position\": \"Guru Tahfidz\",\n    \"department\": \"Keagamaan\",\n    \"employeeType\": \"teacher\",\n    \"joinDate\": \"2010-01-01\",\n    \"status\": \"active\",\n    \"email\": \"ahmad.hidayat@teacher.pesantren.id\",\n    \"password\": \"teacher123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/teachers",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "teachers"]
+            }
+          }
+        },
+        {
+          "name": "Update Teacher",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"position\": \"Kepala Tahfidz\",\n    \"phone\": \"081234567899\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/teachers/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "teachers", "1"]
+            }
+          }
+        },
+        {
+          "name": "Delete Teacher",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/teachers/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "teachers", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Quran Memorization",
+      "item": [
+        {
+          "name": "Get All Memorizations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/quran/memorizations",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "quran", "memorizations"]
+            }
+          }
+        },
+        {
+          "name": "Get Memorizations by Student",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/quran/memorizations/student/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "quran", "memorizations", "student", "1"]
+            }
+          }
+        },
+        {
+          "name": "Get Memorization by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/quran/memorizations/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "quran", "memorizations", "1"]
+            }
+          }
+        },
+        {
+          "name": "Add Memorization",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"studentId\": 1,\n    \"surahNumber\": 1,\n    \"surahName\": \"Al-Fatihah\",\n    \"juz\": 1,\n    \"startAyah\": 1,\n    \"endAyah\": 7,\n    \"status\": \"completed\",\n    \"grade\": \"A\",\n    \"score\": 95,\n    \"teacherId\": 1,\n    \"memorizedAt\": \"2024-12-01\",\n    \"notes\": \"Hafalan baik, tajwid sempurna\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/quran/memorizations",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "quran", "memorizations"]
+            }
+          }
+        },
+        {
+          "name": "Update Memorization",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"status\": \"completed\",\n    \"score\": 98,\n    \"notes\": \"Hafalan sangat baik\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/quran/memorizations/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "quran", "memorizations", "1"]
+            }
+          }
+        },
+        {
+          "name": "Delete Memorization",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/quran/memorizations/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "quran", "memorizations", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Attendance",
+      "item": [
+        {
+          "name": "Student Attendance",
+          "item": [
+            {
+              "name": "Get Student Attendances",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/attendance/students?date=2024-12-12",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "attendance", "students"],
+                  "query": [
+                    {
+                      "key": "date",
+                      "value": "2024-12-12"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Record Student Attendance",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"studentId\": 1,\n    \"date\": \"2024-12-12\",\n    \"status\": \"present\",\n    \"notes\": \"\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/attendance/students",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "attendance", "students"]
+                }
+              }
+            },
+            {
+              "name": "Bulk Record Student Attendance",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"date\": \"2024-12-12\",\n    \"attendances\": [\n        {\n            \"studentId\": 1,\n            \"status\": \"present\"\n        },\n        {\n            \"studentId\": 2,\n            \"status\": \"present\"\n        },\n        {\n            \"studentId\": 3,\n            \"status\": \"sick\",\n            \"notes\": \"Demam\"\n        }\n    ]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/attendance/students/bulk",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "attendance", "students", "bulk"]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Teacher Attendance",
+          "item": [
+            {
+              "name": "Get Teacher Attendances",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/attendance/teachers?date=2024-12-12",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "attendance", "teachers"],
+                  "query": [
+                    {
+                      "key": "date",
+                      "value": "2024-12-12"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Record Teacher Attendance",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"teacherId\": 1,\n    \"date\": \"2024-12-12\",\n    \"checkIn\": \"07:00:00\",\n    \"checkOut\": \"16:00:00\",\n    \"status\": \"present\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/attendance/teachers",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "attendance", "teachers"]
+                }
+              }
+            },
+            {
+              "name": "Teacher Check In",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"teacherId\": 1,\n    \"latitude\": -6.2088,\n    \"longitude\": 106.8456,\n    \"notes\": \"\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/attendance/teachers/check-in",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "attendance", "teachers", "check-in"]
+                }
+              }
+            },
+            {
+              "name": "Teacher Check Out",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"teacherId\": 1,\n    \"latitude\": -6.2088,\n    \"longitude\": 106.8456,\n    \"notes\": \"\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/attendance/teachers/check-out",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "attendance", "teachers", "check-out"]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Rewards & Punishments",
+      "item": [
+        {
+          "name": "Get All Records",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/rewards?type=reward",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "rewards"],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "reward"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get by Student",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/rewards/student/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "rewards", "student", "1"]
+            }
+          }
+        },
+        {
+          "name": "Add Reward",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"studentId\": 1,\n    \"type\": \"reward\",\n    \"category\": \"academic\",\n    \"title\": \"Juara 1 Kelas\",\n    \"description\": \"Mendapat peringkat pertama di kelas\",\n    \"points\": 100,\n    \"date\": \"2024-12-12\",\n    \"notes\": \"\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/rewards",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "rewards"]
+            }
+          }
+        },
+        {
+          "name": "Add Punishment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"studentId\": 1,\n    \"type\": \"punishment\",\n    \"category\": \"behavior\",\n    \"title\": \"Terlambat\",\n    \"description\": \"Terlambat masuk kelas\",\n    \"points\": 10,\n    \"date\": \"2024-12-12\",\n    \"notes\": \"Terlambat 15 menit\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/rewards",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "rewards"]
+            }
+          }
+        },
+        {
+          "name": "Update Record",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"points\": 150,\n    \"notes\": \"Updated\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/rewards/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "rewards", "1"]
+            }
+          }
+        },
+        {
+          "name": "Delete Record",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/rewards/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "rewards", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Clinic",
+      "item": [
+        {
+          "name": "Medicines",
+          "item": [
+            {
+              "name": "Get All Medicines",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/clinic/medicines",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "clinic", "medicines"]
+                }
+              }
+            },
+            {
+              "name": "Get Medicine by ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/clinic/medicines/1",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "clinic", "medicines", "1"]
+                }
+              }
+            },
+            {
+              "name": "Add Medicine",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"name\": \"Paracetamol 500mg\",\n    \"genericName\": \"Paracetamol\",\n    \"type\": \"tablet\",\n    \"category\": \"analgesik\",\n    \"stock\": 100,\n    \"unit\": \"tablet\",\n    \"minStock\": 20,\n    \"price\": 500,\n    \"expiryDate\": \"2025-12-31\",\n    \"manufacturer\": \"Kimia Farma\",\n    \"description\": \"Obat penurun panas dan pereda nyeri\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/clinic/medicines",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "clinic", "medicines"]
+                }
+              }
+            },
+            {
+              "name": "Update Medicine",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"stock\": 150,\n    \"price\": 550\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/clinic/medicines/1",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "clinic", "medicines", "1"]
+                }
+              }
+            },
+            {
+              "name": "Adjust Stock",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"quantity\": -10,\n    \"reason\": \"Digunakan untuk pasien\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/clinic/medicines/1/adjust-stock",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "clinic", "medicines", "1", "adjust-stock"]
+                }
+              }
+            },
+            {
+              "name": "Delete Medicine",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/clinic/medicines/1",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "clinic", "medicines", "1"]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Inpatients",
+          "item": [
+            {
+              "name": "Get All Inpatients",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/clinic/inpatients?status=admitted",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "clinic", "inpatients"],
+                  "query": [
+                    {
+                      "key": "status",
+                      "value": "admitted"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Get Inpatient by ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/clinic/inpatients/1",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "clinic", "inpatients", "1"]
+                }
+              }
+            },
+            {
+              "name": "Admit Patient",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"patientType\": \"student\",\n    \"patientId\": 1,\n    \"roomNumber\": \"A1\",\n    \"bedNumber\": \"01\",\n    \"admissionDate\": \"2024-12-12\",\n    \"admissionTime\": \"10:00:00\",\n    \"diagnosis\": \"Demam tinggi\",\n    \"treatment\": \"Istirahat dan obat penurun panas\",\n    \"attendingDoctor\": \"dr. Ahmad\",\n    \"notes\": \"\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/clinic/inpatients",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "clinic", "inpatients"]
+                }
+              }
+            },
+            {
+              "name": "Update Inpatient",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"treatment\": \"Updated treatment\",\n    \"notes\": \"Kondisi membaik\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/clinic/inpatients/1",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "clinic", "inpatients", "1"]
+                }
+              }
+            },
+            {
+              "name": "Discharge Patient",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"notes\": \"Pasien sudah sembuh\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/clinic/inpatients/1/discharge",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "clinic", "inpatients", "1", "discharge"]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Examinations",
+          "item": [
+            {
+              "name": "Get All Examinations",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/clinic/examinations",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "clinic", "examinations"]
+                }
+              }
+            },
+            {
+              "name": "Get Examination by ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/clinic/examinations/1",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "clinic", "examinations", "1"]
+                }
+              }
+            },
+            {
+              "name": "Add Examination",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"patientType\": \"student\",\n    \"patientId\": 1,\n    \"examinationDate\": \"2024-12-12\",\n    \"examinationTime\": \"09:00:00\",\n    \"symptoms\": \"Demam, pusing\",\n    \"diagnosis\": \"Flu\",\n    \"treatment\": \"Istirahat, minum obat\",\n    \"bloodPressure\": \"120/80\",\n    \"temperature\": 38.5,\n    \"weight\": 45,\n    \"height\": 155,\n    \"isInpatient\": false,\n    \"followUpDate\": \"2024-12-15\",\n    \"notes\": \"\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/clinic/examinations",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "clinic", "examinations"]
+                }
+              }
+            },
+            {
+              "name": "Update Examination",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"diagnosis\": \"Flu berat\",\n    \"notes\": \"Perlu istirahat lebih lama\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/clinic/examinations/1",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "clinic", "examinations", "1"]
+                }
+              }
+            },
+            {
+              "name": "Delete Examination",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/clinic/examinations/1",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "clinic", "examinations", "1"]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Punishments",
+      "item": [
+        {
+          "name": "Get All Punishments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/punishments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "punishments"]
+            }
+          }
+        },
+        {
+          "name": "Get Punishments by Student",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/punishments/student/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "punishments", "student", "1"]
+            }
+          }
+        },
+        {
+          "name": "Get Punishment by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/punishments/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "punishments", "1"]
+            }
+          }
+        },
+        {
+          "name": "Create Punishment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"studentId\": 1,\n    \"type\": \"punishment\",\n    \"category\": \"kedisiplinan\",\n    \"title\": \"Terlambat masuk kelas\",\n    \"description\": \"Terlambat 15 menit\",\n    \"points\": 5,\n    \"date\": \"2024-12-13\",\n    \"notes\": \"\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/punishments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "punishments"]
+            }
+          }
+        },
+        {
+          "name": "Update Punishment",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\": \"Terlambat masuk kelas (Updated)\",\n    \"points\": 10,\n    \"notes\": \"Pelanggaran kedua\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/punishments/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "punishments", "1"]
+            }
+          }
+        },
+        {
+          "name": "Delete Punishment",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/punishments/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "punishments", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Academic",
+      "item": [
+        {
+          "name": "Classes",
+          "item": [
+            {
+              "name": "Get All Classes",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/academic/classes",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "academic", "classes"]
+                }
+              }
+            },
+            {
+              "name": "Get Class by ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/academic/classes/1",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "academic", "classes", "1"]
+                }
+              }
+            },
+            {
+              "name": "Create Class",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"name\": \"7A\",\n    \"grade\": 7,\n    \"academicYear\": \"2024/2025\",\n    \"homeroomTeacherId\": 1,\n    \"capacity\": 30,\n    \"description\": \"Kelas 7A\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/academic/classes",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "academic", "classes"]
+                }
+              }
+            },
+            {
+              "name": "Update Class",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"capacity\": 35\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/academic/classes/1",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "academic", "classes", "1"]
+                }
+              }
+            },
+            {
+              "name": "Delete Class",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/academic/classes/1",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "academic", "classes", "1"]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Subjects",
+          "item": [
+            {
+              "name": "Get All Subjects",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/academic/subjects",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "academic", "subjects"]
+                }
+              }
+            },
+            {
+              "name": "Get Subject by ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/academic/subjects/1",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "academic", "subjects", "1"]
+                }
+              }
+            },
+            {
+              "name": "Create Subject",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"name\": \"Matematika\",\n    \"code\": \"MTK\",\n    \"category\": \"wajib\",\n    \"description\": \"Mata pelajaran Matematika\",\n    \"creditHours\": 4\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/academic/subjects",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "academic", "subjects"]
+                }
+              }
+            },
+            {
+              "name": "Update Subject",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"creditHours\": 5\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/academic/subjects/1",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "academic", "subjects", "1"]
+                }
+              }
+            },
+            {
+              "name": "Delete Subject",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/academic/subjects/1",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "academic", "subjects", "1"]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Schedules",
+          "item": [
+            {
+              "name": "Get All Schedules",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/academic/schedules",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "academic", "schedules"]
+                }
+              }
+            },
+            {
+              "name": "Get Class Schedule",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/academic/schedules/class/1",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "academic", "schedules", "class", "1"]
+                }
+              }
+            },
+            {
+              "name": "Get Teacher Schedule",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/academic/schedules/teacher/1",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "academic", "schedules", "teacher", "1"]
+                }
+              }
+            },
+            {
+              "name": "Create Schedule",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"classId\": 1,\n    \"subjectId\": 1,\n    \"teacherId\": 1,\n    \"dayOfWeek\": 1,\n    \"startTime\": \"07:00\",\n    \"endTime\": \"08:30\",\n    \"room\": \"Ruang 101\",\n    \"academicYear\": \"2024/2025\",\n    \"semester\": 1,\n    \"isActive\": true\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/academic/schedules",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "academic", "schedules"]
+                }
+              }
+            },
+            {
+              "name": "Update Schedule",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"room\": \"Ruang 102\",\n    \"startTime\": \"08:00\",\n    \"endTime\": \"09:30\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/academic/schedules/1",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "academic", "schedules", "1"]
+                }
+              }
+            },
+            {
+              "name": "Delete Schedule",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/academic/schedules/1",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "academic", "schedules", "1"]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Grades",
+          "item": [
+            {
+              "name": "Get Student Grades",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/academic/grades/student/1?academicYear=2024/2025&semester=1",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "academic", "grades", "student", "1"],
+                  "query": [
+                    {
+                      "key": "academicYear",
+                      "value": "2024/2025"
+                    },
+                    {
+                      "key": "semester",
+                      "value": "1"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Add Grade",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"studentId\": 1,\n    \"subjectId\": 1,\n    \"classId\": 1,\n    \"academicYear\": \"2024/2025\",\n    \"semester\": 1,\n    \"dailyScore\": 85,\n    \"homeworkScore\": 90,\n    \"midtermScore\": 80,\n    \"finalScore\": 88,\n    \"practiceScore\": 92,\n    \"notes\": \"Siswa aktif di kelas\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/academic/grades",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "academic", "grades"]
+                }
+              }
+            },
+            {
+              "name": "Update Grade",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"finalScore\": 90,\n    \"notes\": \"Nilai diperbaiki\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/academic/grades/1",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "academic", "grades", "1"]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reports",
+          "item": [
+            {
+              "name": "Get Student Reports",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/academic/reports/student/1",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "academic", "reports", "student", "1"]
+                }
+              }
+            },
+            {
+              "name": "Get Report by ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/academic/reports/1",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "academic", "reports", "1"]
+                }
+              }
+            },
+            {
+              "name": "Generate Report",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"studentId\": 1,\n    \"academicYear\": \"2024/2025\",\n    \"semester\": 1,\n    \"behaviorNotes\": \"Perilaku baik\",\n    \"teacherNotes\": \"Siswa rajin dan aktif\",\n    \"principalNotes\": \"\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/academic/reports/generate",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "academic", "reports", "generate"]
+                }
+              }
+            },
+            {
+              "name": "Update Report",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"status\": \"published\",\n    \"principalNotes\": \"Pertahankan prestasi\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/academic/reports/1",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "academic", "reports", "1"]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Halaqah",
+      "item": [
+        {
+          "name": "Groups",
+          "item": [
+            {
+              "name": "Get All Halaqah Groups",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/halaqah",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "halaqah"]
+                }
+              }
+            },
+            {
+              "name": "Get Halaqah by ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/halaqah/1",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "halaqah", "1"]
+                }
+              }
+            },
+            {
+              "name": "Create Halaqah",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"name\": \"Halaqah Al-Fatihah\",\n    \"description\": \"Halaqah untuk menghafal Juz 1\",\n    \"schedule\": \"Senin-Jumat 06:00-07:00\",\n    \"location\": \"Masjid Utama\",\n    \"status\": \"active\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/halaqah",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "halaqah"]
+                }
+              }
+            },
+            {
+              "name": "Update Halaqah",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"name\": \"Halaqah Al-Fatihah (Updated)\",\n    \"schedule\": \"Senin-Sabtu 06:00-07:30\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/halaqah/1",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "halaqah", "1"]
+                }
+              }
+            },
+            {
+              "name": "Delete Halaqah",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/halaqah/1",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "halaqah", "1"]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Members",
+          "item": [
+            {
+              "name": "Get Halaqah Members",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/halaqah/1/members",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "halaqah", "1", "members"]
+                }
+              }
+            },
+            {
+              "name": "Add Member to Halaqah",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"studentId\": 1,\n    \"joinedAt\": \"2024-12-13\",\n    \"status\": \"active\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/halaqah/1/members",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "halaqah", "1", "members"]
+                }
+              }
+            },
+            {
+              "name": "Update Member Status",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"status\": \"graduated\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/halaqah/1/members/1",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "halaqah", "1", "members", "1"]
+                }
+              }
+            },
+            {
+              "name": "Remove Member from Halaqah",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/halaqah/1/members/1",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "halaqah", "1", "members", "1"]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mentors",
+          "item": [
+            {
+              "name": "Get Halaqah Mentors",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/halaqah/1/mentors",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "halaqah", "1", "mentors"]
+                }
+              }
+            },
+            {
+              "name": "Add Mentor to Halaqah",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"teacherId\": 1,\n    \"role\": \"lead\",\n    \"assignedAt\": \"2024-12-13\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/halaqah/1/mentors",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "halaqah", "1", "mentors"]
+                }
+              }
+            },
+            {
+              "name": "Update Mentor Role",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"role\": \"assistant\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/halaqah/1/mentors/1",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "halaqah", "1", "mentors", "1"]
+                }
+              }
+            },
+            {
+              "name": "Remove Mentor from Halaqah",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/halaqah/1/mentors/1",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "halaqah", "1", "mentors", "1"]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Rooms",
+      "item": [
+        {
+          "name": "Get All Rooms",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/rooms",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "rooms"]
+            }
+          }
+        },
+        {
+          "name": "Get Room by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/rooms/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "rooms", "1"]
+            }
+          }
+        },
+        {
+          "name": "Create Room",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Kamar Al-Fatihah\",\n    \"building\": \"Asrama Putra\",\n    \"floor\": \"Lantai 1\",\n    \"capacity\": 8,\n    \"description\": \"Kamar untuk santri baru\",\n    \"status\": \"active\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/rooms",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "rooms"]
+            }
+          }
+        },
+        {
+          "name": "Update Room",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Kamar Al-Fatihah (Updated)\",\n    \"capacity\": 10\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/rooms/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "rooms", "1"]
+            }
+          }
+        },
+        {
+          "name": "Delete Room",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/rooms/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "rooms", "1"]
+            }
+          }
+        },
+        {
+          "name": "Get Room Students",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/rooms/1/students",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "rooms", "1", "students"]
+            }
+          }
+        },
+        {
+          "name": "Assign Student to Room",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/rooms/1/students/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "rooms", "1", "students", "1"]
+            }
+          }
+        },
+        {
+          "name": "Remove Student from Room",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/rooms/1/students/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "rooms", "1", "students", "1"]
+            }
+          }
+        },
+        {
+          "name": "Get Room Supervisors",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/rooms/1/supervisors",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "rooms", "1", "supervisors"]
+            }
+          }
+        },
+        {
+          "name": "Add Supervisor to Room",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"teacherId\": 1,\n    \"role\": \"lead\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/rooms/1/supervisors",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "rooms", "1", "supervisors"]
+            }
+          }
+        },
+        {
+          "name": "Update Supervisor Role",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"role\": \"assistant\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/rooms/1/supervisors/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "rooms", "1", "supervisors", "1"]
+            }
+          }
+        },
+        {
+          "name": "Remove Supervisor from Room",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/rooms/1/supervisors/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "rooms", "1", "supervisors", "1"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

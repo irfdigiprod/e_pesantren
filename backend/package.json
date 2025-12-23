@@ -1,0 +1,36 @@
+{
+  "name": "api-pesantren",
+  "version": "1.0.0",
+  "description": "RESTful API untuk Sistem Informasi Manajemen Pesantren/Sekolah",
+  "module": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "dev": "bun run --hot src/index.ts",
+    "start": "bun run src/index.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "bun run src/db/migrate.ts",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^3.0.0",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/bun": "latest",
+    "@types/jsonwebtoken": "^9.0.10",
+    "drizzle-kit": "^0.31.8"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@hono/zod-validator": "^0.7.5",
+    "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^12.5.0",
+    "drizzle-orm": "^0.45.1",
+    "hono": "^4.10.8",
+    "jsonwebtoken": "^9.0.3",
+    "mysql2": "^3.15.3",
+    "xlsx": "^0.18.5",
+    "zod": "^4.1.13"
+  }
+}
