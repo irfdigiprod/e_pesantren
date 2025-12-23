@@ -230,6 +230,7 @@ halaqahRoute.post(
     try {
       const halaqahId = parseInt(c.req.param("id"));
       const data = c.req.valid("json");
+      const force = data.force === true;
 
       // Check if halaqah exists
       const halaqah = await db.query.halaqahGroups.findFirst({
@@ -249,19 +250,53 @@ halaqahRoute.post(
         return c.json({ success: false, message: "Student not found" }, 404);
       }
 
-      // Check if already member
-      const existing = await db.query.halaqahMembers.findFirst({
+      // Check if already member of THIS halaqah
+      const existingInSame = await db.query.halaqahMembers.findFirst({
         where: and(
           eq(halaqahMembers.halaqahId, halaqahId),
           eq(halaqahMembers.studentId, data.studentId)
         ),
       });
 
-      if (existing) {
+      if (existingInSame) {
         return c.json(
-          { success: false, message: "Student is already a member" },
+          {
+            success: false,
+            message: "Santri sudah menjadi anggota halaqah ini",
+          },
           400
         );
+      }
+
+      // Check if student is in ANY OTHER halaqah
+      const existingInOther = await db.query.halaqahMembers.findFirst({
+        where: eq(halaqahMembers.studentId, data.studentId),
+      });
+
+      if (existingInOther && !force) {
+        // Get the other halaqah name
+        const otherHalaqah = await db.query.halaqahGroups.findFirst({
+          where: eq(halaqahGroups.id, existingInOther.halaqahId),
+        });
+
+        return c.json({
+          success: false,
+          message: `Santri sudah terdaftar di halaqah "${
+            otherHalaqah?.name || "lain"
+          }"`,
+          requiresConfirm: true,
+          existingHalaqah: {
+            id: existingInOther.halaqahId,
+            name: otherHalaqah?.name || "Halaqah Lain",
+          },
+        });
+      }
+
+      // If force=true, remove from other halaqah first
+      if (existingInOther && force) {
+        await db
+          .delete(halaqahMembers)
+          .where(eq(halaqahMembers.id, existingInOther.id));
       }
 
       const result = await db.insert(halaqahMembers).values({
@@ -277,12 +312,17 @@ halaqahRoute.post(
 
       return c.json({
         success: true,
-        message: "Member added successfully",
+        message: force
+          ? "Santri berhasil dipindahkan ke halaqah ini"
+          : "Anggota berhasil ditambahkan",
         data: newMember,
       });
     } catch (error) {
       console.error("Add halaqah member error:", error);
-      return c.json({ success: false, message: "Failed to add member" }, 500);
+      return c.json(
+        { success: false, message: "Gagal menambahkan anggota" },
+        500
+      );
     }
   }
 );

@@ -573,6 +573,12 @@ export const academicApi = {
   async getClass(id) {
     return request(`/api/academic/classes/${id}`);
   },
+  async assignStudent(classId, studentId, force = false) {
+    return request(`/api/academic/classes/${classId}/students`, {
+      method: "POST",
+      body: { studentId, force },
+    });
+  },
 
   // Homeroom Teachers
   async getHomeroomTeachers(classId) {
@@ -689,10 +695,10 @@ export const halaqahApi = {
   async getMembers(halaqahId) {
     return request(`/api/halaqah/${halaqahId}/members`);
   },
-  async addMember(halaqahId, studentId) {
+  async addMember(halaqahId, studentId, force = false) {
     return request(`/api/halaqah/${halaqahId}/members`, {
       method: "POST",
-      body: { studentId },
+      body: { studentId, force },
     });
   },
   async removeMember(halaqahId, studentId) {
@@ -748,9 +754,10 @@ export const roomsApi = {
   async getStudents(roomId) {
     return request(`/api/rooms/${roomId}/students`);
   },
-  async assignStudent(roomId, studentId) {
+  async assignStudent(roomId, studentId, force = false) {
     return request(`/api/rooms/${roomId}/students/${studentId}`, {
       method: "POST",
+      body: { force },
     });
   },
   async removeStudent(roomId, studentId) {

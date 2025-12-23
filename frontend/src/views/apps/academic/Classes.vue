@@ -372,6 +372,17 @@
       @cancel="confirmCancel"
     />
 
+    <!-- Confirm Move Student Modal -->
+    <ConfirmModal
+      :isOpen="confirmMove.show"
+      title="Pindahkan Santri?"
+      :message="`Santri '${confirmMove.student?.fullName}' sudah terdaftar di kelas '${confirmMove.existingClass?.name}'. Apakah Anda ingin memindahkan ke kelas ini?`"
+      confirmText="Ya, Pindahkan"
+      cancelText="Batal"
+      @confirm="confirmMoveStudent"
+      @cancel="cancelMoveStudent"
+    />
+
     <!-- Status Modal -->
     <StatusModal
       :isOpen="statusModal.isOpen"
@@ -479,6 +490,13 @@ const homeroomModal = reactive({
   teachers: [],
   loading: false,
   error: "",
+});
+
+// State for confirming move between classes
+const confirmMove = reactive({
+  show: false,
+  student: null,
+  existingClass: null,
 });
 
 // Computed: Available students with class info
@@ -679,18 +697,58 @@ async function openStudents(classItem) {
 async function addStudent(student) {
   studentsModal.error = "";
   try {
-    await studentsApi.update(student.id, {
-      classId: studentsModal.classItem.id,
-    });
+    // Use assignStudent endpoint which handles single class enforcement
+    const res = await academicApi.assignStudent(
+      studentsModal.classItem.id,
+      student.id
+    );
+
+    // Check if requires confirmation
+    if (res.requiresConfirm && res.existingClass) {
+      confirmMove.show = true;
+      confirmMove.student = student;
+      confirmMove.existingClass = res.existingClass;
+      return;
+    }
+
     await fetchStudents();
-    const res = await academicApi.getClass(studentsModal.classItem.id);
-    studentsModal.students = Array.isArray(res?.data?.students)
-      ? res.data.students
+    const classRes = await academicApi.getClass(studentsModal.classItem.id);
+    studentsModal.students = Array.isArray(classRes?.data?.students)
+      ? classRes.data.students
       : [];
     await fetchData();
   } catch (e) {
     studentsModal.error = e.message || "Gagal menambahkan";
   }
+}
+
+async function confirmMoveStudent() {
+  studentsModal.error = "";
+  try {
+    await academicApi.assignStudent(
+      studentsModal.classItem.id,
+      confirmMove.student.id,
+      true // force updated
+    );
+
+    await fetchStudents();
+    const classRes = await academicApi.getClass(studentsModal.classItem.id);
+    studentsModal.students = Array.isArray(classRes?.data?.students)
+      ? classRes.data.students
+      : [];
+    await fetchData();
+
+    cancelMoveStudent();
+  } catch (e) {
+    studentsModal.error = e.message || "Gagal memindahkan";
+    cancelMoveStudent();
+  }
+}
+
+function cancelMoveStudent() {
+  confirmMove.show = false;
+  confirmMove.student = null;
+  confirmMove.existingClass = null;
 }
 
 async function removeStudent(student) {
@@ -745,6 +803,7 @@ async function addHomeroomTeacher(teacher) {
       homeroomModal.classItem.id
     );
     homeroomModal.teachers = Array.isArray(res?.data) ? res.data : [];
+    await fetchTeachers(); // Refresh teacher data to update class labels
     await fetchData();
   } catch (e) {
     homeroomModal.error = e.message || "Gagal menambahkan";
@@ -762,6 +821,7 @@ async function removeHomeroomTeacher(teacher) {
       homeroomModal.classItem.id
     );
     homeroomModal.teachers = Array.isArray(res?.data) ? res.data : [];
+    await fetchTeachers(); // Refresh teacher data to update class labels
     await fetchData();
   } catch (e) {
     homeroomModal.error = e.message || "Gagal menghapus";

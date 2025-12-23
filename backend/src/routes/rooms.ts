@@ -231,6 +231,8 @@ roomsRoute.post(
     try {
       const roomId = parseInt(c.req.param("id"));
       const studentId = parseInt(c.req.param("studentId"));
+      const body = await c.req.json().catch(() => ({}));
+      const force = body.force === true;
 
       // Check if room exists
       const room = await db.query.rooms.findFirst({
@@ -250,16 +252,41 @@ roomsRoute.post(
         return c.json({ success: false, message: "Student not found" }, 404);
       }
 
+      // Check if student is already in THIS room
+      if (student.roomId === roomId) {
+        return c.json(
+          { success: false, message: "Santri sudah ada di kamar ini" },
+          400
+        );
+      }
+
+      // Check if student is already in ANOTHER room
+      if (student.roomId && student.roomId !== roomId && !force) {
+        // Get existing room name
+        const existingRoom = await db.query.rooms.findFirst({
+          where: eq(rooms.id, student.roomId),
+        });
+
+        return c.json({
+          success: false,
+          message: `Santri sudah terdaftar di kamar "${
+            existingRoom?.name || "lain"
+          }"`,
+          requiresConfirm: true,
+          existingRoom: {
+            id: existingRoom?.id,
+            name: existingRoom?.name || "Kamar Lain",
+          },
+        });
+      }
+
       // Check room capacity
       if (room.capacity) {
         const currentStudents = await db.query.students.findMany({
           where: eq(students.roomId, roomId),
         });
         if (currentStudents.length >= room.capacity) {
-          return c.json(
-            { success: false, message: "Room is at full capacity" },
-            400
-          );
+          return c.json({ success: false, message: "Kamar sudah penuh" }, 400);
         }
       }
 
@@ -275,13 +302,15 @@ roomsRoute.post(
 
       return c.json({
         success: true,
-        message: "Student assigned to room successfully",
+        message: force
+          ? "Santri berhasil dipindahkan ke kamar ini"
+          : "Santri berhasil ditambahkan ke kamar",
         data: updated,
       });
     } catch (error) {
       console.error("Assign student to room error:", error);
       return c.json(
-        { success: false, message: "Failed to assign student" },
+        { success: false, message: "Gagal menambahkan santri" },
         500
       );
     }

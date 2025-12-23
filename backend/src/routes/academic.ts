@@ -211,6 +211,94 @@ academicRoute.delete("/classes/:id", requireRole("admin"), async (c) => {
   }
 });
 
+// Assign student to class
+academicRoute.post(
+  "/classes/:id/students",
+  requireRole("admin", "staff"),
+  async (c) => {
+    try {
+      const classId = parseInt(c.req.param("id"));
+      const body = await c.req.json().catch(() => ({}));
+      const studentId = body.studentId;
+      const force = body.force === true;
+
+      if (!studentId) {
+        return c.json(
+          { success: false, message: "Student ID is required" },
+          400
+        );
+      }
+
+      const { students } = await import("../db/schema/students");
+
+      // Check if class exists
+      const classItem = await db.query.classes.findFirst({
+        where: eq(classes.id, classId),
+      });
+
+      if (!classItem) {
+        return c.json({ success: false, message: "Class not found" }, 404);
+      }
+
+      // Check if student exists
+      const student = await db.query.students.findFirst({
+        where: eq(students.id, studentId),
+      });
+
+      if (!student) {
+        return c.json({ success: false, message: "Student not found" }, 404);
+      }
+
+      // Check if student is already in THIS class
+      if (student.classId === classId) {
+        return c.json(
+          { success: false, message: "Santri sudah ada di kelas ini" },
+          400
+        );
+      }
+
+      // Check if student is in ANY OTHER class
+      if (student.classId && student.classId !== classId && !force) {
+        // Get existing class name
+        const existingClass = await db.query.classes.findFirst({
+          where: eq(classes.id, student.classId),
+        });
+
+        return c.json({
+          success: false,
+          message: `Santri sudah terdaftar di kelas "${
+            existingClass?.name || "lain"
+          }"`,
+          requiresConfirm: true,
+          existingClass: {
+            id: existingClass?.id,
+            name: existingClass?.name || "Kelas Lain",
+          },
+        });
+      }
+
+      // Update student's class
+      await db
+        .update(students)
+        .set({ classId })
+        .where(eq(students.id, studentId));
+
+      return c.json({
+        success: true,
+        message: force
+          ? "Santri berhasil dipindahkan ke kelas ini"
+          : "Santri berhasil ditambahkan ke kelas",
+      });
+    } catch (error) {
+      console.error("Assign student to class error:", error);
+      return c.json(
+        { success: false, message: "Gagal menambahkan santri ke kelas" },
+        500
+      );
+    }
+  }
+);
+
 // ============ CLASS HOMEROOM TEACHERS ============
 
 // Get homeroom teachers for a class

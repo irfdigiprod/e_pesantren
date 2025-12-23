@@ -16,6 +16,7 @@ export const addMemberSchema = z.object({
   studentId: z.number().int().positive(),
   joinedAt: z.string().optional(), // Date string
   status: z.enum(["active", "inactive", "graduated"]).optional(),
+  force: z.boolean().optional(), // Force move from another halaqah
 });
 
 export const updateMemberSchema = z.object({

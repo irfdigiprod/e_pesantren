@@ -305,6 +305,17 @@
       @cancel="confirmCancel"
     />
 
+    <!-- Confirm Move Member Modal -->
+    <ConfirmModal
+      :isOpen="confirmMove.show"
+      title="Pindahkan Santri?"
+      :message="`Santri '${confirmMove.student?.fullName}' sudah terdaftar di halaqah '${confirmMove.existingHalaqah?.name}'. Apakah Anda ingin memindahkan ke halaqah ini?`"
+      confirmText="Ya, Pindahkan"
+      cancelText="Batal"
+      @confirm="confirmMoveMember"
+      @cancel="cancelMoveMember"
+    />
+
     <!-- Status Modal -->
     <StatusModal
       :isOpen="statusModal.isOpen"
@@ -392,6 +403,13 @@ const mentorsModal = reactive({
   mentors: [],
   loading: false,
   error: "",
+});
+
+// State for confirming move between halaqahs
+const confirmMove = reactive({
+  show: false,
+  student: null,
+  existingHalaqah: null,
 });
 
 // Computed: Available students with halaqah info
@@ -607,13 +625,60 @@ async function openMembers(group) {
 async function addMember(student) {
   membersModal.error = "";
   try {
-    await halaqahApi.addMember(membersModal.group.id, student.id);
-    const res = await halaqahApi.getMembers(membersModal.group.id);
-    membersModal.members = Array.isArray(res?.data) ? res.data : [];
+    const res = await halaqahApi.addMember(membersModal.group.id, student.id);
+
+    // Check if requires confirmation to move from another halaqah
+    if (res.requiresConfirm && res.existingHalaqah) {
+      confirmMove.show = true;
+      confirmMove.student = student;
+      confirmMove.existingHalaqah = res.existingHalaqah;
+      return;
+    }
+
+    // Success - reload members
+    const membersRes = await halaqahApi.getMembers(membersModal.group.id);
+    membersModal.members = Array.isArray(membersRes?.data)
+      ? membersRes.data
+      : [];
+    await fetchStudents(); // Refresh student data to update halaqah labels
     await fetchData();
   } catch (e) {
     membersModal.error = e.message || "Gagal menambahkan";
   }
+}
+
+// Confirm moving student from one halaqah to another
+async function confirmMoveMember() {
+  membersModal.error = "";
+  try {
+    await halaqahApi.addMember(
+      membersModal.group.id,
+      confirmMove.student.id,
+      true // force = true
+    );
+
+    // Reload members
+    const membersRes = await halaqahApi.getMembers(membersModal.group.id);
+    membersModal.members = Array.isArray(membersRes?.data)
+      ? membersRes.data
+      : [];
+    await fetchStudents();
+    await fetchData();
+
+    // Reset confirm state
+    confirmMove.show = false;
+    confirmMove.student = null;
+    confirmMove.existingHalaqah = null;
+  } catch (e) {
+    membersModal.error = e.message || "Gagal memindahkan";
+    confirmMove.show = false;
+  }
+}
+
+function cancelMoveMember() {
+  confirmMove.show = false;
+  confirmMove.student = null;
+  confirmMove.existingHalaqah = null;
 }
 
 async function removeMember(member) {
@@ -625,6 +690,7 @@ async function removeMember(member) {
     );
     const res = await halaqahApi.getMembers(membersModal.group.id);
     membersModal.members = Array.isArray(res?.data) ? res.data : [];
+    await fetchStudents(); // Refresh student data to update halaqah labels
     await fetchData();
   } catch (e) {
     membersModal.error = e.message || "Gagal menghapus";
@@ -659,6 +725,7 @@ async function addMentor(teacher) {
     await halaqahApi.addMentor(mentorsModal.group.id, teacher.id);
     const res = await halaqahApi.getMentors(mentorsModal.group.id);
     mentorsModal.mentors = Array.isArray(res?.data) ? res.data : [];
+    await fetchTeachers(); // Refresh teacher data to update mentor labels
     await fetchData();
   } catch (e) {
     mentorsModal.error = e.message || "Gagal menambahkan";
@@ -674,6 +741,7 @@ async function removeMentor(mentor) {
     );
     const res = await halaqahApi.getMentors(mentorsModal.group.id);
     mentorsModal.mentors = Array.isArray(res?.data) ? res.data : [];
+    await fetchTeachers(); // Refresh teacher data to update mentor labels
     await fetchData();
   } catch (e) {
     mentorsModal.error = e.message || "Gagal menghapus";

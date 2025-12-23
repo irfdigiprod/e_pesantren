@@ -312,6 +312,17 @@
       @cancel="confirmCancel"
     />
 
+    <!-- Confirm Move Student Modal -->
+    <ConfirmModal
+      :isOpen="confirmMove.show"
+      title="Pindahkan Santri?"
+      :message="`Santri '${confirmMove.student?.fullName}' sudah terdaftar di kamar '${confirmMove.existingRoom?.name}'. Apakah Anda ingin memindahkan ke kamar ini?`"
+      confirmText="Ya, Pindahkan"
+      cancelText="Batal"
+      @confirm="confirmMoveStudent"
+      @cancel="cancelMoveStudent"
+    />
+
     <!-- Status Modal -->
     <StatusModal
       :isOpen="statusModal.isOpen"
@@ -400,6 +411,13 @@ const supervisorsModal = reactive({
   supervisors: [],
   loading: false,
   error: "",
+});
+
+// State for confirming move between rooms
+const confirmMove = reactive({
+  show: false,
+  student: null,
+  existingRoom: null,
 });
 
 // Computed: Available students with room info
@@ -602,13 +620,60 @@ async function openStudents(room) {
 async function addStudent(student) {
   studentsModal.error = "";
   try {
-    await roomsApi.assignStudent(studentsModal.room.id, student.id);
-    const res = await roomsApi.getStudents(studentsModal.room.id);
-    studentsModal.students = Array.isArray(res?.data) ? res.data : [];
+    const res = await roomsApi.assignStudent(studentsModal.room.id, student.id);
+
+    // Check if requires confirmation to move from another room
+    if (res.requiresConfirm && res.existingRoom) {
+      confirmMove.show = true;
+      confirmMove.student = student;
+      confirmMove.existingRoom = res.existingRoom;
+      return;
+    }
+
+    // Success - reload students
+    const studentsRes = await roomsApi.getStudents(studentsModal.room.id);
+    studentsModal.students = Array.isArray(studentsRes?.data)
+      ? studentsRes.data
+      : [];
+    await fetchStudents(); // Refresh student data to update room labels
     await fetchData();
   } catch (e) {
     studentsModal.error = e.message || "Gagal menambahkan";
   }
+}
+
+// Confirm moving student from one room to another
+async function confirmMoveStudent() {
+  studentsModal.error = "";
+  try {
+    await roomsApi.assignStudent(
+      studentsModal.room.id,
+      confirmMove.student.id,
+      true // force = true
+    );
+
+    // Reload students
+    const studentsRes = await roomsApi.getStudents(studentsModal.room.id);
+    studentsModal.students = Array.isArray(studentsRes?.data)
+      ? studentsRes.data
+      : [];
+    await fetchStudents();
+    await fetchData();
+
+    // Reset confirm state
+    confirmMove.show = false;
+    confirmMove.student = null;
+    confirmMove.existingRoom = null;
+  } catch (e) {
+    studentsModal.error = e.message || "Gagal memindahkan";
+    confirmMove.show = false;
+  }
+}
+
+function cancelMoveStudent() {
+  confirmMove.show = false;
+  confirmMove.student = null;
+  confirmMove.existingRoom = null;
 }
 
 async function removeStudent(member) {
@@ -620,6 +685,7 @@ async function removeStudent(member) {
     );
     const res = await roomsApi.getStudents(studentsModal.room.id);
     studentsModal.students = Array.isArray(res?.data) ? res.data : [];
+    await fetchStudents(); // Refresh student data to update room labels
     await fetchData();
   } catch (e) {
     studentsModal.error = e.message || "Gagal menghapus";
@@ -654,6 +720,7 @@ async function addSupervisor(teacher) {
     await roomsApi.assignSupervisor(supervisorsModal.room.id, teacher.id);
     const res = await roomsApi.getSupervisors(supervisorsModal.room.id);
     supervisorsModal.supervisors = Array.isArray(res?.data) ? res.data : [];
+    await fetchTeachers(); // Refresh teacher data to update room labels
     await fetchData();
   } catch (e) {
     supervisorsModal.error = e.message || "Gagal menambahkan";
@@ -669,6 +736,7 @@ async function removeSupervisor(supervisor) {
     );
     const res = await roomsApi.getSupervisors(supervisorsModal.room.id);
     supervisorsModal.supervisors = Array.isArray(res?.data) ? res.data : [];
+    await fetchTeachers(); // Refresh teacher data to update room labels
     await fetchData();
   } catch (e) {
     supervisorsModal.error = e.message || "Gagal menghapus";
