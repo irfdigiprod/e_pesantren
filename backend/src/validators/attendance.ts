@@ -43,6 +43,7 @@ export const teacherCheckInSchema = z.object({
   teacherId: z.number().min(1, "Teacher ID is required"),
   latitude: z.number().min(-90).max(90).optional(),
   longitude: z.number().min(-180).max(180).optional(),
+  activity: z.string().optional(),
   notes: z.string().optional(),
 });
 

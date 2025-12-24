@@ -2,6 +2,8 @@ import { Hono } from "hono";
 import { like, or, and, eq } from "drizzle-orm";
 import { db } from "../db";
 import { users } from "../db/schema/users";
+import { teachers } from "../db/schema/teachers";
+import { parents } from "../db/schema/students";
 import { authMiddleware } from "../middleware/auth";
 import { broadcastUserProfileUpdate } from "../websocket";
 
@@ -28,6 +30,7 @@ usersRoute.get("/", async (c) => {
         email: true,
         name: true,
         role: true,
+        photo: true,
       },
       where: whereClause,
       limit: 20,
@@ -36,9 +39,44 @@ usersRoute.get("/", async (c) => {
     // Filter out current user
     const otherUsers = allUsers.filter((u) => u.id !== currentUser.userId);
 
+    // Enrich with teacher or parent data if available
+    const enrichedUsers = await Promise.all(
+      otherUsers.map(async (u) => {
+        // Try to get teacher info first
+        const teacher = await db.query.teachers.findFirst({
+          where: eq(teachers.userId, u.id),
+          columns: { fullName: true, photo: true },
+        });
+
+        if (teacher?.fullName) {
+          return {
+            ...u,
+            name: teacher.fullName,
+            photo: u.photo || teacher.photo,
+          };
+        }
+
+        // If not a teacher, try to get parent info
+        const parent = await db.query.parents.findFirst({
+          where: eq(parents.userId, u.id),
+          columns: { fatherName: true, motherName: true },
+        });
+
+        if (parent?.fatherName || parent?.motherName) {
+          return {
+            ...u,
+            name: parent.fatherName || parent.motherName,
+          };
+        }
+
+        // Fallback to user's name
+        return u;
+      })
+    );
+
     return c.json({
       success: true,
-      data: otherUsers,
+      data: enrichedUsers,
     });
   } catch (error) {
     console.error("Get users error:", error);

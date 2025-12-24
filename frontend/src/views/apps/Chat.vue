@@ -2799,20 +2799,31 @@ function getMemberInitials(member) {
 
 function getConversationName(conv) {
   if (conv.type === "group") return conv.name || "Grup";
-  const other = conv.participants?.find(
-    (p) => String(p.userId) !== String(currentUser.value?.id)
-  );
-  if (!other) return "Pengguna";
-  // Use name if available, otherwise extract from email prefix
-  if (other.name) return other.name;
-  if (other.email) {
-    const namePart = other.email.split("@")[0];
-    // Capitalize first letter of each word
-    return namePart
-      .split(/[._-]/)
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ");
+
+  // Find the other participant (not current user)
+  const currentUserId = currentUser.value?.id;
+  const other = conv.participants?.find((p) => {
+    const participantId = p.userId || p.id;
+    return String(participantId) !== String(currentUserId);
+  });
+
+  // If other participant found, return their name
+  if (other) {
+    if (other.name) return other.name;
+    if (other.email) {
+      const namePart = other.email.split("@")[0];
+      // Capitalize first letter of each word
+      return namePart
+        .split(/[._-]/)
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ");
+    }
   }
+
+  // Fallback: If participants are missing (e.g. temp chat or sync issue),
+  // use the conversation name if available.
+  if (conv.name) return conv.name;
+
   return "Pengguna";
 }
 
@@ -2830,9 +2841,11 @@ function getConversationAvatar(conv) {
 
   // Personal chat: try to get other participant's photo
   if (conv.type !== "group" && conv.participants) {
-    const other = conv.participants.find(
-      (p) => String(p.userId) !== String(currentUser.value?.id)
-    );
+    const currentUserId = currentUser.value?.id;
+    const other = conv.participants.find((p) => {
+      const participantId = p.userId || p.id;
+      return String(participantId) !== String(currentUserId);
+    });
     if (other?.photo) {
       if (other.photo.startsWith("uploads/")) {
         return `${API_URL}/api/${other.photo}`;
@@ -3643,9 +3656,15 @@ function handleMessageInputChange() {
 function getOnlineStatus() {
   if (!activeConversation.value) return "";
   const other = activeConversation.value.participants?.find(
-    (p) => p.userId !== currentUser.value?.id
+    (p) => String(p.userId) !== String(currentUser.value?.id)
   );
-  if (other && onlineUsers.value.includes(other.userId)) return "Online";
+  if (other) {
+    // Check if ID exists in onlineUsers array safely (handle string/number mismatch)
+    const isOnline = onlineUsers.value.some(
+      (id) => String(id) === String(other.userId)
+    );
+    return isOnline ? "Online" : "Offline";
+  }
   return "Offline";
 }
 
@@ -3768,12 +3787,24 @@ async function sendMessage() {
         (c) => c.id === activeConversation.value.id
       );
 
+      // Robust merge: if backend returns incomplete data (e.g. missing participants),
+      // preserve the local participants/name which are already correct.
+      if (!realConv.participants || realConv.participants.length === 0) {
+        console.warn(
+          "Backend returned incomplete conversation, preserving local participants"
+        );
+        realConv.participants = activeConversation.value.participants;
+        // Also preserve name/avatar if they are missing in realConv but present locally
+        if (!realConv.name) realConv.name = activeConversation.value.name;
+        if (!realConv.avatarUrl)
+          realConv.avatarUrl = activeConversation.value.avatarUrl;
+      }
+
       if (tempIndex !== -1) {
         conversations.value[tempIndex] = realConv;
       }
 
       // Update active conversation reference
-      // Preserve local fields if needed, but mostly switch to real one
       activeConversation.value = realConv;
       messages.value = []; // Reset messages (should be empty anyway)
     } catch (e) {
@@ -4700,16 +4731,19 @@ function setupWebSocketListeners() {
   });
 
   wsClient.on("online_users", (data) => {
-    onlineUsers.value = data.users || [];
+    onlineUsers.value = (data.users || []).map((id) => Number(id));
   });
 
   wsClient.on("user_online", (data) => {
-    if (!onlineUsers.value.includes(data.userId))
-      onlineUsers.value.push(data.userId);
+    const userId = Number(data.userId);
+    if (!onlineUsers.value.includes(userId)) {
+      onlineUsers.value.push(userId);
+    }
   });
 
   wsClient.on("user_offline", (data) => {
-    onlineUsers.value = onlineUsers.value.filter((id) => id !== data.userId);
+    const userId = Number(data.userId);
+    onlineUsers.value = onlineUsers.value.filter((id) => id !== userId);
   });
 
   // Listen for connected event to request online users
@@ -4843,7 +4877,7 @@ onUnmounted(() => {
 
 .chat-container {
   display: flex;
-  height: calc(100vh - 4rem - 2rem);
+  height: calc(100vh - 5rem - 2rem);
   background: #f8fafc;
   position: relative;
   overflow: hidden;

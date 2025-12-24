@@ -20,9 +20,22 @@ teachersRoute.use("*", authMiddleware);
 // Get all teachers
 teachersRoute.get("/", async (c) => {
   try {
-    const allTeachers = await db.query.teachers.findMany({
-      orderBy: (teachers, { desc }) => [desc(teachers.createdAt)],
-    });
+    const userId = c.req.query("userId");
+
+    let conditions: any[] = [];
+    if (userId) {
+      conditions.push(eq(teachers.userId, parseInt(userId)));
+    }
+
+    const allTeachers =
+      conditions.length > 0
+        ? await db.query.teachers.findMany({
+            where: conditions[0],
+            orderBy: (teachers, { desc }) => [desc(teachers.createdAt)],
+          })
+        : await db.query.teachers.findMany({
+            orderBy: (teachers, { desc }) => [desc(teachers.createdAt)],
+          });
 
     // Fetch related divisions manually to be safe
     const allRelations = await db

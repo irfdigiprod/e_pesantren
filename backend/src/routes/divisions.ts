@@ -284,6 +284,15 @@ divisionsRoute.post(
         role: body.role || "member",
       });
 
+      // Also update teacher's divisionId and department (name) columns
+      const division = await db.query.divisions.findFirst({
+        where: eq(divisions.id, divisionId),
+      });
+      await db
+        .update(teachers)
+        .set({ divisionId, department: division?.name || null })
+        .where(eq(teachers.id, teacherId));
+
       return c.json({
         success: true,
         message: force
@@ -323,6 +332,12 @@ divisionsRoute.delete(
       await db
         .delete(teacherDivisions)
         .where(eq(teacherDivisions.id, existing.id));
+
+      // Also clear teacher's divisionId and department columns
+      await db
+        .update(teachers)
+        .set({ divisionId: null, department: null })
+        .where(eq(teachers.id, teacherId));
 
       return c.json({
         success: true,

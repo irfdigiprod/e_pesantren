@@ -132,6 +132,12 @@ const router = createRouter({
           component: () => import("@/views/apps/TeacherAttendance.vue"),
         },
         {
+          path: "apps/attendance-recap",
+          name: "AttendanceRecap",
+          component: () => import("@/views/apps/AttendanceRecap.vue"),
+          meta: { requiresAdmin: true },
+        },
+        {
           path: "apps/rewards",
           name: "Rewards",
           component: () => import("@/views/apps/Rewards.vue"),
@@ -255,6 +261,11 @@ const router = createRouter({
           path: "settings/billing",
           name: "SettingsBilling",
           component: () => import("@/views/settings/SettingsBilling.vue"),
+        },
+        {
+          path: "settings/attendance",
+          name: "SettingsAttendance",
+          component: () => import("@/views/settings/SettingsAttendance.vue"),
         },
 
         // =======================

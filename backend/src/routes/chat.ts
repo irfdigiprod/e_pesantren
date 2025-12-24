@@ -13,170 +13,207 @@ import {
   sql,
 } from "drizzle-orm";
 import { db } from "../db";
+import { users } from "../db/schema/users";
+import { teachers } from "../db/schema/teachers";
+import { parents } from "../db/schema/students";
 import {
   conversations,
   conversationParticipants,
   messages,
+  messageReadStatus,
   messageAttachments,
   messageReactions,
-  messageReadStatus,
 } from "../db/schema/chat";
-import { users } from "../db/schema/users";
 import { notifications } from "../db/schema/notifications";
-import { authMiddleware } from "../middleware/auth";
-import { broadcastToUser, broadcastToGroup } from "../websocket";
+import {
+  broadcastToUser,
+  broadcastToGroup,
+  broadcastToConversation,
+} from "../websocket";
+import * as fs from "fs";
+import * as path from "path";
+
+const UPLOAD_DIR = path.resolve(process.cwd(), "uploads");
 import {
   createConversationSchema,
   updateConversationSchema,
-  addParticipantSchema,
-  addMembersSchema,
-  updateMemberRoleSchema,
   createMessageSchema,
   updateMessageSchema,
+  addMembersSchema,
+  updateMemberRoleSchema,
+  addParticipantSchema,
   addReactionSchema,
+  forwardMessageSchema,
   getMessagesQuerySchema,
-  getConversationsQuerySchema,
 } from "../validators/chat";
+import { authMiddleware } from "../middleware/auth";
 
 const chat = new Hono();
 
-// ============================================
-// CONVERSATIONS ROUTES
-// ============================================
+// Helper to get enriched conversation
+const getEnrichedConversation = async (conversationId: number) => {
+  const conversation = await db.query.conversations.findFirst({
+    where: eq(conversations.id, conversationId),
+  });
 
-// Get all conversations for current user
-chat.get(
-  "/conversations",
-  authMiddleware,
-  zValidator("query", getConversationsQuerySchema),
-  async (c) => {
-    try {
-      const currentUser = c.get("user");
-      const { limit, offset, search } = c.req.valid("query");
+  if (!conversation) return null;
 
-      // Get conversation IDs where user is a participant and has joined
-      const userParticipations = await db
-        .select({ conversationId: conversationParticipants.conversationId })
-        .from(conversationParticipants)
-        .where(
-          and(
-            eq(conversationParticipants.userId, currentUser.userId),
-            isNull(conversationParticipants.leftAt),
-            eq(conversationParticipants.status, "joined")
-          )
-        );
+  const participants = await db
+    .select({
+      userId: conversationParticipants.userId,
+      role: conversationParticipants.role,
+      nickname: conversationParticipants.nickname,
+      joinedAt: conversationParticipants.joinedAt,
+      name: users.name,
+      email: users.email,
+      photo: users.photo,
+    })
+    .from(conversationParticipants)
+    .leftJoin(users, eq(conversationParticipants.userId, users.id))
+    .where(
+      and(
+        eq(conversationParticipants.conversationId, conversationId),
+        isNull(conversationParticipants.leftAt),
+        eq(conversationParticipants.status, "joined")
+      )
+    );
 
-      const conversationIds = userParticipations.map((p) => p.conversationId);
+  const enrichedParticipants = await Promise.all(
+    participants.map(async (p) => {
+      if (!p.userId) return p;
 
-      if (conversationIds.length === 0) {
-        return c.json({ success: true, data: [], total: 0 });
+      // Try teacher
+      const teacher = await db.query.teachers.findFirst({
+        where: eq(teachers.userId, p.userId),
+        columns: { fullName: true, photo: true },
+      });
+
+      if (teacher?.fullName) {
+        return {
+          ...p,
+          name: teacher.fullName,
+          photo: p.photo || teacher.photo,
+        };
       }
 
-      // Build query for conversations with optional search
-      let conversationsQuery = db
-        .select({
-          id: conversations.id,
-          type: conversations.type,
-          name: conversations.name,
-          avatarUrl: conversations.avatarUrl,
-          lastMessageAt: conversations.lastMessageAt,
-          createdAt: conversations.createdAt,
-          isLocked: conversations.isLocked,
-        })
-        .from(conversations)
-        .where(inArray(conversations.id, conversationIds))
-        .orderBy(desc(conversations.lastMessageAt))
-        .limit(limit)
-        .offset(offset);
-
-      const conversationsList = await conversationsQuery;
-
-      // Get participants for each conversation
-      const conversationsWithDetails = await Promise.all(
-        conversationsList.map(async (conv) => {
-          // Get participants (only joined, not invited)
-          const participants = await db
-            .select({
-              userId: conversationParticipants.userId,
-              name: users.name,
-              role: conversationParticipants.role,
-              email: users.email,
-              photo: users.photo,
-            })
-            .from(conversationParticipants)
-            .leftJoin(users, eq(conversationParticipants.userId, users.id))
-            .where(
-              and(
-                eq(conversationParticipants.conversationId, conv.id),
-                isNull(conversationParticipants.leftAt),
-                eq(conversationParticipants.status, "joined")
-              )
-            );
-
-          // Get last message
-          const lastMessage = await db
-            .select({
-              id: messages.id,
-              content: messages.content,
-              messageType: messages.messageType,
-              senderId: messages.senderId,
-              createdAt: messages.createdAt,
-            })
-            .from(messages)
-            .where(
-              and(
-                eq(messages.conversationId, conv.id),
-                eq(messages.isDeleted, false)
-              )
-            )
-            .orderBy(desc(messages.createdAt))
-            .limit(1);
-
-          // Get unread count: messages from OTHER users that current user hasn't read
-          const unreadResult = await db
-            .select({ count: sql<number>`COUNT(*)` })
-            .from(messages)
-            .leftJoin(
-              messageReadStatus,
-              and(
-                eq(messageReadStatus.messageId, messages.id),
-                eq(messageReadStatus.userId, currentUser.userId)
-              )
-            )
-            .where(
-              and(
-                eq(messages.conversationId, conv.id),
-                eq(messages.isDeleted, false),
-                // Exclude messages sent by current user
-                sql`${messages.senderId} != ${currentUser.userId}`,
-                // Only messages that haven't been read (no read status entry)
-                isNull(messageReadStatus.id)
-              )
-            );
-
-          return {
-            ...conv,
-            participants,
-            lastMessage: lastMessage[0] || null,
-            unreadCount: Number(unreadResult[0]?.count || 0),
-          };
-        })
-      );
-
-      return c.json({
-        success: true,
-        data: conversationsWithDetails,
-        total: conversationIds.length,
+      // Try parent
+      const parent = await db.query.parents.findFirst({
+        where: eq(parents.userId, p.userId),
+        columns: { fatherName: true, motherName: true },
       });
-    } catch (error) {
-      console.error("Get conversations error:", error);
-      return c.json(
-        { success: false, message: "Failed to get conversations" },
-        500
+
+      if (parent?.fatherName || parent?.motherName) {
+        return {
+          ...p,
+          name: parent.fatherName || parent.motherName,
+        };
+      }
+
+      return p;
+    })
+  );
+
+  return {
+    ...conversation,
+    participants: enrichedParticipants,
+  };
+};
+
+// Get all conversations for current user
+chat.get("/conversations", authMiddleware, async (c) => {
+  try {
+    const currentUser = c.get("user");
+
+    // Get all conversations where user is a participant
+    const conversationIds = await db
+      .select({ conversationId: conversationParticipants.conversationId })
+      .from(conversationParticipants)
+      .where(
+        and(
+          eq(conversationParticipants.userId, currentUser.userId),
+          isNull(conversationParticipants.leftAt),
+          eq(conversationParticipants.status, "joined")
+        )
       );
+
+    const ids = conversationIds.map((c) => c.conversationId);
+
+    if (ids.length === 0) {
+      return c.json({ success: true, data: [], total: 0 });
     }
+
+    const conversationsList = await db
+      .select()
+      .from(conversations)
+      .where(inArray(conversations.id, ids))
+      .orderBy(desc(conversations.lastMessageAt));
+
+    // Get participants for each conversation
+    const conversationsWithDetails = await Promise.all(
+      conversationsList.map(async (conv) => {
+        const enrichedConv = await getEnrichedConversation(conv.id);
+
+        // Get last message (reuse logic or fetch)
+        // We'll fetch last message separately as before
+        const lastMessage = await db
+          .select({
+            id: messages.id,
+            content: messages.content,
+            messageType: messages.messageType,
+            senderId: messages.senderId,
+            createdAt: messages.createdAt,
+          })
+          .from(messages)
+          .where(
+            and(
+              eq(messages.conversationId, conv.id),
+              eq(messages.isDeleted, false)
+            )
+          )
+          .orderBy(desc(messages.createdAt))
+          .limit(1);
+
+        // Get unread count
+        const unreadResult = await db
+          .select({ count: sql<number>`COUNT(*)` })
+          .from(messages)
+          .leftJoin(
+            messageReadStatus,
+            and(
+              eq(messageReadStatus.messageId, messages.id),
+              eq(messageReadStatus.userId, currentUser.userId)
+            )
+          )
+          .where(
+            and(
+              eq(messages.conversationId, conv.id),
+              eq(messages.isDeleted, false),
+              sql`${messages.senderId} != ${currentUser.userId}`,
+              isNull(messageReadStatus.id)
+            )
+          );
+
+        return {
+          ...enrichedConv,
+          lastMessage: lastMessage[0] || null,
+          unreadCount: Number(unreadResult[0]?.count || 0),
+        };
+      })
+    );
+
+    return c.json({
+      success: true,
+      data: conversationsWithDetails,
+      total: ids.length,
+    });
+  } catch (error) {
+    console.error("Get conversations error:", error);
+    return c.json(
+      { success: false, message: "Failed to get conversations" },
+      500
+    );
   }
-);
+});
 
 // Create a new conversation
 chat.post(
@@ -190,7 +227,7 @@ chat.post(
 
       // For private chat, check if conversation already exists
       if (type === "private" && participantIds.length === 1) {
-        const otherUserId = participantIds[0];
+        const otherUserId = participantIds[0]!;
 
         // Find existing private conversation between these two users
         const existingConversation = await db
@@ -220,9 +257,10 @@ chat.post(
             userIds.includes(otherUserId)
           ) {
             // Conversation already exists
+            const fullConv = await getEnrichedConversation(conv.id);
             return c.json({
               success: true,
-              data: { id: conv.id },
+              data: fullConv,
               message: "Conversation already exists",
             });
           }
@@ -251,6 +289,7 @@ chat.post(
         conversationId,
         userId: currentUser.userId,
         role: "admin",
+        status: "joined",
       });
 
       // Add other participants
@@ -293,10 +332,12 @@ chat.post(
         }
       }
 
+      const fullConv = await getEnrichedConversation(conversationId);
+
       return c.json(
         {
           success: true,
-          data: { id: conversationId },
+          data: fullConv,
           message: "Conversation created",
         },
         201
@@ -346,7 +387,9 @@ chat.get("/conversations/:id", authMiddleware, async (c) => {
         role: conversationParticipants.role,
         nickname: conversationParticipants.nickname,
         joinedAt: conversationParticipants.joinedAt,
+        name: users.name,
         email: users.email,
+        photo: users.photo,
       })
       .from(conversationParticipants)
       .leftJoin(users, eq(conversationParticipants.userId, users.id))
@@ -358,11 +401,47 @@ chat.get("/conversations/:id", authMiddleware, async (c) => {
         )
       );
 
+    // Enrich participants with teacher/parent data
+    const enrichedParticipants = await Promise.all(
+      participants.map(async (p) => {
+        if (!p.userId) return p;
+
+        // Try teacher
+        const teacher = await db.query.teachers.findFirst({
+          where: eq(teachers.userId, p.userId),
+          columns: { fullName: true, photo: true },
+        });
+
+        if (teacher?.fullName) {
+          return {
+            ...p,
+            name: teacher.fullName,
+            photo: p.photo || teacher.photo,
+          };
+        }
+
+        // Try parent
+        const parent = await db.query.parents.findFirst({
+          where: eq(parents.userId, p.userId),
+          columns: { fatherName: true, motherName: true },
+        });
+
+        if (parent?.fatherName || parent?.motherName) {
+          return {
+            ...p,
+            name: parent.fatherName || parent.motherName,
+          };
+        }
+
+        return p;
+      })
+    );
+
     return c.json({
       success: true,
       data: {
         ...conversation,
-        participants,
+        participants: enrichedParticipants,
       },
     });
   } catch (error) {
@@ -983,16 +1062,24 @@ chat.get(
             .where(eq(messageReactions.messageId, msg.id));
 
           // Group reactions by emoji
-          const reactionsByEmoji = reactions.reduce((acc, reaction) => {
-            if (!acc[reaction.emoji]) {
-              acc[reaction.emoji] = [];
+          // Group reactions by emoji
+          const reactionsByEmoji: Record<
+            string,
+            Array<{ userId: number; userEmail: string | null }>
+          > = {};
+
+          for (const reaction of reactions) {
+            if (!reaction) continue;
+            const { emoji, userId, userEmail } = reaction;
+
+            if (!reactionsByEmoji[emoji]) {
+              reactionsByEmoji[emoji] = [];
             }
-            acc[reaction.emoji].push({
-              userId: reaction.userId,
-              userEmail: reaction.userEmail,
+            reactionsByEmoji[emoji]!.push({
+              userId,
+              userEmail,
             });
-            return acc;
-          }, {} as Record<string, Array<{ userId: number; userEmail: string | null }>>);
+          }
 
           // Get reply-to message if exists
           let replyTo = null;
@@ -1014,14 +1101,60 @@ chat.get(
           // Get original signer name if exists
           let originalSignerName = null;
           if (msg.originalSignerId) {
-            const signer = await db
-              .select({ name: users.name, email: users.email })
-              .from(users)
-              .where(eq(users.id, msg.originalSignerId))
-              .limit(1);
-            // Use name if available, otherwise email
-            originalSignerName = signer[0]?.name || signer[0]?.email || null;
+            // Check teacher
+            const teacherSigner = await db.query.teachers.findFirst({
+              where: eq(teachers.userId, msg.originalSignerId),
+              columns: { fullName: true },
+            });
+
+            if (teacherSigner?.fullName) {
+              originalSignerName = teacherSigner.fullName;
+            } else {
+              // Check parent
+              const parentSigner = await db.query.parents.findFirst({
+                where: eq(parents.userId, msg.originalSignerId),
+                columns: { fatherName: true, motherName: true },
+              });
+
+              if (parentSigner?.fatherName || parentSigner?.motherName) {
+                originalSignerName =
+                  parentSigner.fatherName || parentSigner.motherName;
+              } else {
+                // Fallback to user
+                const signer = await db
+                  .select({ name: users.name, email: users.email })
+                  .from(users)
+                  .where(eq(users.id, msg.originalSignerId))
+                  .limit(1);
+                originalSignerName =
+                  signer[0]?.name || signer[0]?.email || null;
+              }
+            }
           }
+
+          // Get accurate sender name
+          let senderName = msg.senderName; // Default to what we got from join
+
+          // Check teacher for sender
+          const teacherSender = await db.query.teachers.findFirst({
+            where: eq(teachers.userId, msg.senderId),
+            columns: { fullName: true },
+          });
+
+          if (teacherSender?.fullName) {
+            senderName = teacherSender.fullName;
+          } else {
+            // Check parent for sender
+            const parentSender = await db.query.parents.findFirst({
+              where: eq(parents.userId, msg.senderId),
+              columns: { fatherName: true, motherName: true },
+            });
+
+            if (parentSender?.fatherName || parentSender?.motherName) {
+              senderName = parentSender.fatherName || parentSender.motherName;
+            }
+          }
+
           // Database stores Jakarta time, return as-is without timezone conversion
           // Format as ISO string but without the "Z" suffix (since it's local time, not UTC)
           let createdAtStr: string;
@@ -1034,6 +1167,7 @@ chat.get(
 
           return {
             ...msg,
+            senderName, // Use the enriched sender name
             createdAt: createdAtStr,
             attachments,
             reactions: reactionsByEmoji,
@@ -1134,11 +1268,43 @@ chat.post(
           createdAt: messages.createdAt,
           isSigned: messages.isSigned,
           senderEmail: users.email,
+          senderName: users.name, // Initial join
         })
         .from(messages)
         .leftJoin(users, eq(messages.senderId, users.id))
         .where(eq(messages.id, messageId))
         .limit(1);
+
+      if (!newMessage[0]) {
+        return c.json(
+          { success: false, message: "Failed to retrieve created message" },
+          500
+        );
+      }
+
+      // Enrich sender name
+      let enrichedSenderName = newMessage[0].senderName;
+
+      // Check teacher
+      const teacherSender = await db.query.teachers.findFirst({
+        where: eq(teachers.userId, currentUser.userId),
+        columns: { fullName: true },
+      });
+
+      if (teacherSender?.fullName) {
+        enrichedSenderName = teacherSender.fullName;
+      } else {
+        // Check parent
+        const parentSender = await db.query.parents.findFirst({
+          where: eq(parents.userId, currentUser.userId),
+          columns: { fatherName: true, motherName: true },
+        });
+
+        if (parentSender?.fatherName || parentSender?.motherName) {
+          enrichedSenderName =
+            parentSender.fatherName || parentSender.motherName;
+        }
+      }
 
       const attachments = await db
         .select()
@@ -1476,12 +1642,7 @@ chat.post("/conversations/:id/read", authMiddleware, async (c) => {
 // FORWARD MESSAGE
 // ============================================
 
-import { forwardMessageSchema } from "../validators/chat";
-import { broadcastToConversation } from "../websocket";
-import * as fs from "fs";
-import * as path from "path";
-
-const UPLOAD_DIR = path.resolve(process.cwd(), "uploads");
+// Imports moved to top
 
 // Forward a message to one or more conversations
 chat.post(

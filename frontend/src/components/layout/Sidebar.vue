@@ -96,6 +96,11 @@ const submenuByMain = {
         children: [
           { label: "Absensi Santri", route: "/apps/attendance" },
           { label: "Absensi Guru", route: "/apps/teacher-attendance" },
+          {
+            label: "Rekap Absensi",
+            route: "/apps/attendance-recap",
+            adminOnly: true,
+          },
         ],
       },
       {
@@ -193,6 +198,11 @@ const submenuByMain = {
         label: "General",
         icon: "solar:settings-minimalistic-line-duotone",
         route: "/settings/general",
+      },
+      {
+        label: "Attendance",
+        icon: "solar:map-point-wave-line-duotone",
+        route: "/settings/attendance",
       },
       {
         label: "Billing",

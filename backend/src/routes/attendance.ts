@@ -6,6 +6,8 @@ import {
   studentAttendances,
   teacherAttendances,
 } from "../db/schema/attendance";
+import { teachers } from "../db/schema/teachers";
+import { teacherDivisions, divisions } from "../db/schema/divisions";
 import { authMiddleware, requireRole } from "../middleware/auth";
 import {
   createStudentAttendanceSchema,
@@ -270,32 +272,43 @@ attendanceRoute.post(
       const today = new Date().toISOString().split("T")[0];
       const currentTime = new Date().toTimeString().split(" ")[0];
 
-      // Check if already checked in today
+      // Check for existing active session (checked in but not checked out)
       const existing = await db.query.teacherAttendances.findFirst({
         where: and(
           eq(teacherAttendances.teacherId, data.teacherId),
           sql`${teacherAttendances.date} = ${today}`
         ),
+        orderBy: (attendances, { desc }) => [desc(attendances.id)],
       });
 
-      if (existing) {
+      if (existing && !existing.checkOut) {
         return c.json(
           {
             success: false,
-            message: "Already checked in today",
+            message: "Already checked in today. Please check out first.",
             data: existing,
           },
           400
         );
       }
+      // If existing checkOut is present, we allow creating a NEW session.
+
+      // Fetch teacher info (now includes divisionId and department)
+      const teacher = await db.query.teachers.findFirst({
+        where: eq(teachers.id, data.teacherId),
+      });
 
       const result = await db.insert(teacherAttendances).values({
         teacherId: data.teacherId,
+        teacherName: teacher?.fullName || null,
+        teacherDivision: teacher?.department || null,
+        divisionId: teacher?.divisionId?.toString() || null,
         date: new Date(today),
         checkIn: currentTime,
         checkInLatitude: data.latitude?.toString(),
         checkInLongitude: data.longitude?.toString(),
         status: "present",
+        activity: data.activity,
         notes: data.notes,
       });
 
@@ -325,12 +338,13 @@ attendanceRoute.post(
       const today = new Date().toISOString().split("T")[0];
       const currentTime = new Date().toTimeString().split(" ")[0];
 
-      // Find today's attendance
+      // Find today's latest attendance
       const existing = await db.query.teacherAttendances.findFirst({
         where: and(
           eq(teacherAttendances.teacherId, data.teacherId),
           sql`${teacherAttendances.date} = ${today}`
         ),
+        orderBy: (attendances, { desc }) => [desc(attendances.id)],
       });
 
       if (!existing) {
@@ -347,7 +361,8 @@ attendanceRoute.post(
         return c.json(
           {
             success: false,
-            message: "Already checked out today",
+            message:
+              "Already checked out. Please check in manually to start new session.",
             data: existing,
           },
           400

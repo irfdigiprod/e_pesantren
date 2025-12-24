@@ -36,6 +36,9 @@ export const teacherAttendances = mysqlTable("teacher_attendances", {
   teacherId: int("teacher_id")
     .references(() => teachers.id)
     .notNull(),
+  teacherName: varchar("teacher_name", { length: 255 }),
+  teacherDivision: varchar("teacher_division", { length: 255 }),
+  divisionId: varchar("division_id", { length: 100 }), // Store division IDs (comma-separated if multiple)
   date: date("date").notNull(),
   checkIn: time("check_in"),
   checkOut: time("check_out"),
@@ -55,6 +58,7 @@ export const teacherAttendances = mysqlTable("teacher_attendances", {
     "permitted",
     "late",
   ]).notNull(),
+  activity: varchar("activity", { length: 100 }),
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow(),
 });
