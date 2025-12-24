@@ -8,6 +8,7 @@ import {
   timestamp,
   decimal,
   mysqlEnum,
+  boolean,
 } from "drizzle-orm/mysql-core";
 import { students } from "./students";
 import { teachers } from "./teachers";
@@ -57,9 +58,14 @@ export const teacherAttendances = mysqlTable("teacher_attendances", {
     "sick",
     "permitted",
     "late",
+    "sick_deduct", // Sakit - Potong Gaji
+    "sick_no_deduct", // Sakit - Tidak Potong Gaji
+    "permit_deduct", // Izin - Potong Gaji
+    "permit_no_deduct", // Izin - Tidak Potong Gaji
   ]).notNull(),
   activity: varchar("activity", { length: 100 }),
   notes: text("notes"),
+  isClaim: boolean("is_claim").default(false), // Klaim kehadiran
   createdAt: timestamp("created_at").defaultNow(),
 });
 

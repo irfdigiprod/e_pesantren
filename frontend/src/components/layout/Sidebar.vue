@@ -101,6 +101,15 @@ const submenuByMain = {
             route: "/apps/attendance-recap",
             adminOnly: true,
           },
+          {
+            label: "Perizinan Saya",
+            route: "/apps/attendance/permissions",
+          },
+          {
+            label: "Persetujuan Izin",
+            route: "/apps/attendance/approvals",
+            adminOnly: true,
+          },
         ],
       },
       {

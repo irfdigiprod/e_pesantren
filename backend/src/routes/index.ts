@@ -17,6 +17,9 @@ import usersRoute from "./users";
 import notificationsRoute from "./notifications";
 import divisionsRoute from "./divisions";
 
+import settingsRoute from "./settings";
+import permissionsRoute from "./permissions";
+
 export {
   authRoute,
   studentsRoute,
@@ -36,4 +39,6 @@ export {
   usersRoute,
   notificationsRoute,
   divisionsRoute,
+  settingsRoute,
+  permissionsRoute,
 };

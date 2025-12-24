@@ -23,3 +23,15 @@ export const teacherDivisionsRelations = relations(
     }),
   })
 );
+
+import { permissionRequests } from "./permissions";
+
+export const permissionRequestsRelations = relations(
+  permissionRequests,
+  ({ one }) => ({
+    teacher: one(teachers, {
+      fields: [permissionRequests.teacherId],
+      references: [teachers.id],
+    }),
+  })
+);

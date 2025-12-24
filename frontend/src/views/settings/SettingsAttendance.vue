@@ -218,36 +218,284 @@
         </div>
       </div>
     </div>
+
+    <!-- Weekly Holidays Section -->
+    <div
+      class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mt-6"
+    >
+      <div
+        class="px-4 md:px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between"
+      >
+        <div>
+          <h2
+            class="text-xl font-semibold text-slate-800 flex items-center gap-2"
+          >
+            Hari Libur Pekanan
+          </h2>
+          <p class="text-sm text-slate-500 mt-1">
+            Pilih hari-hari yang merupakan hari libur pekanan. Hari-hari ini
+            akan ditandai merah di tabel absensi.
+          </p>
+        </div>
+        <div class="p-2 bg-rose-50 text-rose-600 rounded-lg">
+          <Icon icon="lucide:calendar-off" class="w-6 h-6" />
+        </div>
+      </div>
+
+      <div class="p-4 md:p-6">
+        <div class="flex flex-wrap gap-4">
+          <label
+            v-for="(day, index) in [
+              'Minggu',
+              'Senin',
+              'Selasa',
+              'Rabu',
+              'Kamis',
+              'Jumat',
+              'Sabtu',
+            ]"
+            :key="index"
+            class="flex items-center gap-2 px-4 py-2 rounded-lg border cursor-pointer transition-colors"
+            :class="
+              settings.holidays.includes(index)
+                ? 'bg-rose-50 border-rose-200 text-rose-700'
+                : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+            "
+          >
+            <input
+              type="checkbox"
+              :value="index"
+              v-model="settings.holidays"
+              @change="saveSettings(false)"
+              class="rounded text-rose-600 focus:ring-rose-500 border-gray-300"
+            />
+            <span class="text-sm font-medium">{{ day }}</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Payroll Period Section -->
+    <div
+      class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mt-6"
+    >
+      <div
+        class="px-4 md:px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between"
+      >
+        <div>
+          <h2 class="text-xl font-semibold text-slate-800">Periode Gaji</h2>
+          <p class="text-sm text-slate-500 mt-1">
+            Tentukan rentang tanggal (tanggal mulai - selesai) untuk periode
+            perhitungan absensi bulanan.
+          </p>
+        </div>
+        <div class="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
+          <Icon icon="lucide:calendar-range" class="w-6 h-6" />
+        </div>
+      </div>
+
+      <div class="p-4 md:p-6">
+        <!-- Period Type Selection -->
+        <div class="mb-6">
+          <label class="text-sm font-medium text-slate-700 block mb-2"
+            >Tipe Periode</label
+          >
+          <div class="flex flex-col sm:flex-row gap-4">
+            <label
+              class="flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors"
+              :class="
+                settings.periodType === 'same_month'
+                  ? 'bg-emerald-50 border-emerald-200 ring-1 ring-emerald-200'
+                  : 'bg-white border-slate-200 hover:bg-slate-50'
+              "
+            >
+              <input
+                type="radio"
+                value="same_month"
+                v-model="settings.periodType"
+                @change="saveSettings(false)"
+                class="w-4 h-4 text-emerald-600 focus:ring-emerald-500 border-gray-300"
+              />
+              <div>
+                <span class="block text-sm font-medium text-slate-900"
+                  >Bulan yang Sama</span
+                >
+                <span class="block text-xs text-slate-500"
+                  >Contoh: 1 Jan - 31 Jan</span
+                >
+              </div>
+            </label>
+            <label
+              class="flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors"
+              :class="
+                settings.periodType === 'cross_month'
+                  ? 'bg-emerald-50 border-emerald-200 ring-1 ring-emerald-200'
+                  : 'bg-white border-slate-200 hover:bg-slate-50'
+              "
+            >
+              <input
+                type="radio"
+                value="cross_month"
+                v-model="settings.periodType"
+                @change="saveSettings(false)"
+                class="w-4 h-4 text-emerald-600 focus:ring-emerald-500 border-gray-300"
+              />
+              <div>
+                <span class="block text-sm font-medium text-slate-900"
+                  >Lintas Bulan</span
+                >
+                <span class="block text-xs text-slate-500"
+                  >Contoh: 25 Jan - 24 Feb</span
+                >
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="space-y-2">
+            <label class="text-sm font-medium text-slate-700"
+              >Tanggal Mulai</label
+            >
+            <select
+              v-model.number="settings.periodStart"
+              @change="saveSettings(false)"
+              class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all outline-none"
+            >
+              <option v-for="n in 31" :key="n" :value="n">{{ n }}</option>
+            </select>
+            <p
+              class="text-xs text-slate-500"
+              v-if="settings.periodType === 'cross_month'"
+            >
+              Contoh: 25 (mulai bulan sebelumnya)
+            </p>
+            <p class="text-xs text-slate-500" v-else>
+              Contoh: 1 (mulai awal bulan)
+            </p>
+          </div>
+
+          <div class="space-y-2">
+            <label class="text-sm font-medium text-slate-700"
+              >Tanggal Selesai</label
+            >
+            <select
+              v-model.number="settings.periodEnd"
+              @change="saveSettings(false)"
+              class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all outline-none"
+            >
+              <option v-for="n in 31" :key="n" :value="n">{{ n }}</option>
+            </select>
+            <p
+              class="text-xs text-slate-500"
+              v-if="settings.periodType === 'cross_month'"
+            >
+              Contoh: 24 (selesai bulan ini)
+            </p>
+            <p class="text-xs text-slate-500" v-else>
+              Contoh: 31 (selesai akhir bulan)
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Status Modal -->
+    <StatusModal
+      :is-open="statusModal.open"
+      :type="statusModal.type"
+      :title="statusModal.title"
+      :message="statusModal.message"
+      @close="statusModal.open = false"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref } from "vue";
-import { useLocalStorage } from "@vueuse/core";
+import { ref, onMounted, reactive } from "vue";
 import { Icon } from "@iconify/vue";
+import { settingsApi } from "@/services/api";
+import StatusModal from "@/components/ui/StatusModal.vue";
 
-// Use local storage for now to persist settings
-const settings = useLocalStorage("attendance-settings", {
-  latitude: -6.175392, // Monas default
+const settings = ref({
+  latitude: -6.175392,
   longitude: 106.827153,
   radius: 100,
   activityTypes: ["Mengajar", "Piket", "Rapat", "Kegiatan Lainnya"],
+  periodStart: 25,
+  periodEnd: 24,
+  periodType: "cross_month",
+  holidays: [0], // Default Sunday
 });
 
-// Ensure activityTypes exists for older localStorage data
-if (!settings.value.activityTypes) {
-  settings.value.activityTypes = [
-    "Mengajar",
-    "Piket",
-    "Rapat",
-    "Kegiatan Lainnya",
-  ];
-}
-
+const loading = ref(false);
 const loadingLoc = ref(false);
 const locError = ref("");
 const saved = ref(false);
 const newActivity = ref("");
+const error = ref("");
+
+// Status Modal State
+const statusModal = reactive({
+  open: false,
+  type: "success",
+  title: "",
+  message: "",
+});
+
+function showStatus(type, title, message) {
+  statusModal.type = type;
+  statusModal.title = title;
+  statusModal.message = message;
+  statusModal.open = true;
+}
+
+async function fetchSettings() {
+  loading.value = true;
+  try {
+    const res = await settingsApi.getAll([
+      "attendance_latitude",
+      "attendance_longitude",
+      "attendance_radius",
+      "attendance_activities",
+      "attendance_period_start",
+      "attendance_period_end",
+      "attendance_period_type",
+      "attendance_holidays",
+    ]);
+
+    if (res.data) {
+      if (res.data.attendance_latitude)
+        settings.value.latitude = parseFloat(res.data.attendance_latitude);
+      if (res.data.attendance_longitude)
+        settings.value.longitude = parseFloat(res.data.attendance_longitude);
+      if (res.data.attendance_radius)
+        settings.value.radius = parseInt(res.data.attendance_radius);
+      if (res.data.attendance_activities)
+        settings.value.activityTypes = JSON.parse(
+          res.data.attendance_activities
+        );
+      if (res.data.attendance_period_start)
+        settings.value.periodStart = parseInt(res.data.attendance_period_start);
+      if (res.data.attendance_period_end)
+        settings.value.periodEnd = parseInt(res.data.attendance_period_end);
+      if (res.data.attendance_period_type)
+        settings.value.periodType = res.data.attendance_period_type;
+
+      try {
+        if (res.data.attendance_holidays) {
+          settings.value.holidays = JSON.parse(res.data.attendance_holidays);
+        }
+      } catch (e) {
+        settings.value.holidays = [0];
+      }
+    }
+  } catch (e) {
+    console.error("Failed to fetch settings:", e);
+    // Silent fail, use defaults
+  } finally {
+    loading.value = false;
+  }
+}
 
 function useCurrentLocation() {
   loadingLoc.value = true;
@@ -274,21 +522,83 @@ function useCurrentLocation() {
   );
 }
 
-function addActivity() {
+async function addActivity() {
   const name = newActivity.value.trim();
   if (name && !settings.value.activityTypes.includes(name)) {
     settings.value.activityTypes.push(name);
     newActivity.value = "";
+    await saveSettings(true); // Save immediately
   }
 }
 
-function removeActivity(index) {
+async function removeActivity(index) {
   settings.value.activityTypes.splice(index, 1);
+  await saveSettings(true); // Save immediately
 }
 
-function saveSettings() {
-  // Trigger save specific logic if needed (localStorage auto-saves, but we might want to show feedback)
-  saved.value = true;
-  setTimeout(() => (saved.value = false), 3000);
+async function saveSettings(silent = false) {
+  loading.value = true;
+  error.value = "";
+  try {
+    const payload = [
+      {
+        key: "attendance_latitude",
+        value: settings.value.latitude.toString(),
+      },
+      {
+        key: "attendance_longitude",
+        value: settings.value.longitude.toString(),
+      },
+      {
+        key: "attendance_radius",
+        value: settings.value.radius.toString(),
+      },
+      {
+        key: "attendance_activities",
+        value: JSON.stringify(settings.value.activityTypes),
+      },
+      {
+        key: "attendance_period_start",
+        value: settings.value.periodStart.toString(),
+      },
+      {
+        key: "attendance_period_end",
+        value: settings.value.periodEnd.toString(),
+      },
+      {
+        key: "attendance_period_type",
+        value: settings.value.periodType,
+      },
+      {
+        key: "attendance_holidays",
+        value: JSON.stringify(settings.value.holidays),
+      },
+    ];
+
+    await settingsApi.update(payload);
+
+    // Feedback
+    if (silent) {
+      // Check if called from activity add/remove, shows implicit success?
+      // User requested status modal for "klik tambah maka jenis pekerjaan langsung tersimpan"
+      showStatus("success", "Berhasil", "Data kegiatan berhasil disimpan.");
+    } else {
+      // Manual save button click
+      showStatus("success", "Berhasil", "Pengaturan lokasi berhasil disimpan.");
+    }
+
+    saved.value = true;
+    setTimeout(() => (saved.value = false), 3000);
+  } catch (e) {
+    console.error("Failed to save settings:", e);
+    error.value = "Gagal menyimpan pengaturan: " + e.message;
+    showStatus("error", "Gagal", "Gagal menyimpan pengaturan: " + e.message);
+  } finally {
+    loading.value = false;
+  }
 }
+
+onMounted(() => {
+  fetchSettings();
+});
 </script>

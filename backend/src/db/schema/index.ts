@@ -14,3 +14,5 @@ export * from "./chat";
 export * from "./notifications";
 export * from "./divisions";
 export * from "./relations";
+export * from "./settings";
+export * from "./permissions";

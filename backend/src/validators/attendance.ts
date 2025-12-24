@@ -65,3 +65,22 @@ export type CreateTeacherAttendanceInput = z.infer<
 >;
 export type TeacherCheckInInput = z.infer<typeof teacherCheckInSchema>;
 export type TeacherCheckOutInput = z.infer<typeof teacherCheckOutSchema>;
+
+export const teacherClaimSchema = z.object({
+  teacherId: z.number().min(1, "Teacher ID is required"),
+  date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format"),
+  checkIn: z
+    .string()
+    .regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Time must be HH:MM")
+    .optional(),
+  checkOut: z
+    .string()
+    .regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Time must be HH:MM")
+    .optional(),
+  activity: z.string().optional(),
+  notes: z.string().min(1, "Alasan wajib diisi"), // Required reason
+});
+
+export type TeacherClaimInput = z.infer<typeof teacherClaimSchema>;

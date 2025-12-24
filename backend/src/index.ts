@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+// Force reload 1
 import { logger } from "hono/logger";
 import { prettyJSON } from "hono/pretty-json";
 import { corsConfig } from "./config/cors";
@@ -21,7 +22,10 @@ import {
   usersRoute,
   notificationsRoute,
   divisionsRoute,
+  settingsRoute,
+  permissionsRoute,
 } from "./routes";
+
 import {
   websocketHandlers,
   authenticateWebSocket,
@@ -91,6 +95,8 @@ app.route("/api/utils", utilsRoute);
 app.route("/api/users", usersRoute);
 app.route("/api/notifications", notificationsRoute);
 app.route("/api/divisions", divisionsRoute);
+app.route("/api/settings", settingsRoute);
+app.route("/api/permissions", permissionsRoute);
 
 // 404 handler
 app.notFound((c) => {

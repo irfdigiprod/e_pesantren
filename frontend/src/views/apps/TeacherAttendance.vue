@@ -250,71 +250,127 @@
       </div>
 
       <!-- Full Table View (All user's records) -->
+      <!-- Full Table View -->
       <div v-else>
         <!-- Mobile: Card View -->
         <div class="md:hidden divide-y divide-slate-100">
-          <div
-            v-for="item in myAttendances"
-            :key="item.id"
-            class="p-4 space-y-2"
-          >
-            <div class="flex items-center justify-between">
-              <span class="text-sm font-medium text-slate-800">{{
-                formatDate(item.date)
-              }}</span>
-              <span
-                class="px-2 py-0.5 rounded-full text-xs font-medium"
-                :class="{
-                  'bg-emerald-100 text-emerald-700': item.status === 'present',
-                  'bg-amber-100 text-amber-700': item.status === 'late',
-                  'bg-rose-100 text-rose-700': item.status === 'absent',
-                }"
+          <template v-for="date in periodDates" :key="date.toISOString()">
+            <!-- Has Data -->
+            <template v-if="getAttendancesForDate(date).length > 0">
+              <div
+                class="p-4 relative transition-colors"
+                :class="
+                  settings.holidays?.includes(date.getDay())
+                    ? 'bg-rose-50'
+                    : 'bg-white hover:bg-slate-50'
+                "
               >
-                {{ item.status === "present" ? "Hadir" : item.status }}
-              </span>
-            </div>
-            <div class="flex items-center gap-4 text-sm">
-              <div>
-                <span class="text-slate-400">Masuk:</span>
-                <span class="ml-1 text-emerald-600 font-medium">{{
-                  item.checkIn || "-"
-                }}</span>
-                <span
-                  v-if="item.checkInLatitude"
-                  class="text-xs text-slate-400 ml-1"
+                <!-- Single Header for Date & Status -->
+                <div
+                  class="flex items-center justify-between mb-3 border-b border-slate-100 pb-2"
                 >
-                  ({{
-                    calculateDistanceFromCoords(
-                      item.checkInLatitude,
-                      item.checkInLongitude
-                    )
-                  }})
-                </span>
+                  <span class="text-sm font-bold text-slate-800">{{
+                    formatDate(getAttendancesForDate(date)[0].date)
+                  }}</span>
+                  <span
+                    class="px-2 py-0.5 rounded-full text-xs font-medium"
+                    :class="{
+                      'bg-emerald-100 text-emerald-700':
+                        getAttendancesForDate(date)[0].status === 'present',
+                      'bg-amber-100 text-amber-700':
+                        getAttendancesForDate(date)[0].status === 'late',
+                      'bg-rose-100 text-rose-700':
+                        getAttendancesForDate(date)[0].status === 'absent',
+                    }"
+                  >
+                    {{
+                      getAttendancesForDate(date)[0].status === "present"
+                        ? "Hadir"
+                        : getAttendancesForDate(date)[0].status
+                    }}
+                  </span>
+                </div>
+
+                <!-- List of Sessions for this Date -->
+                <div class="space-y-3">
+                  <div
+                    v-for="(item, idx) in getAttendancesForDate(date)"
+                    :key="item.id"
+                    class="space-y-1"
+                  >
+                    <div class="flex items-center gap-4 text-sm">
+                      <div class="min-w-[80px]">
+                        <span
+                          class="text-xs text-slate-400 block uppercase tracking-wider"
+                          >Masuk</span
+                        >
+                        <span class="text-emerald-600 font-medium">{{
+                          item.checkIn || "-"
+                        }}</span>
+                      </div>
+                      <div class="min-w-[80px]">
+                        <span
+                          class="text-xs text-slate-400 block uppercase tracking-wider"
+                          >Pulang</span
+                        >
+                        <span class="text-rose-600 font-medium">{{
+                          item.checkOut || "-"
+                        }}</span>
+                      </div>
+                    </div>
+                    <!-- Activity -->
+                    <div
+                      v-if="item.activity"
+                      class="text-xs text-slate-500 italic flex items-center gap-1.5 pt-0.5"
+                    >
+                      <Icon
+                        icon="lucide:clipboard-list"
+                        class="w-3 h-3 opacity-70"
+                      />
+                      {{ item.activity }}
+                    </div>
+
+                    <!-- Divider if not last item -->
+                    <div
+                      v-if="idx < getAttendancesForDate(date).length - 1"
+                      class="h-px bg-slate-100 my-2"
+                    ></div>
+                  </div>
+                </div>
               </div>
-              <div>
-                <span class="text-slate-400">Pulang:</span>
-                <span class="ml-1 text-rose-600 font-medium">{{
-                  item.checkOut || "-"
-                }}</span>
-                <span
-                  v-if="item.checkOutLatitude"
-                  class="text-xs text-slate-400 ml-1"
-                >
-                  ({{
-                    calculateDistanceFromCoords(
-                      item.checkOutLatitude,
-                      item.checkOutLongitude
-                    )
-                  }})
-                </span>
-              </div>
+            </template>
+
+            <!-- Empty / Claim -->
+            <div
+              v-else
+              class="p-4 flex items-center justify-between"
+              :class="
+                settings.holidays?.includes(date.getDay())
+                  ? 'bg-rose-50'
+                  : 'bg-slate-50'
+              "
+            >
+              <span
+                class="text-sm font-medium text-slate-400"
+                :class="{
+                  'text-rose-400': settings.holidays?.includes(date.getDay()),
+                }"
+                >{{ formatDate(formatDateISO(date)) }}</span
+              >
+              <button
+                @click="openClaimModal(date)"
+                class="px-3 py-1 text-xs font-medium bg-white border border-slate-200 text-slate-600 rounded-full hover:bg-amber-50 hover:text-amber-600 transition-colors shadow-sm"
+              >
+                Klaim Kehadiran
+              </button>
             </div>
-          </div>
+          </template>
+
           <div
-            v-if="myAttendances.length === 0"
+            v-if="periodDates.length === 0"
             class="p-8 text-center text-slate-400 text-sm"
           >
-            Belum ada data absensi.
+            Menyiapkan periode absensi...
           </div>
         </div>
 
@@ -334,61 +390,257 @@
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
-              <tr
-                v-for="item in myAttendances"
-                :key="item.id"
-                class="hover:bg-slate-50/50 transition-colors"
-              >
-                <td class="px-4 py-3 font-medium text-slate-900">
-                  {{ formatDate(item.date) }}
-                </td>
-                <td class="px-4 py-3 text-emerald-600 font-medium">
-                  {{ item.checkIn || "-" }}
-                </td>
-                <td class="px-4 py-3 text-slate-500 text-xs">
-                  {{
-                    item.checkInLatitude
-                      ? calculateDistanceFromCoords(
-                          item.checkInLatitude,
-                          item.checkInLongitude
-                        )
-                      : "-"
-                  }}
-                </td>
-                <td class="px-4 py-3 text-rose-600 font-medium">
-                  {{ item.checkOut || "-" }}
-                </td>
-                <td class="px-4 py-3 text-slate-500 text-xs">
-                  {{
-                    item.checkOutLatitude
-                      ? calculateDistanceFromCoords(
-                          item.checkOutLatitude,
-                          item.checkOutLongitude
-                        )
-                      : "-"
-                  }}
-                </td>
-                <td class="px-4 py-3">
-                  <span
-                    class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium capitalize"
-                    :class="{
-                      'bg-emerald-100 text-emerald-800':
-                        item.status === 'present',
-                      'bg-amber-100 text-amber-800': item.status === 'late',
-                      'bg-rose-100 text-rose-800': item.status === 'absent',
-                    }"
+              <template v-for="date in periodDates" :key="date.toISOString()">
+                <!-- Check if date has attendances -->
+                <template v-if="getAttendancesForDate(date).length > 0">
+                  <tr
+                    v-for="(item, idx) in getAttendancesForDate(date)"
+                    :key="item.id"
+                    class="transition-colors"
+                    :class="
+                      settings.holidays?.includes(date.getDay())
+                        ? 'bg-rose-50'
+                        : 'hover:bg-slate-50/50'
+                    "
                   >
-                    {{ item.status === "present" ? "Hadir" : item.status }}
-                  </span>
-                </td>
-              </tr>
-              <tr v-if="myAttendances.length === 0">
+                    <!-- Date Cell: Only show on first row, span if multiple -->
+                    <td
+                      class="px-4 py-3 font-medium text-slate-900 border-r border-slate-100 align-top"
+                      v-if="idx === 0"
+                      :rowspan="getAttendancesForDate(date).length"
+                    >
+                      {{ formatDate(item.date) }}
+                    </td>
+
+                    <td
+                      class="px-4 py-3 text-emerald-600 font-medium align-top"
+                    >
+                      {{ item.checkIn || "-" }}
+                      <div
+                        v-if="item.activity"
+                        class="text-xs text-slate-400 font-normal mt-0.5 max-w-[150px] truncate"
+                        :title="item.activity"
+                      >
+                        {{ item.activity }}
+                      </div>
+                    </td>
+                    <td class="px-4 py-3 text-slate-500 text-xs align-top">
+                      {{
+                        item.checkInLatitude
+                          ? calculateDistanceFromCoords(
+                              item.checkInLatitude,
+                              item.checkInLongitude
+                            )
+                          : "-"
+                      }}
+                    </td>
+                    <td class="px-4 py-3 text-rose-600 font-medium align-top">
+                      {{ item.checkOut || "-" }}
+                    </td>
+                    <td class="px-4 py-3 text-slate-500 text-xs align-top">
+                      {{
+                        item.checkOutLatitude
+                          ? calculateDistanceFromCoords(
+                              item.checkOutLatitude,
+                              item.checkOutLongitude
+                            )
+                          : "-"
+                      }}
+                    </td>
+                    <td class="px-4 py-3 align-top">
+                      <span
+                        class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium capitalize"
+                        :class="{
+                          'bg-emerald-100 text-emerald-800':
+                            item.status === 'present',
+                          'bg-amber-100 text-amber-800': item.status === 'late',
+                          'bg-rose-100 text-rose-800': item.status === 'absent',
+                          'bg-rose-100 text-rose-700': [
+                            'permit_deduct',
+                            'sick_deduct',
+                            'permitted',
+                            'sick',
+                          ].includes(item.status),
+                          'bg-emerald-100 text-emerald-700': [
+                            'permit_no_deduct',
+                            'sick_no_deduct',
+                          ].includes(item.status),
+                        }"
+                      >
+                        {{
+                          item.status === "present"
+                            ? "Hadir"
+                            : item.status === "permit_deduct" ||
+                              item.status === "sick_deduct"
+                            ? "Izin Potong"
+                            : item.status === "permit_no_deduct" ||
+                              item.status === "sick_no_deduct"
+                            ? "Izin Tanpa Potong"
+                            : item.status === "permitted" ||
+                              item.status === "sick"
+                            ? "Izin"
+                            : item.status
+                        }}
+                        <span v-if="item.isClaim" class="ml-1 text-slate-500"
+                          >(Klaim)</span
+                        >
+                      </span>
+                    </td>
+                  </tr>
+                </template>
+
+                <!-- Missing Attendance Row -->
+                <tr
+                  v-else
+                  class="transition-colors"
+                  :class="
+                    settings.holidays?.includes(date.getDay())
+                      ? 'bg-rose-50'
+                      : 'bg-transparent hover:bg-slate-50/50'
+                  "
+                >
+                  <td
+                    class="px-4 py-3 font-medium text-slate-400 border-r border-slate-100"
+                  >
+                    {{ formatDate(formatDateISO(date)) }}
+                  </td>
+                  <td colspan="4" class="px-4 py-3 text-center text-slate-300">
+                    -
+                  </td>
+                  <td class="px-4 py-3">
+                    <button
+                      @click="openClaimModal(date)"
+                      class="px-2 py-1 text-xs font-medium bg-slate-100 text-slate-500 rounded-full hover:bg-slate-200 transition-colors"
+                    >
+                      Tidak hadir (Klaim)
+                    </button>
+                  </td>
+                </tr>
+              </template>
+
+              <tr v-if="periodDates.length === 0">
                 <td colspan="6" class="px-4 py-8 text-center text-slate-400">
-                  Belum ada data absensi.
+                  Menyiapkan periode absensi...
                 </td>
               </tr>
             </tbody>
           </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Claim Modal -->
+    <div
+      v-if="claimModal.open"
+      class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 transition-opacity"
+    >
+      <div class="bg-white rounded-2xl w-full max-w-md overflow-hidden">
+        <div
+          class="px-6 py-4 border-b border-slate-100 flex items-center justify-between"
+        >
+          <h3 class="font-semibold text-slate-800">Ajukan Klaim Kehadiran</h3>
+          <button
+            @click="claimModal.open = false"
+            class="text-slate-400 hover:text-slate-600"
+          >
+            <Icon icon="lucide:x" class="w-5 h-5" />
+          </button>
+        </div>
+        <div class="p-6 space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1"
+              >Tanggal</label
+            >
+            <input
+              type="date"
+              :value="claimModal.date"
+              disabled
+              class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-600"
+            />
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1"
+                >Jam Masuk</label
+              >
+              <VueDatePicker
+                v-model="claimModal.checkIn"
+                time-picker
+                :is-24="true"
+                model-type="HH:mm"
+                placeholder="--:--"
+                :teleport="true"
+                auto-apply
+                input-class-name="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-amber-100 outline-none !bg-white"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1"
+                >Jam Pulang</label
+              >
+              <VueDatePicker
+                v-model="claimModal.checkOut"
+                time-picker
+                :is-24="true"
+                model-type="HH:mm"
+                placeholder="--:--"
+                :teleport="true"
+                auto-apply
+                input-class-name="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-amber-100 outline-none !bg-white"
+              />
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1"
+              >Jenis Kegiatan</label
+            >
+            <select
+              v-model="claimModal.activity"
+              class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-amber-100 outline-none"
+            >
+              <option value="">Pilih Kegiatan...</option>
+              <option
+                v-for="act in settings.activityTypes"
+                :key="act"
+                :value="act"
+              >
+                {{ act }}
+              </option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1"
+              >Alasan / Catatan <span class="text-red-500">*</span></label
+            >
+            <textarea
+              v-model="claimModal.notes"
+              rows="3"
+              placeholder="Jelaskan alasan tidak absen secaran normal..."
+              class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-amber-100 outline-none"
+            ></textarea>
+          </div>
+        </div>
+        <div class="px-6 py-4 bg-slate-50 flex justify-end gap-3">
+          <button
+            @click="claimModal.open = false"
+            class="px-4 py-2 text-sm text-slate-600 font-medium hover:bg-slate-200 rounded-lg"
+          >
+            Batal
+          </button>
+          <button
+            @click="submitClaim"
+            :disabled="
+              claimModal.loading || !claimModal.checkIn || !claimModal.notes
+            "
+            class="px-4 py-2 text-sm text-white font-medium bg-amber-600 hover:bg-amber-700 rounded-lg disabled:opacity-50 flex items-center gap-2"
+          >
+            <Icon
+              v-if="claimModal.loading"
+              icon="lucide:loader-2"
+              class="w-4 h-4 animate-spin"
+            />
+            Kirim Pengajuan
+          </button>
         </div>
       </div>
     </div>
@@ -433,9 +685,18 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed, reactive } from "vue";
 import { Icon } from "@iconify/vue";
-import { attendanceApi, authApi, teachersApi } from "@/services/api.js";
-import { useLocalStorage, useDateFormat, useNow } from "@vueuse/core";
+import {
+  attendanceApi,
+  authApi,
+  teachersApi,
+  settingsApi,
+} from "@/services/api.js";
+import { useDateFormat, useNow } from "@vueuse/core";
 import StatusModal from "@/components/ui/StatusModal.vue";
+
+// DatePicker
+import { VueDatePicker } from "@vuepic/vue-datepicker";
+import "@vuepic/vue-datepicker/dist/main.css";
 
 // State
 const attendances = ref([]);
@@ -453,6 +714,28 @@ const showFullHistory = ref(false);
 const selectedActivity = ref("");
 const newShiftAllowed = ref(false);
 
+// Settings
+const settings = ref({
+  latitude: 0,
+  longitude: 0,
+  radius: 100,
+  activityTypes: [],
+  periodStart: 25, // Default cutoff
+  periodEnd: 24,
+  holidays: [],
+});
+
+// Claim Modal State
+const claimModal = reactive({
+  open: false,
+  date: "",
+  checkIn: "",
+  checkOut: "",
+  activity: "",
+  notes: "",
+  loading: false,
+});
+
 // Status Modal State
 const statusModal = reactive({
   open: false,
@@ -468,22 +751,258 @@ function showStatus(type, title, message) {
   statusModal.open = true;
 }
 
-// Settings from localStorage
-const settings = useLocalStorage("attendance-settings", {
-  latitude: -6.175392,
-  longitude: 106.827153,
-  radius: 100,
-  activityTypes: ["Mengajar", "Piket", "Rapat", "Kegiatan Lainnya"],
+// Computed: Current Period Dates
+const periodDates = computed(() => {
+  const dates = [];
+  const today = new Date();
+
+  if (settings.value.periodType === "same_month") {
+    // Same month logic: 1st to End of current month
+    // Determine which month "current" refers to.
+    // Typically if Start=1, End=31.
+    // If Today is Jan 10 -> Period is Jan 1 to Jan 31.
+
+    // What if Start=10, End=9 (same month)? Not possible.
+    // We assume Same Month means strictly [Month Start, Month End] for the purpose of a full monthly view.
+    // OR we respect Start/End inputs within the same month?
+    // User example: "Rentang tanggal pada bulan yang sama". Likely Start < End.
+    // Example: Start 1, End 30.
+
+    // Current Period determination:
+    // If Today <= End, we are in current month's period?
+    // Actually simple: Just take current month.
+
+    const year = today.getFullYear();
+    const month = today.getMonth();
+
+    // Start Date
+    const start = new Date(year, month, settings.value.periodStart);
+    // If Start > Today?? This implies we are looking at *future* period?
+    // No, usually "Active Period". If Period is 20-30 and Today is 10.
+    // Then we are NOT in that period. We are in Previous Month's 20-30? Or Next?
+    // This is tricky.
+    // Let's assume standard "Monthly View".
+    // If "Same Month": Standard Calendar Month of Today.
+    // Start = Date(Year, Month, settings.periodStart)
+    // End = Date(Year, Month, settings.periodEnd)
+
+    // Adjust if periodEnd < periodStart (logic error or crossover?)
+    // If user selects "Same Month", Period End must be >= Period Start.
+    // If they selected Start 25, End 24 and "Same Month", that's invalid.
+    // But let's just generate from Start to End.
+
+    let current = new Date(start);
+    // If today is *before* start (e.g. today 5, start 20), do we show *previous* month's period?
+    // Typically payroll is "Current Active Period".
+    // If today is 5th, and period is 20th-30th.
+    // The "Active" period for the 5th might be undefined or just "This Month".
+
+    // Let's stick to: "Show the period associated with Today's month".
+
+    const end = new Date(year, month, settings.value.periodEnd);
+
+    // If end < start, maybe they meant cross month but selected same month?
+    // Or maybe they just mixed up. We'll generate what we can.
+
+    // Loop
+    while (current <= end) {
+      dates.push(new Date(current));
+      current.setDate(current.getDate() + 1);
+    }
+  } else {
+    // Cross Month Logic (Default)
+    // Example: Start 25, End 24.
+    // If Today is 10. Start 25.
+    // Today < Start.
+    // Use Previous Month as Start Base.
+
+    let startMonth = today.getMonth();
+    let startYear = today.getFullYear();
+
+    if (today.getDate() < settings.value.periodStart) {
+      startMonth--;
+      if (startMonth < 0) {
+        startMonth = 11;
+        startYear--;
+      }
+    }
+
+    const startDate = new Date(
+      startYear,
+      startMonth,
+      settings.value.periodStart
+    );
+
+    // For cross-month, the end date is in the NEXT month
+    let endMonth = startMonth + 1;
+    let endYear = startYear;
+    if (endMonth > 11) {
+      endMonth = 0;
+      endYear++;
+    }
+    const endDate = new Date(endYear, endMonth, settings.value.periodEnd);
+
+    let current = new Date(startDate);
+
+    // Loop until we reach the end date
+    while (current <= endDate && dates.length < 45) {
+      dates.push(new Date(current));
+      current.setDate(current.getDate() + 1);
+    }
+  }
+
+  return dates;
 });
 
-// Ensure activityTypes exists for older localStorage data
-if (!settings.value.activityTypes) {
-  settings.value.activityTypes = [
-    "Mengajar",
-    "Piket",
-    "Rapat",
-    "Kegiatan Lainnya",
-  ];
+// Helper to get attendances for a specific date (returns Array)
+function getAttendancesForDate(dateObj) {
+  const dateStr = formatDateISO(dateObj); // YYYY-MM-DD
+  return attendances.value
+    .filter((item) => {
+      if (!item.date) return false;
+      let itemDate = item.date;
+      // Handle if item.date is Date object
+      if (itemDate instanceof Date) {
+        return formatDateISO(itemDate) === dateStr;
+      }
+      // Handle string (ISO or YYYY-MM-DD)
+      if (typeof itemDate === "string") {
+        return itemDate.startsWith(dateStr);
+      }
+      return false;
+    })
+    .sort((a, b) => {
+      // Sort by checkIn time if possible
+      if (a.checkIn && b.checkIn) return a.checkIn.localeCompare(b.checkIn);
+      return 0;
+    });
+}
+
+function formatDateISO(date) {
+  const offset = date.getTimezoneOffset();
+  const local = new Date(date.getTime() - offset * 60 * 1000);
+  return local.toISOString().split("T")[0];
+}
+
+function openClaimModal(dateObj) {
+  claimModal.date = formatDateISO(dateObj);
+  claimModal.checkIn = "";
+  claimModal.checkOut = "";
+  claimModal.activity = "";
+  claimModal.notes = "";
+  claimModal.open = true;
+}
+
+async function submitClaim() {
+  if (!claimModal.checkIn || !claimModal.notes) return;
+
+  claimModal.loading = true;
+  try {
+    // Normalize time format from VueDatePicker
+    const formatTime = (time) => {
+      if (!time) return undefined;
+      if (typeof time === "string") return time || undefined;
+      if (typeof time === "object" && time !== null) {
+        const h = String(time.hours).padStart(2, "0");
+        const m = String(time.minutes).padStart(2, "0");
+        return `${h}:${m}`;
+      }
+      return undefined;
+    };
+
+    // Validate teacherId
+    if (!currentTeacher.value?.id) {
+      console.error(
+        "Missing teacherId. Current User:",
+        currentUser.value,
+        "Current Teacher:",
+        currentTeacher.value
+      );
+      throw new Error(
+        "Data guru tidak ditemukan. Pastikan akun terhubung dengan data guru."
+      );
+    }
+
+    const payload = {
+      teacherId: currentTeacher.value?.id,
+      date: claimModal.date,
+      checkIn: formatTime(claimModal.checkIn),
+      checkOut: formatTime(claimModal.checkOut),
+      activity: claimModal.activity,
+      notes: claimModal.notes,
+    };
+
+    // Remove undefined keys to play nice with Zod optional
+    Object.keys(payload).forEach(
+      (key) => payload[key] === undefined && delete payload[key]
+    );
+
+    console.log("Submitting Claim Payload:", JSON.stringify(payload, null, 2));
+
+    await attendanceApi.teacherClaim(payload);
+
+    showStatus("success", "Berhasil", "Klaim kehadiran berhasil diajukan.");
+    claimModal.open = false;
+    fetchData(); // Refresh list
+  } catch (e) {
+    showStatus("error", "Gagal", e.message || "Gagal klaim");
+  } finally {
+    claimModal.loading = false;
+  }
+}
+
+// Settings (fetched from API)
+// const settings = ref({
+//   latitude: -6.175392,
+//   longitude: 106.827153,
+//   radius: 100,
+//   activityTypes: ["Mengajar", "Piket", "Rapat", "Kegiatan Lainnya"],
+// });
+
+async function fetchSettings() {
+  try {
+    const res = await settingsApi.getAll([
+      "attendance_latitude",
+      "attendance_longitude",
+      "attendance_radius",
+      "attendance_activities",
+      "attendance_period_start",
+      "attendance_period_end",
+      "attendance_period_type",
+      "attendance_holidays",
+    ]);
+
+    if (res.data) {
+      if (res.data.attendance_latitude)
+        settings.value.latitude = parseFloat(res.data.attendance_latitude);
+      if (res.data.attendance_longitude)
+        settings.value.longitude = parseFloat(res.data.attendance_longitude);
+      if (res.data.attendance_radius)
+        settings.value.radius = parseInt(res.data.attendance_radius);
+      if (res.data.attendance_activities)
+        settings.value.activityTypes = JSON.parse(
+          res.data.attendance_activities
+        );
+      if (res.data.attendance_period_start)
+        settings.value.periodStart = parseInt(res.data.attendance_period_start);
+      if (res.data.attendance_period_end)
+        settings.value.periodEnd = parseInt(res.data.attendance_period_end);
+      if (res.data.attendance_period_type)
+        settings.value.periodType = res.data.attendance_period_type;
+
+      try {
+        if (res.data.attendance_holidays) {
+          settings.value.holidays = JSON.parse(res.data.attendance_holidays);
+        } else {
+          settings.value.holidays = [0];
+        }
+      } catch (e) {
+        settings.value.holidays = [0];
+      }
+    }
+  } catch (e) {
+    console.error("Gagal memuat pengaturan:", e);
+  }
 }
 
 // Geolocation
@@ -623,12 +1142,37 @@ async function fetchData() {
   }
 }
 
-async function handleCheckIn() {
-  if (!isWithinRadius.value) {
-    showStatus("error", "Gagal", "Anda berada di luar radius absensi.");
-    return;
-  }
+// Helper to get current position with promise
+function getCurrentPosition() {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error("Browser tidak mendukung Geolocation"));
+      return;
+    }
 
+    // Try high accuracy first (GPS) - 10s timeout
+    navigator.geolocation.getCurrentPosition(
+      (pos) => resolve(pos),
+      (err) => {
+        console.warn(
+          "High accuracy location failed, retrying with low accuracy...",
+          err
+        );
+        // Fallback: Low accuracy (Network/WiFi) - Faster, more reliable indoors
+        // Allow cached positions up to 2 minutes old
+        navigator.geolocation.getCurrentPosition(
+          (pos) => resolve(pos),
+          (err2) => reject(err2),
+          { enableHighAccuracy: false, timeout: 15000, maximumAge: 120000 }
+        );
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  });
+}
+
+async function handleCheckIn() {
+  // Pre-check basic requirements
   if (!selectedActivity.value) {
     showStatus("error", "Gagal", "Pilih jenis kegiatan terlebih dahulu.");
     return;
@@ -636,12 +1180,34 @@ async function handleCheckIn() {
 
   saving.value = true;
   try {
+    // Force fresh location update
+    const pos = await getCurrentPosition();
+    const lat = pos.coords.latitude;
+    const lng = pos.coords.longitude;
+
+    // Validate distance locally
+    const dist = getDistanceFromLatLonInMeters(
+      lat,
+      lng,
+      settings.value.latitude,
+      settings.value.longitude
+    );
+
+    distance.value = dist; // Update UI distance
+    currentPos.value = { lat, lng }; // Update UI position
+
+    if (dist > settings.value.radius) {
+      throw new Error(
+        `Anda berada di luar radius absensi (${formatDistance(dist)})`
+      );
+    }
+
     const payload = {
       teacherId: currentTeacher.value?.id,
       checkInTime: new Date().toTimeString().slice(0, 5),
-      latitude: currentPos.value.lat,
-      longitude: currentPos.value.lng,
-      distance: distance.value,
+      latitude: lat,
+      longitude: lng,
+      distance: dist,
       activity: selectedActivity.value,
     };
     await attendanceApi.teacherCheckIn(payload);
@@ -651,7 +1217,12 @@ async function handleCheckIn() {
     selectedActivity.value = "";
     await fetchData();
   } catch (e) {
-    showStatus("error", "Error", e.message || "Gagal Check In");
+    let msg = e.message;
+    if (e.code === 1) msg = "Izin lokasi ditolak.";
+    else if (e.code === 2) msg = "Lokasi tidak tersedia.";
+    else if (e.code === 3) msg = "Waktu permintaan lokasi habis.";
+
+    showStatus("error", "Gagal Check In", msg || "Terjadi kesalahan");
   } finally {
     saving.value = false;
   }
@@ -664,25 +1235,47 @@ function enableNewShift() {
 }
 
 async function handleCheckOut() {
-  if (!isWithinRadius.value) {
-    showStatus("error", "Gagal", "Anda berada di luar radius absensi.");
-    return;
-  }
-
   saving.value = true;
   try {
+    // Force fresh location update
+    const pos = await getCurrentPosition();
+    const lat = pos.coords.latitude;
+    const lng = pos.coords.longitude;
+
+    // Validate distance locally
+    const dist = getDistanceFromLatLonInMeters(
+      lat,
+      lng,
+      settings.value.latitude,
+      settings.value.longitude
+    );
+
+    distance.value = dist;
+    currentPos.value = { lat, lng };
+
+    if (dist > settings.value.radius) {
+      throw new Error(
+        `Anda berada di luar radius absensi (${formatDistance(dist)})`
+      );
+    }
+
     const payload = {
       teacherId: currentTeacher.value?.id,
       checkOutTime: new Date().toTimeString().slice(0, 5),
-      latitude: currentPos.value.lat,
-      longitude: currentPos.value.lng,
-      distance: distance.value,
+      latitude: lat,
+      longitude: lng,
+      distance: dist,
     };
     await attendanceApi.teacherCheckOut(payload);
     showStatus("success", "Berhasil", "Check Out berhasil!");
     await fetchData();
   } catch (e) {
-    showStatus("error", "Error", e.message || "Gagal Check Out");
+    let msg = e.message;
+    if (e.code === 1) msg = "Izin lokasi ditolak.";
+    else if (e.code === 2) msg = "Lokasi tidak tersedia.";
+    else if (e.code === 3) msg = "Waktu permintaan lokasi habis.";
+
+    showStatus("error", "Gagal Check Out", msg || "Terjadi kesalahan");
   } finally {
     saving.value = false;
   }
@@ -723,6 +1316,7 @@ function startGeolocation() {
 
 onMounted(async () => {
   await fetchUser();
+  await fetchSettings();
   await fetchData();
   startGeolocation();
 });

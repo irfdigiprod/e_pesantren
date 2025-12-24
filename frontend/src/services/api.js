@@ -447,6 +447,21 @@ export const attendanceApi = {
       body: data,
     });
   },
+
+  async teacherClaim(data) {
+    return request("/api/attendance/teachers/claim", {
+      method: "POST",
+      body: data,
+    });
+  },
+
+  async getRecap(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    const endpoint = query
+      ? `/api/attendance/teachers/recap?${query}`
+      : "/api/attendance/teachers/recap";
+    return request(endpoint);
+  },
 };
 
 // ============================================
@@ -1027,5 +1042,48 @@ export const notificationsApi = {
 
   async deleteAll() {
     return request("/api/notifications/all", { method: "DELETE" });
+  },
+};
+// ============================================
+// SETTINGS API
+// ============================================
+
+export const settingsApi = {
+  async getAll(keys = []) {
+    const query = keys.length > 0 ? `?keys=${keys.join(",")}` : "";
+    return request(`/api/settings${query}`);
+  },
+
+  async update(settings) {
+    return request("/api/settings", {
+      method: "PUT",
+      body: { settings },
+    });
+  },
+};
+
+// ============================================
+// PERMISSIONS API
+// ============================================
+
+export const permissionsApi = {
+  async getMyPermissions(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    const endpoint = query ? `/api/permissions?${query}` : "/api/permissions";
+    return request(endpoint);
+  },
+
+  async submitPermission(data) {
+    return request("/api/permissions", {
+      method: "POST",
+      body: data,
+    });
+  },
+
+  async updateStatus(id, status, deductSalary = false) {
+    return request(`/api/permissions/${id}/status`, {
+      method: "POST",
+      body: { status, deductSalary },
+    });
   },
 };

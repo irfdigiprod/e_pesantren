@@ -134,7 +134,18 @@ const router = createRouter({
         {
           path: "apps/attendance-recap",
           name: "AttendanceRecap",
-          component: () => import("@/views/apps/AttendanceRecap.vue"),
+          component: () => import("@/views/apps/RecapAttendance.vue"),
+          meta: { requiresAdmin: true },
+        },
+        {
+          path: "apps/attendance/permissions",
+          name: "PermissionList",
+          component: () => import("@/views/apps/PermissionList.vue"),
+        },
+        {
+          path: "apps/attendance/approvals",
+          name: "PermissionApproval",
+          component: () => import("@/views/apps/PermissionApproval.vue"),
           meta: { requiresAdmin: true },
         },
         {
