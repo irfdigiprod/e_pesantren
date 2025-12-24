@@ -159,6 +159,11 @@ const router = createRouter({
           component: () => import("@/views/apps/Halaqah.vue"),
         },
         {
+          path: "apps/notifications",
+          name: "Notifications",
+          component: () => import("@/views/pages/Notifications.vue"),
+        },
+        {
           path: "apps/rooms",
           name: "Rooms",
           component: () => import("@/views/apps/Rooms.vue"),

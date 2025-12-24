@@ -93,13 +93,83 @@ async function request(endpoint, options = {}) {
   };
 
   if (body && method !== "GET") {
-    config.body = JSON.stringify(body);
+    if (body instanceof FormData) {
+      config.body = body;
+      // Remove Content-Type if present to let browser set boundary
+      if (config.headers["Content-Type"]) {
+        delete config.headers["Content-Type"];
+      }
+    } else {
+      config.body = JSON.stringify(body);
+    }
   }
 
   const url = `${BASE_URL}${endpoint}`;
 
   try {
     const res = await fetch(url, config);
+    const data = await parseResponse(res);
+
+    if (!res.ok) {
+      console.error(
+        "[API Error]",
+        res.status,
+        url,
+        JSON.stringify(data, null, 2)
+      );
+
+      let errorMsg =
+        data?.message || data?.errors || res.statusText || `HTTP ${res.status}`;
+
+      if (data?.error?.issues) {
+        errorMsg =
+          "Validation: " + data.error.issues.map((i) => i.message).join(", ");
+      } else if (
+        data?.error?.name === "ZodError" &&
+        typeof data.error.message === "string"
+      ) {
+        try {
+          const issues = JSON.parse(data.error.message);
+          if (Array.isArray(issues)) {
+            errorMsg = "Validasi: " + issues.map((i) => i.message).join(", ");
+          } else {
+            errorMsg = "Validasi: " + data.error.message;
+          }
+        } catch (e) {
+          errorMsg = "Validasi: " + data.error.message;
+        }
+      }
+
+      throw new Error(errorMsg);
+    }
+
+    return data;
+  } catch (err) {
+    if (err.message === "Failed to fetch") {
+      throw new Error("Tidak dapat terhubung ke server");
+    }
+    throw err;
+  }
+}
+
+/**
+ * Upload file using FormData
+ */
+async function uploadFile(file) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const url = `${BASE_URL}/api/uploads`;
+
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${getToken()}`,
+      },
+      body: formData,
+    });
+
     const data = await parseResponse(res);
 
     if (!res.ok) {
@@ -461,6 +531,12 @@ export const attendanceApi = {
       ? `/api/attendance/teachers/recap?${query}`
       : "/api/attendance/teachers/recap";
     return request(endpoint);
+  },
+
+  async deleteTeacherAttendance(id) {
+    return request(`/api/attendance/teachers/attendances/${id}`, {
+      method: "DELETE",
+    });
   },
 };
 
@@ -1043,6 +1119,10 @@ export const notificationsApi = {
   async deleteAll() {
     return request("/api/notifications/all", { method: "DELETE" });
   },
+
+  async markAllRead() {
+    return request("/api/notifications/read-all", { method: "POST" });
+  },
 };
 // ============================================
 // SETTINGS API
@@ -1067,10 +1147,14 @@ export const settingsApi = {
 // ============================================
 
 export const permissionsApi = {
-  async getMyPermissions(params = {}) {
-    const query = new URLSearchParams(params).toString();
-    const endpoint = query ? `/api/permissions?${query}` : "/api/permissions";
-    return request(endpoint);
+  async getMyPermissions() {
+    // Always returns only current user's permissions (for PermissionList page)
+    return request("/api/permissions/mine");
+  },
+
+  async getAllPermissions() {
+    // Returns all permissions for admin (for PermissionApproval page)
+    return request("/api/permissions");
   },
 
   async submitPermission(data) {
@@ -1087,3 +1171,6 @@ export const permissionsApi = {
     });
   },
 };
+
+// Export individual utilities
+export { uploadFile };

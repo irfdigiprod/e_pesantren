@@ -1,38 +1,165 @@
 <template>
-  <div class="space-y-6">
-    <div class="flex items-center justify-between">
+  <div class="space-y-6 overflow-hidden max-w-full">
+    <div
+      class="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+    >
       <div>
         <h1 class="text-xl font-bold text-slate-800">Perizinan Saya</h1>
         <p class="text-sm text-slate-500 mt-1">
           Daftar pengajuan izin dan sakit saya.
         </p>
       </div>
-      <button
-        @click="showModal = true"
-        class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium text-sm flex items-center gap-2"
-      >
-        <Icon icon="solar:add-circle-bold-duotone" class="w-5 h-5" />
-        Ajukan Izin
-      </button>
+      <div class="flex items-center gap-2">
+        <!-- View Toggle -->
+        <div
+          class="flex items-center bg-slate-100 rounded-lg p-1 border border-slate-200"
+        >
+          <button
+            @click="viewMode = 'table'"
+            class="p-2 rounded-md transition-all flex items-center justify-center"
+            :class="
+              viewMode === 'table'
+                ? 'bg-white shadow text-indigo-600'
+                : 'text-slate-500 hover:text-slate-700'
+            "
+            title="Tampilan Tabel"
+          >
+            <Icon icon="solar:list-bold-duotone" class="w-5 h-5" />
+          </button>
+          <button
+            @click="viewMode = 'card'"
+            class="p-2 rounded-md transition-all flex items-center justify-center"
+            :class="
+              viewMode === 'card'
+                ? 'bg-white shadow text-indigo-600'
+                : 'text-slate-500 hover:text-slate-700'
+            "
+            title="Tampilan Kartu"
+          >
+            <Icon icon="solar:gallery-wide-bold-duotone" class="w-5 h-5" />
+          </button>
+        </div>
+        <button
+          @click="showModal = true"
+          class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium text-sm flex items-center gap-2"
+        >
+          <Icon icon="solar:add-circle-bold-duotone" class="w-5 h-5" />
+          <span class="hidden sm:inline">Ajukan Izin</span>
+        </button>
+      </div>
     </div>
 
-    <!-- Permission Table -->
+    <!-- Table View -->
     <div
+      v-if="viewMode === 'table'"
       class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden"
     >
-      <table class="w-full text-sm text-left">
-        <thead class="bg-slate-50 text-slate-500 border-b border-slate-100">
-          <tr>
-            <th class="px-6 py-3 font-medium">Jenis</th>
-            <th class="px-6 py-3 font-medium">Tanggal</th>
-            <th class="px-6 py-3 font-medium w-1/3">Alasan</th>
-            <th class="px-6 py-3 font-medium">Status</th>
-            <th class="px-6 py-3 font-medium">Dibuat</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-slate-100">
-          <tr v-for="p in permissions" :key="p.id" class="hover:bg-slate-50/50">
-            <td class="px-6 py-4">
+      <!-- Skeleton Loading -->
+      <TableSkeleton
+        v-if="loading"
+        viewMode="table"
+        :rows="5"
+        :columnCount="5"
+        class="p-4"
+      />
+
+      <div v-else class="overflow-x-auto">
+        <table class="w-full min-w-[600px] text-sm text-left">
+          <thead class="bg-slate-50 text-slate-500 border-b border-slate-100">
+            <tr>
+              <th class="px-6 py-3 font-medium whitespace-nowrap">Jenis</th>
+              <th class="px-6 py-3 font-medium whitespace-nowrap">Tanggal</th>
+              <th class="px-6 py-3 font-medium w-1/3">Alasan</th>
+              <th class="px-6 py-3 font-medium whitespace-nowrap">Status</th>
+              <th class="px-6 py-3 font-medium whitespace-nowrap">Dibuat</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr
+              v-for="p in permissions"
+              :key="p.id"
+              class="hover:bg-slate-50/50"
+            >
+              <td class="px-6 py-4">
+                <span
+                  class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize"
+                  :class="
+                    p.type === 'sick'
+                      ? 'bg-rose-100 text-rose-800'
+                      : 'bg-blue-100 text-blue-800'
+                  "
+                >
+                  {{ p.type === "sick" ? "Sakit" : "Izin" }}
+                </span>
+              </td>
+              <td class="px-6 py-4">
+                <div class="flex flex-col">
+                  <span>{{ formatDate(p.startDate) }}</span>
+                  <span
+                    v-if="p.startDate !== p.endDate"
+                    class="text-slate-400 text-xs"
+                  >
+                    s.d {{ formatDate(p.endDate) }}
+                  </span>
+                </div>
+              </td>
+              <td class="px-6 py-4 max-w-xs" :title="p.reason">
+                <p class="line-clamp-2 text-slate-600">{{ p.reason }}</p>
+              </td>
+              <td class="px-6 py-4">
+                <span
+                  class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium"
+                  :class="{
+                    'bg-amber-100 text-amber-800': p.status === 'pending',
+                    'bg-emerald-100 text-emerald-800': p.status === 'approved',
+                    'bg-slate-100 text-slate-600': p.status === 'rejected',
+                  }"
+                >
+                  <Icon :icon="statusIcon(p.status)" class="w-3.5 h-3.5" />
+                  <span class="capitalize">{{ formatStatus(p.status) }}</span>
+                </span>
+              </td>
+              <td class="px-6 py-4 text-slate-400 text-xs">
+                {{ new Date(p.createdAt).toLocaleDateString("id-ID") }}
+              </td>
+            </tr>
+            <tr v-if="!loading && permissions.length === 0">
+              <td colspan="5" class="px-6 py-12 text-center text-slate-400">
+                <Icon
+                  icon="solar:document-text-line-duotone"
+                  class="w-12 h-12 mx-auto mb-3 opacity-50"
+                />
+                <p>Belum ada pengajuan izin.</p>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Card View -->
+    <div v-else class="space-y-3">
+      <!-- Skeleton Loading -->
+      <TableSkeleton v-if="loading" viewMode="card" :rows="4" class="p-2" />
+
+      <template v-else>
+        <div
+          v-if="permissions.length === 0"
+          class="bg-white rounded-xl border border-slate-200 p-12 text-center text-slate-400"
+        >
+          <Icon
+            icon="solar:document-text-line-duotone"
+            class="w-12 h-12 mx-auto mb-3 opacity-50"
+          />
+          <p>Belum ada pengajuan izin.</p>
+        </div>
+        <div
+          v-for="p in permissions"
+          :key="p.id"
+          class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 hover:shadow-md transition-shadow"
+        >
+          <div class="flex items-start justify-between gap-3 mb-3">
+            <div class="flex items-center gap-2">
               <span
                 class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize"
                 :class="
@@ -43,180 +170,275 @@
               >
                 {{ p.type === "sick" ? "Sakit" : "Izin" }}
               </span>
-            </td>
-            <td class="px-6 py-4">
-              <div class="flex flex-col">
-                <span>{{ formatDate(p.startDate) }}</span>
-                <span
-                  v-if="p.startDate !== p.endDate"
-                  class="text-slate-400 text-xs"
-                >
-                  s.d {{ formatDate(p.endDate) }}
-                </span>
-              </div>
-            </td>
-            <td class="px-6 py-4 max-w-xs" :title="p.reason">
-              <p class="line-clamp-2 text-slate-600">{{ p.reason }}</p>
-            </td>
-            <td class="px-6 py-4">
               <span
-                class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium"
+                class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium"
                 :class="{
                   'bg-amber-100 text-amber-800': p.status === 'pending',
                   'bg-emerald-100 text-emerald-800': p.status === 'approved',
                   'bg-slate-100 text-slate-600': p.status === 'rejected',
                 }"
               >
-                <Icon :icon="statusIcon(p.status)" class="w-3.5 h-3.5" />
-                <span class="capitalize">{{ formatStatus(p.status) }}</span>
+                <Icon :icon="statusIcon(p.status)" class="w-3 h-3" />
+                {{ formatStatus(p.status) }}
               </span>
-            </td>
-            <td class="px-6 py-4 text-slate-400 text-xs">
-              {{ new Date(p.createdAt).toLocaleDateString("id-ID") }}
-            </td>
-          </tr>
-          <tr v-if="!loading && permissions.length === 0">
-            <td colspan="5" class="px-6 py-12 text-center text-slate-400">
-              <Icon
-                icon="solar:document-text-line-duotone"
-                class="w-12 h-12 mx-auto mb-3 opacity-50"
-              />
-              <p>Belum ada pengajuan izin.</p>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+            </div>
+            <span class="text-xs text-slate-400">{{
+              new Date(p.createdAt).toLocaleDateString("id-ID")
+            }}</span>
+          </div>
+          <div class="text-sm text-slate-700 mb-2">
+            <span class="font-medium">{{ formatDate(p.startDate) }}</span>
+            <span v-if="p.startDate !== p.endDate" class="text-slate-500">
+              s.d {{ formatDate(p.endDate) }}
+            </span>
+          </div>
+          <p class="text-sm text-slate-600 line-clamp-2">{{ p.reason }}</p>
+        </div>
+      </template>
     </div>
 
     <!-- Submission Modal -->
-    <div
-      v-if="showModal"
-      class="fixed inset-0 z-[100] flex items-center justify-center p-4"
-    >
-      <!-- Backdrop -->
+    <Teleport to="body">
       <div
-        class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
-        @click="showModal = false"
-      ></div>
-
-      <!-- Content -->
-      <div
-        class="relative bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]"
+        v-if="showModal"
+        class="fixed inset-0 z-[9999] flex items-center justify-center p-4"
       >
+        <!-- Backdrop -->
         <div
-          class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50"
-        >
-          <h3 class="font-bold text-lg text-slate-800">Form Pengajuan Izin</h3>
-          <button
-            @click="showModal = false"
-            class="text-slate-400 hover:text-slate-600"
-          >
-            <Icon icon="solar:close-circle-bold" class="w-6 h-6" />
-          </button>
-        </div>
+          class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+          @click="showModal = false"
+        ></div>
 
-        <div class="p-6 overflow-y-auto space-y-4">
-          <!-- Type -->
-          <div class="grid grid-cols-2 gap-4">
+        <!-- Content -->
+        <div
+          class="relative bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]"
+        >
+          <div
+            class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50"
+          >
+            <h3 class="font-bold text-lg text-slate-800">
+              Form Pengajuan Izin
+            </h3>
             <button
-              type="button"
-              class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all"
-              :class="
-                form.type === 'sick'
-                  ? 'border-rose-500 bg-rose-50 text-rose-700'
-                  : 'border-slate-200 hover:border-slate-300 text-slate-600'
-              "
-              @click="form.type = 'sick'"
+              @click="showModal = false"
+              class="text-slate-400 hover:text-slate-600"
             >
-              <Icon icon="solar:medical-kit-bold-duotone" class="w-8 h-8" />
-              <span class="font-medium">Sakit</span>
-            </button>
-            <button
-              type="button"
-              class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all"
-              :class="
-                form.type === 'permit'
-                  ? 'border-blue-500 bg-blue-50 text-blue-700'
-                  : 'border-slate-200 hover:border-slate-300 text-slate-600'
-              "
-              @click="form.type = 'permit'"
-            >
-              <Icon icon="solar:clipboard-list-bold-duotone" class="w-8 h-8" />
-              <span class="font-medium">Izin</span>
+              <Icon icon="solar:close-circle-bold" class="w-6 h-6" />
             </button>
           </div>
 
-          <!-- Date Range -->
-          <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1"
-              >Tanggal Mulai - Selesai</label
-            >
-            <div class="grid grid-cols-2 gap-2">
-              <input
-                type="date"
-                v-model="form.startDate"
-                class="px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                placeholder="Mulai"
-              />
-              <input
-                type="date"
-                v-model="form.endDate"
-                class="px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                placeholder="Selesai"
-              />
+          <div class="p-6 overflow-y-auto space-y-4 flex-1 min-h-0">
+            <!-- Type -->
+            <div class="grid grid-cols-2 gap-4">
+              <button
+                type="button"
+                class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all"
+                :class="
+                  form.type === 'sick'
+                    ? 'border-rose-500 bg-rose-50 text-rose-700'
+                    : 'border-slate-200 hover:border-slate-300 text-slate-600'
+                "
+                @click="form.type = 'sick'"
+              >
+                <Icon icon="solar:medical-kit-bold-duotone" class="w-8 h-8" />
+                <span class="font-medium">Sakit</span>
+              </button>
+              <button
+                type="button"
+                class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all"
+                :class="
+                  form.type === 'permit'
+                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                    : 'border-slate-200 hover:border-slate-300 text-slate-600'
+                "
+                @click="form.type = 'permit'"
+              >
+                <Icon
+                  icon="solar:clipboard-list-bold-duotone"
+                  class="w-8 h-8"
+                />
+                <span class="font-medium">Izin</span>
+              </button>
+            </div>
+
+            <!-- Date Range -->
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1"
+                >Tanggal Mulai - Selesai</label
+              >
+              <div class="grid grid-cols-2 gap-2">
+                <input
+                  type="date"
+                  v-model="form.startDate"
+                  class="px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                  placeholder="Mulai"
+                />
+                <input
+                  type="date"
+                  v-model="form.endDate"
+                  class="px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                  placeholder="Selesai"
+                />
+              </div>
+            </div>
+
+            <!-- Reason -->
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1"
+                >Alasan</label
+              >
+              <textarea
+                v-model="form.reason"
+                rows="3"
+                class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                placeholder="Jelaskan alasan pengajuan..."
+              ></textarea>
+            </div>
+
+            <!-- File Attachment -->
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">
+                Bukti Koordinasi Atasan <span class="text-rose-500">*</span>
+              </label>
+              <p class="text-xs text-slate-500 mb-2">
+                Upload bukti chat/dokumen koordinasi dengan atasan (jpg, png,
+                pdf). Maks 5MB.
+              </p>
+              <div
+                class="border-2 border-dashed rounded-lg p-4 text-center transition-colors"
+                :class="
+                  form.attachmentFile
+                    ? 'border-emerald-300 bg-emerald-50'
+                    : 'border-slate-200 hover:border-slate-300'
+                "
+              >
+                <input
+                  type="file"
+                  ref="fileInput"
+                  accept="image/jpeg,image/png,image/jpg,.pdf"
+                  class="hidden"
+                  @change="handleFileSelect"
+                />
+
+                <div
+                  v-if="!form.attachmentFile"
+                  @click="$refs.fileInput.click()"
+                  class="cursor-pointer"
+                >
+                  <Icon
+                    icon="solar:cloud-upload-bold-duotone"
+                    class="w-10 h-10 mx-auto text-slate-400 mb-2"
+                  />
+                  <p class="text-sm text-slate-500">Klik untuk upload file</p>
+                </div>
+
+                <div v-else class="flex items-center justify-between">
+                  <div class="flex items-center gap-3">
+                    <Icon
+                      :icon="
+                        form.attachmentFile.type.includes('pdf')
+                          ? 'solar:document-bold-duotone'
+                          : 'solar:gallery-bold-duotone'
+                      "
+                      class="w-8 h-8 text-emerald-600"
+                    />
+                    <div class="text-left">
+                      <p
+                        class="text-sm font-medium text-slate-700 truncate max-w-[200px]"
+                      >
+                        {{ form.attachmentFile.name }}
+                      </p>
+                      <p class="text-xs text-slate-500">
+                        {{ formatFileSize(form.attachmentFile.size) }}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    @click="removeFile"
+                    class="p-1 text-rose-500 hover:bg-rose-50 rounded-full"
+                  >
+                    <Icon icon="solar:trash-bin-trash-bold" class="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+              <p v-if="fileError" class="text-xs text-rose-500 mt-1">
+                {{ fileError }}
+              </p>
             </div>
           </div>
 
-          <!-- Reason -->
-          <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1"
-              >Alasan</label
+          <div
+            class="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3"
+          >
+            <button
+              @click="showModal = false"
+              class="px-4 py-2 text-slate-600 hover:bg-slate-200 rounded-lg font-medium text-sm"
             >
-            <textarea
-              v-model="form.reason"
-              rows="3"
-              class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-              placeholder="Jelaskan alasan pengajuan..."
-            ></textarea>
+              Batal
+            </button>
+            <button
+              @click="submit"
+              :disabled="submitting"
+              class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium text-sm flex items-center gap-2"
+            >
+              <Icon
+                v-if="submitting"
+                icon="lucide:loader-2"
+                class="w-4 h-4 animate-spin"
+              />
+              {{ submitting ? "Mengirim..." : "Kirim Pengajuan" }}
+            </button>
           </div>
         </div>
-
-        <div
-          class="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3"
-        >
-          <button
-            @click="showModal = false"
-            class="px-4 py-2 text-slate-600 hover:bg-slate-200 rounded-lg font-medium text-sm"
-          >
-            Batal
-          </button>
-          <button
-            @click="submit"
-            :disabled="submitting"
-            class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium text-sm flex items-center gap-2"
-          >
-            <Icon
-              v-if="submitting"
-              icon="lucide:loader-2"
-              class="w-4 h-4 animate-spin"
-            />
-            {{ submitting ? "Mengirim..." : "Kirim Pengajuan" }}
-          </button>
-        </div>
       </div>
-    </div>
+    </Teleport>
+    <!-- Status Modal -->
+    <StatusModal
+      :isOpen="statusModal.isOpen"
+      :type="statusModal.type"
+      :title="statusModal.title"
+      :message="statusModal.message"
+      @close="closeStatusModal"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from "vue";
 import { Icon } from "@iconify/vue";
-import { permissionsApi } from "@/services/api";
+import { permissionsApi, uploadFile } from "@/services/api";
+import TableSkeleton from "@/components/ui/TableSkeleton.vue";
+import StatusModal from "@/components/ui/StatusModal.vue";
+
+// Responsive default: card for mobile (<768px), table for desktop
+const isDesktop = window.matchMedia("(min-width: 768px)").matches;
+const viewMode = ref(isDesktop ? "table" : "card");
 
 const permissions = ref([]);
 const loading = ref(false);
 const showModal = ref(false);
 const submitting = ref(false);
+const fileError = ref("");
+const fileInput = ref(null);
+
+const statusModal = reactive({
+  isOpen: false,
+  type: "success",
+  title: "",
+  message: "",
+});
+
+function showStatus(type, title, message) {
+  statusModal.type = type;
+  statusModal.title = title;
+  statusModal.message = message;
+  statusModal.isOpen = true;
+}
+
+function closeStatusModal() {
+  statusModal.isOpen = false;
+}
 
 const form = reactive({
   type: "sick",
@@ -224,6 +446,7 @@ const form = reactive({
   endDate: "",
   reason: "",
   attachment: "",
+  attachmentFile: null,
 });
 
 function formatDate(iso) {
@@ -249,6 +472,55 @@ function statusIcon(status) {
   return "solar:clock-circle-bold";
 }
 
+// File handling functions
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const ALLOWED_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/jpg",
+  "application/pdf",
+];
+
+function handleFileSelect(event) {
+  const file = event.target.files[0];
+  fileError.value = "";
+
+  if (!file) return;
+
+  // Validate file type
+  if (!ALLOWED_TYPES.includes(file.type)) {
+    fileError.value = "Format file tidak didukung. Hanya jpg, png, dan pdf.";
+    event.target.value = "";
+    return;
+  }
+
+  // Validate file size
+  if (file.size > MAX_FILE_SIZE) {
+    fileError.value = `Ukuran file terlalu besar. Maksimal ${
+      MAX_FILE_SIZE / (1024 * 1024)
+    }MB.`;
+    event.target.value = "";
+    return;
+  }
+
+  form.attachmentFile = file;
+}
+
+function removeFile() {
+  form.attachmentFile = null;
+  form.attachment = "";
+  fileError.value = "";
+  if (fileInput.value) {
+    fileInput.value.value = "";
+  }
+}
+
+function formatFileSize(bytes) {
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+  return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+}
+
 async function fetchPermissions() {
   loading.value = true;
   try {
@@ -258,7 +530,11 @@ async function fetchPermissions() {
     }
   } catch (e) {
     console.error(e);
-    alert(e.message || "Gagal memuat data perizinan.");
+    showStatus(
+      "error",
+      "Gagal Memuat",
+      e.message || "Gagal memuat data perizinan."
+    );
   } finally {
     loading.value = false;
   }
@@ -266,32 +542,62 @@ async function fetchPermissions() {
 
 async function submit() {
   if (!form.startDate || !form.endDate || !form.reason) {
-    alert("Mohon lengkapi semua field.");
+    showStatus(
+      "error",
+      "Data Belum Lengkap",
+      "Mohon lengkapi semua field yang tersedia."
+    );
+    return;
+  }
+
+  // Validate file attachment is required
+  if (!form.attachmentFile) {
+    fileError.value = "Bukti koordinasi atasan wajib dilampirkan.";
+    showStatus(
+      "error",
+      "Lampiran Kurang",
+      "Bukti koordinasi atasan wajib dilampirkan."
+    );
     return;
   }
 
   submitting.value = true;
   try {
+    // Upload file first using API service
+    const uploadData = await uploadFile(form.attachmentFile);
+    if (!uploadData.success) {
+      throw new Error(uploadData.message || "Gagal mengupload file.");
+    }
+
+    // Submit permission with attachment URL
     await permissionsApi.submitPermission({
       type: form.type,
       startDate: form.startDate,
       endDate: form.endDate,
       reason: form.reason,
-      attachment: form.attachment,
+      attachment: uploadData.data.url,
     });
 
     showModal.value = false;
+    removeFile(); // Clear file
     Object.assign(form, {
       type: "sick",
       startDate: "",
       endDate: "",
       reason: "",
       attachment: "",
+      attachmentFile: null,
     });
-    fetchPermissions();
+
+    showStatus("success", "Berhasil", "Pengajuan izin berhasil dikirim.");
+    await fetchPermissions();
   } catch (e) {
     console.error(e);
-    alert("Gagal mengirim pengajuan.");
+    showStatus(
+      "error",
+      "Gagal Mengirim",
+      e.message || "Gagal mengirim pengajuan."
+    );
   } finally {
     submitting.value = false;
   }

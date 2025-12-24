@@ -13,6 +13,7 @@ import {
   createPermissionSchema,
   updatePermissionStatusSchema,
 } from "../validators/permissions";
+import { createNotification, notifyAdmins } from "../utils/notifications";
 
 const permissionsRoute = new Hono();
 
@@ -100,6 +101,44 @@ permissionsRoute.get("/", async (c) => {
   }
 });
 
+// Get My Own Permissions Only (regardless of role - for PermissionList page)
+permissionsRoute.get("/mine", async (c) => {
+  try {
+    const user = c.get("user");
+
+    // Find teacher profile for current user
+    const myTeacher = await db.query.teachers.findFirst({
+      where: eq(teachers.userId, user.userId),
+    });
+
+    if (!myTeacher) {
+      return c.json({
+        success: true,
+        data: [], // Return empty if no teacher profile
+      });
+    }
+
+    // Always return only current user's permissions
+    const results = await db.query.permissionRequests.findMany({
+      where: eq(permissionRequests.teacherId, myTeacher.id),
+      orderBy: [desc(permissionRequests.createdAt)],
+    });
+
+    return c.json({ success: true, data: results });
+  } catch (e) {
+    console.error("Get my permissions error", e);
+    return c.json(
+      {
+        success: false,
+        message:
+          "Failed to fetch permissions: " +
+          (e instanceof Error ? e.message : String(e)),
+      },
+      500
+    );
+  }
+});
+
 // Submit Permission
 // Submit Permission
 permissionsRoute.post(
@@ -133,6 +172,22 @@ permissionsRoute.post(
         attachment: payload.attachment || null,
         status: "pending",
       });
+
+      // Submit Permission Notification -> Notify Admins
+      // Need user name for notification message
+      const userName = teacherProfile.fullName || user.email.split("@")[0];
+
+      // Fire and forget notification
+      notifyAdmins(
+        "permission_request",
+        "Pengajuan Izin Baru",
+        `${userName} mengajukan izin: ${payload.reason}`,
+        {
+          permissionId: null, // Insert ID not easily available with simple insert if not returned, but insert returns result object in mysql usually
+          teacherId,
+          type: payload.type,
+        }
+      );
 
       return c.json({
         success: true,
@@ -252,6 +307,29 @@ permissionsRoute.post(
             }
           }
         }
+      } // End of attendance loop
+
+      // Notify User (Teacher)
+      const teacherRecord = await db.query.teachers.findFirst({
+        where: eq(teachers.id, req.teacherId),
+      });
+
+      if (teacherRecord && teacherRecord.userId) {
+        const title =
+          status === "approved"
+            ? "Pengajuan Izin Disetujui"
+            : "Pengajuan Izin Ditolak";
+        const message = `Pengajuan izin Anda untuk tanggal ${
+          req.startDate
+        } telah ${status === "approved" ? "disetujui" : "ditolak"}.`;
+
+        createNotification(
+          teacherRecord.userId,
+          "permission_status",
+          title,
+          message,
+          { permissionId: id, status }
+        );
       }
 
       return c.json({ success: true, message: `Request ${status}` });

@@ -62,13 +62,16 @@ function getOnlineUsers(): number[] {
 // Send to all connections of a specific user
 export function broadcastToUser(userId: number, message: object) {
   const clients = connectedClients.get(userId);
+
   if (clients) {
     const data = JSON.stringify(message);
     clients.forEach((ws) => {
       try {
-        ws.send(data);
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(data);
+        }
       } catch (error) {
-        console.error(`Failed to send to user ${userId}:`, error);
+        console.error(`[WS] Failed to send to user ${userId}:`, error);
       }
     });
   }
@@ -520,7 +523,6 @@ async function handleReaction(
 export const websocketHandlers = {
   async open(ws: ServerWebSocket<WebSocketData>) {
     const { userId, email } = ws.data;
-    console.log(`WebSocket connected: User ${userId} (${email})`);
 
     addClient(userId, ws);
 
@@ -625,7 +627,6 @@ export const websocketHandlers = {
 
   async close(ws: ServerWebSocket<WebSocketData>) {
     const { userId, email } = ws.data;
-    console.log(`WebSocket disconnected: User ${userId} (${email})`);
 
     removeClient(userId, ws);
 

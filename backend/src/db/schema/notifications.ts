@@ -16,12 +16,7 @@ export const notifications = mysqlTable("notifications", {
   recipientId: int("recipient_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
-  type: mysqlEnum("type", [
-    "group_invite",
-    "group_removed", // When removed by admin
-    "group_role_change", // When promoted/demoted
-    "system", // General system notifications
-  ]).notNull(),
+  type: varchar("type", { length: 50 }).notNull(), // 'group_invite', 'permission_request', etc.
   title: varchar("title", { length: 255 }).notNull(),
   message: text("message").notNull(),
   data: json("data"), // Metadata like conversationId, inviterId, etc.

@@ -1,5 +1,5 @@
 <template>
-  <div class="space-y-6">
+  <div class="space-y-6 overflow-hidden max-w-full">
     <!-- Header & Filters -->
     <div
       class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-xl border border-slate-200 shadow-sm"
@@ -87,6 +87,36 @@
 
         <!-- Actions -->
         <div class="flex gap-2">
+          <!-- View Toggle -->
+          <div
+            class="flex items-center bg-slate-100 rounded-lg p-1 border border-slate-200"
+          >
+            <button
+              @click="viewMode = 'table'"
+              class="p-2 rounded-md transition-all flex items-center justify-center"
+              :class="
+                viewMode === 'table'
+                  ? 'bg-white shadow text-indigo-600'
+                  : 'text-slate-500 hover:text-slate-700'
+              "
+              title="Tampilan Tabel"
+            >
+              <Icon icon="solar:list-bold-duotone" class="w-5 h-5" />
+            </button>
+            <button
+              @click="viewMode = 'card'"
+              class="p-2 rounded-md transition-all flex items-center justify-center"
+              :class="
+                viewMode === 'card'
+                  ? 'bg-white shadow text-indigo-600'
+                  : 'text-slate-500 hover:text-slate-700'
+              "
+              title="Tampilan Kartu"
+            >
+              <Icon icon="solar:gallery-wide-bold-duotone" class="w-5 h-5" />
+            </button>
+          </div>
+
           <button
             @click="fetchRecap"
             class="p-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
@@ -111,10 +141,10 @@
       </div>
     </div>
 
-    <!-- Main Content -->
+    <!-- Table View -->
     <div
+      v-if="viewMode === 'table'"
       class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden"
-      v-if="!loading || recapData.teachers.length > 0"
     >
       <!-- Legends -->
       <div
@@ -146,8 +176,17 @@
         </div>
       </div>
 
+      <!-- Skeleton Loading -->
+      <TableSkeleton
+        v-if="loading"
+        viewMode="table"
+        :rows="8"
+        :columnCount="10"
+        class="p-4"
+      />
+
       <!-- Table Wrapper -->
-      <div class="overflow-x-auto relative">
+      <div v-else class="overflow-x-auto relative">
         <table class="w-full text-xs text-left whitespace-nowrap">
           <thead
             class="bg-slate-50 text-slate-500 border-b border-slate-200 sticky top-0 z-10"
@@ -249,11 +288,13 @@
                       teacher.daily[date.iso].status === 'present' &&
                       teacher.daily[date.iso].isClaim
                     "
+                    "
                     class="flex flex-col items-center justify-center gap-0.5"
                   >
                     <span
-                      class="px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-bold text-[10px]"
-                      title="Klaim Kehadiran"
+                      class="px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-bold text-[10px] cursor-pointer hover:bg-amber-200 hover:scale-105 transition-all"
+                      title="Klaim Kehadiran (Klik untuk hapus)"
+                      @click.stop="handleKClick(teacher.daily[date.iso])"
                       >K</span
                     >
                     <span
@@ -369,13 +410,113 @@
       </div>
     </div>
 
+    <!-- Card View -->
+    <div v-else-if="viewMode === 'card'" class="space-y-3">
+
+
+      <!-- Skeleton Loading -->
+      <TableSkeleton v-if="loading" viewMode="card" :rows="6" class="p-2" />
+
+      <template v-else>
+        <div
+          v-if="recapData.teachers.length === 0"
+          class="bg-white rounded-xl border border-slate-200 p-12 text-center text-slate-400"
+        >
+          <Icon
+            icon="lucide:clipboard-x"
+            class="w-12 h-12 mx-auto mb-3 opacity-50"
+          />
+          <p>Tidak ada data absensi untuk periode ini.</p>
+        </div>
+        <div
+          v-for="(teacher, idx) in recapData.teachers"
+          :key="teacher.id"
+          class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 hover:shadow-md transition-shadow"
+        >
+          <div class="flex items-start justify-between gap-3 mb-3">
+            <div>
+              <div class="font-medium text-slate-800">{{ teacher.name }}</div>
+              <div class="text-xs text-slate-400">
+                {{ teacher.nip || "-" }} · {{ teacher.division || "-" }}
+              </div>
+            </div>
+            <span class="text-xs text-slate-400">#{{ idx + 1 }}</span>
+          </div>
+          <div class="grid grid-cols-3 gap-3 text-center">
+            <div class="bg-slate-50 rounded-lg p-2">
+              <div class="text-lg font-bold text-slate-700">
+                {{ teacher.stats.activeDays }}
+              </div>
+              <div class="text-xs text-slate-500">Hari Aktif</div>
+            </div>
+            <div class="bg-emerald-50 rounded-lg p-2">
+              <div class="text-lg font-bold text-emerald-600">
+                {{ teacher.stats.presence }}
+              </div>
+              <div class="text-xs text-emerald-600">Hadir</div>
+            </div>
+            <div class="bg-indigo-50 rounded-lg p-2">
+              <div class="text-lg font-bold text-indigo-700">
+                {{
+                  teacher.stats.presence + (teacher.stats.permitNoDeduct || 0)
+                }}
+              </div>
+              <div class="text-xs text-indigo-600">Hari Dibayar</div>
+            </div>
+          </div>
+          <div class="grid grid-cols-3 gap-3 text-center mt-2">
+            <div class="bg-slate-50 rounded-lg p-2">
+              <div class="text-sm font-semibold text-slate-600">
+                {{ teacher.stats.hours }}h
+              </div>
+              <div class="text-xs text-slate-500">Total Jam</div>
+            </div>
+            <div class="bg-rose-50 rounded-lg p-2">
+              <div class="text-sm font-semibold text-rose-600">
+                {{ teacher.stats.permitDeduct || 0 }}
+              </div>
+              <div class="text-xs text-rose-500">Izin Potong</div>
+            </div>
+            <div class="bg-emerald-50 rounded-lg p-2">
+              <div class="text-sm font-semibold text-emerald-600">
+                {{ teacher.stats.permitNoDeduct || 0 }}
+              </div>
+              <div class="text-xs text-emerald-500">Izin Tidak Potong</div>
+            </div>
+          </div>
+        </div>
+      </template>
+    </div>
+
     <!-- Loading State -->
-    <div v-else class="h-64 flex items-center justify-center">
+    <div
+      v-if="loading && recapData.teachers.length === 0"
+      class="h-64 flex items-center justify-center"
+    >
       <div class="flex flex-col items-center gap-3 text-slate-400">
         <Icon icon="lucide:loader-2" class="w-8 h-8 animate-spin" />
         <span class="text-sm">Memuat data rekap...</span>
       </div>
     </div>
+    <!-- Modals -->
+    <ConfirmModal
+      :isOpen="confirmModal.isOpen"
+      :title="confirmModal.title"
+      :message="confirmModal.message"
+      confirmText="Hapus"
+      cancelText="Batal"
+      confirmType="danger"
+      @confirm="confirmDeleteClaim"
+      @cancel="confirmModal.isOpen = false"
+    />
+
+    <StatusModal
+      :isOpen="statusModal.isOpen"
+      :type="statusModal.type"
+      :title="statusModal.title"
+      :message="statusModal.message"
+      @close="statusModal.isOpen = false"
+    />
   </div>
 </template>
 
@@ -385,6 +526,13 @@ import { Icon } from "@iconify/vue";
 import { attendanceApi, settingsApi, divisionsApi } from "@/services/api";
 import ExcelJS from "exceljs/dist/exceljs.min.js";
 import { saveAs } from "file-saver";
+import TableSkeleton from "@/components/ui/TableSkeleton.vue";
+import StatusModal from "@/components/ui/StatusModal.vue";
+import ConfirmModal from "@/components/ui/ConfirmModal.vue";
+
+// Responsive default: card for mobile (<768px), table for desktop
+const isDesktop = window.matchMedia("(min-width: 768px)").matches;
+const viewMode = ref(isDesktop ? "table" : "card");
 
 // Constants
 const months = [
@@ -422,6 +570,20 @@ const recapData = reactive({
 });
 const holidays = ref([0]); // Default Sunday
 const divisions = ref([]);
+
+// Modals
+const confirmModal = reactive({
+  isOpen: false,
+  title: "",
+  message: "",
+  item: null,
+});
+const statusModal = reactive({
+  isOpen: false,
+  type: "success",
+  title: "",
+  message: "",
+});
 
 // Computed Date Range for Headers
 const dateRange = computed(() => {
@@ -661,6 +823,45 @@ async function exportToExcel() {
   } catch (error) {
     console.error("Export Error:", error);
     alert("Gagal export excel: " + error.message);
+  }
+}
+
+// === Delete Claim Logic ===
+function handleKClick(dayData) {
+  // Only allow if it's a claim and has an ID
+  if (dayData.isClaim && dayData.attendanceId) {
+    confirmModal.item = dayData;
+    confirmModal.title = "Hapus Klaim Kehadiran?";
+    confirmModal.message =
+      "Apakah Anda yakin ingin menghapus data klaim ini? Tindakan ini tidak dapat dibatalkan.";
+    confirmModal.isOpen = true;
+  }
+}
+
+async function confirmDeleteClaim() {
+  if (!confirmModal.item) return;
+  confirmModal.isOpen = false;
+  loading.value = true;
+  try {
+    await attendanceApi.deleteTeacherAttendance(confirmModal.item.attendanceId);
+    
+    // Refresh data
+    await fetchRecap();
+
+    // Show success
+    statusModal.type = "success";
+    statusModal.title = "Berhasil";
+    statusModal.message = "Data klaim kehadiran berhasil dihapus.";
+    statusModal.isOpen = true;
+  } catch (error) {
+    console.error("Delete claim error:", error);
+    statusModal.type = "error";
+    statusModal.title = "Gagal";
+    statusModal.message = error.message || "Gagal menghapus data.";
+    statusModal.isOpen = true;
+  } finally {
+    loading.value = false;
+    confirmModal.item = null;
   }
 }
 

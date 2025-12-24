@@ -25,7 +25,7 @@ const allNotifications = computed(() => {
   const combined = [
     ...unreadMessages.value.map((m) => ({ ...m, itemType: "chat" })),
     ...systemNotifications.value
-      .filter((n) => n != null)
+      .filter((n) => n != null && !n.isRead)
       .map((n) => ({
         ...n,
         itemType: "system",
@@ -249,6 +249,11 @@ function goToChat() {
   router.push("/apps/chat");
 }
 
+function goToNotifications() {
+  closeNotificationPopup();
+  router.push("/apps/notifications");
+}
+
 function goToConversation(conversationId) {
   // Find and remove this notification from the list immediately
   const msgIndex = unreadMessages.value.findIndex(
@@ -263,6 +268,40 @@ function goToConversation(conversationId) {
   closeNotificationPopup();
   // Add timestamp to force route change detection even when on same page
   router.push(`/apps/chat?conv=${conversationId}&t=${Date.now()}`);
+}
+
+function goToNotificationDetail(notification) {
+  // Mark as read
+  if (!notification.isRead) {
+    if (notification.id) {
+      notificationsApi.markAsRead(notification.id);
+      const n = systemNotifications.value.find((x) => x.id === notification.id);
+      if (n) {
+        n.isRead = true;
+        unreadCount.value = Math.max(0, unreadCount.value - 1);
+      }
+    }
+  }
+
+  // Navigate based on type
+  // Check virtual prop 'notifType' (mapped from 'type' in DB)
+  const type = notification.notifType || notification.type;
+
+  if (type === "permission_request") {
+    router.push("/apps/attendance/approvals");
+  } else if (type === "permission_status") {
+    router.push("/apps/attendance/permissions");
+  } else if (type === "permission_approved" || type === "permission_rejected") {
+    // Handle potential legacy type naming if any
+    router.push("/apps/attendance/permissions");
+  } else if (type === "group_invite") {
+    router.push("/apps/chat");
+  } else {
+    // Default fallback
+    router.push("/apps/notifications");
+  }
+
+  closeNotificationPopup();
 }
 
 function formatNotificationTime(dateStr) {
@@ -544,8 +583,8 @@ function goSettings() {
                     <!-- System Notification -->
                     <template v-else-if="item.itemType === 'system'">
                       <div
-                        class="flex-1"
-                        @click="!item.isRead && markAsRead(item.id)"
+                        class="flex-1 cursor-pointer hover:bg-slate-100/50 rounded-lg p-1 transition-colors"
+                        @click="goToNotificationDetail(item)"
                       >
                         <div class="flex gap-3">
                           <div
@@ -621,10 +660,10 @@ function goSettings() {
               <!-- Footer -->
               <div class="px-4 py-3 border-t border-slate-100 bg-slate-50">
                 <button
-                  @click="goToChat"
+                  @click="goToNotifications"
                   class="w-full text-center text-sm text-primary hover:text-amber-700 font-medium"
                 >
-                  Lihat Lebih Banyak
+                  Lihat Semua Notifikasi
                 </button>
               </div>
             </div>

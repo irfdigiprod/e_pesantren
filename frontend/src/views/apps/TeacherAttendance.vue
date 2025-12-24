@@ -238,13 +238,9 @@
           </div>
           <span
             class="px-2 py-1 text-xs font-medium rounded-full"
-            :class="
-              item.status === 'present'
-                ? 'bg-emerald-100 text-emerald-700'
-                : 'bg-amber-100 text-amber-700'
-            "
+            :class="getStatusClass(item.status)"
           >
-            {{ item.status === "present" ? "Hadir" : item.status }}
+            {{ formatAttendanceStatus(item.status) }}
           </span>
         </div>
       </div>
@@ -274,19 +270,14 @@
                   }}</span>
                   <span
                     class="px-2 py-0.5 rounded-full text-xs font-medium"
-                    :class="{
-                      'bg-emerald-100 text-emerald-700':
-                        getAttendancesForDate(date)[0].status === 'present',
-                      'bg-amber-100 text-amber-700':
-                        getAttendancesForDate(date)[0].status === 'late',
-                      'bg-rose-100 text-rose-700':
-                        getAttendancesForDate(date)[0].status === 'absent',
-                    }"
+                    :class="
+                      getStatusClass(getAttendancesForDate(date)[0].status)
+                    "
                   >
                     {{
-                      getAttendancesForDate(date)[0].status === "present"
-                        ? "Hadir"
-                        : getAttendancesForDate(date)[0].status
+                      formatAttendanceStatus(
+                        getAttendancesForDate(date)[0].status
+                      )
                     }}
                   </span>
                 </div>
@@ -450,37 +441,9 @@
                     <td class="px-4 py-3 align-top">
                       <span
                         class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium capitalize"
-                        :class="{
-                          'bg-emerald-100 text-emerald-800':
-                            item.status === 'present',
-                          'bg-amber-100 text-amber-800': item.status === 'late',
-                          'bg-rose-100 text-rose-800': item.status === 'absent',
-                          'bg-rose-100 text-rose-700': [
-                            'permit_deduct',
-                            'sick_deduct',
-                            'permitted',
-                            'sick',
-                          ].includes(item.status),
-                          'bg-emerald-100 text-emerald-700': [
-                            'permit_no_deduct',
-                            'sick_no_deduct',
-                          ].includes(item.status),
-                        }"
+                        :class="getStatusClass(item.status)"
                       >
-                        {{
-                          item.status === "present"
-                            ? "Hadir"
-                            : item.status === "permit_deduct" ||
-                              item.status === "sick_deduct"
-                            ? "Izin Potong"
-                            : item.status === "permit_no_deduct" ||
-                              item.status === "sick_no_deduct"
-                            ? "Izin Tanpa Potong"
-                            : item.status === "permitted" ||
-                              item.status === "sick"
-                            ? "Izin"
-                            : item.status
-                        }}
+                        {{ formatAttendanceStatus(item.status) }}
                         <span v-if="item.isClaim" class="ml-1 text-slate-500"
                           >(Klaim)</span
                         >
@@ -937,7 +900,7 @@ async function submitClaim() {
       (key) => payload[key] === undefined && delete payload[key]
     );
 
-    console.log("Submitting Claim Payload:", JSON.stringify(payload, null, 2));
+    // console.log("Submitting Claim Payload:", JSON.stringify(payload, null, 2));
 
     await attendanceApi.teacherClaim(payload);
 
@@ -1099,6 +1062,31 @@ const todayRecords = computed(() => {
     .sort((a, b) => b.id - a.id);
 });
 
+function formatAttendanceStatus(status, type = "text") {
+  switch (status) {
+    case "present":
+      return "Hadir";
+    case "late":
+      return "Terlambat";
+    case "absent":
+      return "Alpha";
+    case "permit_deduct":
+      return "Izin (Kena Potong)";
+    case "sick_deduct":
+      return "Sakit (Kena Potong)";
+    case "permit_no_deduct":
+      return "Izin (Tanpa Potong)";
+    case "sick_no_deduct":
+      return "Sakit (Tanpa Potong)";
+    case "permitted":
+      return "Izin";
+    case "sick":
+      return "Sakit";
+    default:
+      return status || "-";
+  }
+}
+
 // Today attendance (latest)
 const todayAttendance = computed(() => {
   if (todayRecords.value.length === 0) return null;
@@ -1125,6 +1113,17 @@ function formatDate(dateStr) {
     month: "short",
     year: "numeric",
   });
+}
+
+function getStatusClass(status) {
+  if (status === "present") return "bg-emerald-100 text-emerald-800";
+  if (status === "late") return "bg-amber-100 text-amber-800";
+  if (status === "absent") return "bg-rose-100 text-rose-800";
+  if (["permit_deduct", "sick_deduct", "permitted", "sick"].includes(status))
+    return "bg-rose-100 text-rose-700";
+  if (["permit_no_deduct", "sick_no_deduct"].includes(status))
+    return "bg-emerald-100 text-emerald-700";
+  return "bg-slate-100 text-slate-700"; // Default gray
 }
 
 async function fetchData() {
@@ -1297,20 +1296,29 @@ function startGeolocation() {
         lat: pos.coords.latitude,
         lng: pos.coords.longitude,
       };
-      distance.value = getDistanceFromLatLonInMeters(
-        pos.coords.latitude,
-        pos.coords.longitude,
-        settings.value.latitude,
+
+      if (
+        settings.value &&
+        settings.value.latitude &&
         settings.value.longitude
-      );
+      ) {
+        distance.value = getDistanceFromLatLonInMeters(
+          currentPos.value.lat,
+          currentPos.value.lng,
+          settings.value.latitude,
+          settings.value.longitude
+        );
+      }
       locationError.value = "";
     },
     (err) => {
-      console.error(err);
-      locationError.value = "Gagal memantau lokasi: " + err.message;
-      distance.value = null;
+      console.warn("WatchPosition Warning:", err);
+      // Only show visible error if we haven't locked location yet
+      if (!currentPos.value) {
+        locationError.value = "Sedang mencari lokasi... (" + err.message + ")";
+      }
     },
-    { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
   );
 }
 

@@ -623,10 +623,30 @@ attendanceRoute.get("/teachers/recap", requireRole("admin"), async (c) => {
         if (!dailyMap[dStr]) {
           dailyMap[dStr] = {
             status: att.status,
+            status: att.status,
             isClaim: att.isClaim || false,
+            attendanceId: att.id, // Include ID for deletion/editing
             times: [],
             totalMinutes: 0,
           };
+        }
+
+        // If newer (or any) record for same day, ensure ID is captured (logic usually matches first found or iterates)
+        // Since we aggregate multiple checkins into one "day" map cell?
+        // Wait, the code aggregates times: `dailyMap[dStr].times.push(...)`.
+        // Be careful: if there are multiple attendances per day, which ID do we keep?
+        // logic says: `if (!dailyMap[dStr]) { ... }`. So it keeps the ID of the FIRST one encountered.
+        // `findMany` order is undefined unless specified.
+        // For Claims, usually there's only one per day.
+        // But if we want to be safe, we might need a list of IDs or just the "Main" one.
+        // For "K" (Claim), it's a specific record.
+        // If there are multiple, deleting one is correct action for that one.
+        // But the UI shows 1 day box.
+        // Let's assume for `isClaim`, it's the primary record we want to capture.
+        if (att.isClaim) {
+          dailyMap[dStr].attendanceId = att.id;
+          dailyMap[dStr].isClaim = true;
+          dailyMap[dStr].status = "present"; // Claim implies presence
         }
 
         // Aggregate Time
@@ -715,6 +735,38 @@ attendanceRoute.get("/teachers/recap", requireRole("admin"), async (c) => {
     return c.json({ success: false, message: "Failed to fetch recap" }, 500);
   }
 });
+
+// Delete Teacher Attendance (e.g. Claim)
+attendanceRoute.delete(
+  "/teachers/attendances/:id",
+  requireRole("admin"),
+  async (c) => {
+    try {
+      const id = parseInt(c.req.param("id"));
+
+      const existing = await db.query.teacherAttendances.findFirst({
+        where: eq(teacherAttendances.id, id),
+      });
+
+      if (!existing) {
+        return c.json({ success: false, message: "Attendance not found" }, 404);
+      }
+
+      await db.delete(teacherAttendances).where(eq(teacherAttendances.id, id));
+
+      return c.json({
+        success: true,
+        message: "Data kehadiran berhasil dihapus",
+      });
+    } catch (error) {
+      console.error("Delete attendance error:", error);
+      return c.json(
+        { success: false, message: "Gagal menghapus data kehadiran" },
+        500
+      );
+    }
+  }
+);
 
 export default attendanceRoute;
 // Teacher claim (manual attendance)

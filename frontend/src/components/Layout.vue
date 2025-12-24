@@ -13,13 +13,13 @@
       @click="isSidebarOpen = false"
     ></div>
 
-    <div class="flex-1 flex flex-col min-h-screen">
+    <div class="flex-1 flex flex-col min-h-screen overflow-hidden">
       <!-- PENTING: beri TopBar fixed height agar kalkulasi main konsisten -->
-      <TopBar @toggle-sidebar="toggleSidebar" class="h-16" />
+      <TopBar @toggle-sidebar="toggleSidebar" class="h-16 flex-shrink-0" />
 
       <!-- main: batasi tinggi dan buat scroll sendiri -->
       <main
-        class="flex-1 overflow-y-auto p-4 lg:p-6"
+        class="flex-1 overflow-y-auto overflow-x-auto p-4 lg:p-6"
         :style="{ maxHeight: 'calc(100vh - 4rem)' }"
       >
         <LoadingSkeleton v-if="isRouteLoadingVal" />

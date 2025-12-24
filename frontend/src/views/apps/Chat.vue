@@ -1937,8 +1937,6 @@ import wsClient from "../../services/websocket.js";
 // Listen for profile updates
 onMounted(() => {
   const unsubProfileUpdate = wsClient.on("user_profile_updated", (userData) => {
-    console.log("Profile updated via WS:", userData);
-
     // Update active conversation if participant exists
     if (activeConversation.value && activeConversation.value.participants) {
       const p = activeConversation.value.participants.find(
