@@ -38,6 +38,7 @@ export const students = mysqlTable("students", {
   enrollmentDate: date("enrollment_date"),
   status: mysqlEnum("status", [
     "active",
+    "inactive",
     "graduated",
     "transferred",
     "dropped",

@@ -1134,6 +1134,11 @@ export const settingsApi = {
     return request(`/api/settings${query}`);
   },
 
+  // Public endpoint for institution info (no auth required)
+  async getPublic() {
+    return request("/api/settings/public");
+  },
+
   async update(settings) {
     return request("/api/settings", {
       method: "PUT",
@@ -1173,4 +1178,100 @@ export const permissionsApi = {
 };
 
 // Export individual utilities
+// ============================================
+// SALARY API
+// ============================================
+
+export const salaryApi = {
+  async getSettings() {
+    return request("/api/salary/settings");
+  },
+  async getReport(month, year) {
+    return request(`/api/salary/reports?month=${month}&year=${year}`);
+  },
+  async updateSettings(data) {
+    return request("/api/salary/settings", { method: "PUT", body: data });
+  },
+  // Positions
+  async createPosition(data) {
+    return request("/api/salary/positions", { method: "POST", body: data });
+  },
+  async updatePosition(id, data) {
+    return request(`/api/salary/positions/${id}`, {
+      method: "PUT",
+      body: data,
+    });
+  },
+  async deletePosition(id) {
+    return request(`/api/salary/positions/${id}`, { method: "DELETE" });
+  },
+  // Tenure
+  async createTenure(data) {
+    return request("/api/salary/tenure", { method: "POST", body: data });
+  },
+  async updateTenure(id, data) {
+    return request(`/api/salary/tenure/${id}`, { method: "PUT", body: data });
+  },
+  async deleteTenure(id) {
+    return request(`/api/salary/tenure/${id}`, { method: "DELETE" });
+  },
+  // Custom
+  async createCustom(data) {
+    return request("/api/salary/custom", { method: "POST", body: data });
+  },
+  async updateCustom(id, data) {
+    return request(`/api/salary/custom/${id}`, { method: "PUT", body: data });
+  },
+  async deleteCustom(id) {
+    return request(`/api/salary/custom/${id}`, { method: "DELETE" });
+  },
+};
+
+// ============================================
+// SALARY GRADES API
+// ============================================
+
+export const salaryGradesApi = {
+  getAll() {
+    return request("/api/salary-grades");
+  },
+  get(id) {
+    return request(`/api/salary-grades/${id}`);
+  },
+  create(data) {
+    return request("/api/salary-grades", {
+      method: "POST",
+      body: data,
+    });
+  },
+  update(id, data) {
+    return request(`/api/salary-grades/${id}`, {
+      method: "PUT",
+      body: data,
+    });
+  },
+  delete(id) {
+    return request(`/api/salary-grades/${id}`, {
+      method: "DELETE",
+    });
+  },
+};
+
 export { uploadFile };
+// ============================================
+// UPLOADS API
+// ============================================
+
+export const uploadsApi = {
+  upload(formData) {
+    return request("/api/uploads", {
+      method: "POST",
+      body: formData,
+    });
+  },
+};
+
+// ============================================
+// SETTINGS API
+// ============================================
+// Already defined above

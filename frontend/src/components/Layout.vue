@@ -29,6 +29,7 @@
             <router-view />
           </slot>
         </div>
+        <Footer />
       </main>
     </div>
   </div>
@@ -40,6 +41,7 @@ import Sidebar from "@/components/layout/Sidebar.vue";
 import TopBar from "@/components/layout/TopBar.vue";
 import LoadingSkeleton from "@/components/layout/LoadingSkeleton.vue";
 import { isRouteLoading } from "@/composables/routeLoading";
+import Footer from "@/components/layout/Footer.vue";
 
 const isSidebarOpen = ref(false);
 function toggleSidebar() {

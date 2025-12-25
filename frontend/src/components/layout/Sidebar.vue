@@ -28,6 +28,11 @@ const mainMenus = [
     icon: "solar:shield-check-line-duotone",
     label: "Security",
   },
+  {
+    id: "about",
+    icon: "solar:info-circle-line-duotone",
+    label: "About",
+  },
 ];
 
 const activeMainId = ref("apps");
@@ -111,6 +116,12 @@ const submenuByMain = {
             adminOnly: true,
           },
         ],
+      },
+      {
+        label: "Laporan Gaji",
+        icon: "solar:wallet-money-line-duotone",
+        route: "/apps/salary-report",
+        adminOnly: true,
       },
       {
         label: "Penghargaan",
@@ -214,9 +225,24 @@ const submenuByMain = {
         route: "/settings/attendance",
       },
       {
+        label: "Golongan Gaji",
+        icon: "solar:banknote-2-line-duotone",
+        route: "/settings/salary",
+      },
+      {
+        label: "Komponen Gaji",
+        icon: "solar:users-group-two-rounded-line-duotone",
+        route: "/settings/salary-grading",
+      },
+      {
         label: "Billing",
         icon: "solar:wallet-line-duotone",
         route: "/settings/billing",
+      },
+      {
+        label: "Identitas Lembaga",
+        icon: "solar:buildings-2-line-duotone",
+        route: "/settings/institution",
       },
     ],
   },
@@ -228,6 +254,17 @@ const submenuByMain = {
         label: "Roles",
         icon: "solar:lock-password-line-duotone",
         route: "/security/roles",
+      },
+    ],
+  },
+
+  about: {
+    title: "About",
+    items: [
+      {
+        label: "Tentang Aplikasi",
+        icon: "solar:info-circle-line-duotone",
+        route: "/about",
       },
     ],
   },

@@ -24,6 +24,9 @@ import {
   divisionsRoute,
   settingsRoute,
   permissionsRoute,
+  salaryRoute,
+  salaryReportRoute,
+  salaryGradesRoute,
 } from "./routes";
 
 import {
@@ -97,6 +100,9 @@ app.route("/api/notifications", notificationsRoute);
 app.route("/api/divisions", divisionsRoute);
 app.route("/api/settings", settingsRoute);
 app.route("/api/permissions", permissionsRoute);
+app.route("/api/salary", salaryRoute);
+app.route("/api/salary/reports", salaryReportRoute);
+app.route("/api/salary-grades", salaryGradesRoute);
 
 // 404 handler
 app.notFound((c) => {

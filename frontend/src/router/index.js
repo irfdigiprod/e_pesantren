@@ -132,6 +132,11 @@ const router = createRouter({
           component: () => import("@/views/apps/TeacherAttendance.vue"),
         },
         {
+          path: "apps/salary-report",
+          name: "SalaryReport",
+          component: () => import("@/views/apps/SalaryReport.vue"),
+        },
+        {
           path: "apps/attendance-recap",
           name: "AttendanceRecap",
           component: () => import("@/views/apps/RecapAttendance.vue"),
@@ -282,6 +287,26 @@ const router = createRouter({
           path: "settings/attendance",
           name: "SettingsAttendance",
           component: () => import("@/views/settings/SettingsAttendance.vue"),
+        },
+        {
+          path: "settings/salary-grading",
+          name: "SalaryGrading",
+          component: () => import("@/views/settings/SalaryGrading.vue"),
+        },
+        {
+          path: "settings/salary",
+          name: "SalarySettings",
+          component: () => import("@/views/settings/SalarySettings.vue"),
+        },
+        {
+          path: "settings/institution",
+          name: "SettingsInstitution",
+          component: () => import("@/views/settings/SettingsInstitution.vue"),
+        },
+        {
+          path: "about",
+          name: "About",
+          component: () => import("@/views/About.vue"),
         },
 
         // =======================

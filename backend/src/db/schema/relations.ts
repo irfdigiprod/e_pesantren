@@ -2,8 +2,18 @@ import { relations } from "drizzle-orm";
 import { teachers } from "./teachers";
 import { divisions, teacherDivisions } from "./divisions";
 
-export const teachersRelations = relations(teachers, ({ many }) => ({
+import { salaryGrades, positionAllowances } from "./salary";
+
+export const teachersRelations = relations(teachers, ({ many, one }) => ({
   teacherDivisions: many(teacherDivisions),
+  salaryGrade: one(salaryGrades, {
+    fields: [teachers.salaryGradeId],
+    references: [salaryGrades.id],
+  }),
+  positionAllowance: one(positionAllowances, {
+    fields: [teachers.positionAllowanceId],
+    references: [positionAllowances.id],
+  }),
 }));
 
 export const divisionsRelations = relations(divisions, ({ many }) => ({

@@ -32,9 +32,17 @@ teachersRoute.get("/", async (c) => {
         ? await db.query.teachers.findMany({
             where: conditions[0],
             orderBy: (teachers, { desc }) => [desc(teachers.createdAt)],
+            with: {
+              salaryGrade: true,
+              positionAllowance: true,
+            },
           })
         : await db.query.teachers.findMany({
             orderBy: (teachers, { desc }) => [desc(teachers.createdAt)],
+            with: {
+              salaryGrade: true,
+              positionAllowance: true,
+            },
           });
 
     // Fetch related divisions manually to be safe

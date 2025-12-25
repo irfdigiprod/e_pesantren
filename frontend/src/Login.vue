@@ -5,13 +5,20 @@
       <div class="bg-white rounded-2xl shadow-md overflow-hidden">
         <div class="py-8 px-8 flex flex-col items-center justify-center">
           <img
+            v-if="logoUrl"
+            :src="logoUrl"
+            alt="Logo"
+            class="w-28 h-28 object-contain mb-4"
+          />
+          <img
+            v-else
             src="/iconku.svg"
             alt="Logo"
             class="w-28 h-28 object-contain mb-4"
           />
           <h1 class="text-2xl font-semibold text-slate-800">Selamat Datang</h1>
           <p class="text-sm text-slate-500 mt-1">
-            Silakan masuk untuk melanjutkan
+            {{ institutionName }}
           </p>
         </div>
 
@@ -82,11 +89,44 @@
 </template>
 
 <script setup>
-import { reactive, ref } from "vue";
+import { reactive, ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
-import { authApi } from "@/services/api.js";
+import { authApi, settingsApi } from "@/services/api.js";
 
 const router = useRouter();
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
+
+// Institution info
+const institutionName = ref("Silakan masuk untuk melanjutkan");
+const institutionLogo = ref("");
+
+// Computed logo URL
+const logoUrl = computed(() => {
+  if (!institutionLogo.value) return null;
+  if (institutionLogo.value.startsWith("uploads/")) {
+    return `${BASE_URL}/api/${institutionLogo.value}`;
+  }
+  if (institutionLogo.value.startsWith("/api/uploads")) {
+    return `${BASE_URL}${institutionLogo.value}`;
+  }
+  return institutionLogo.value;
+});
+
+async function loadInstitutionInfo() {
+  try {
+    const res = await settingsApi.getPublic();
+    if (res.success && res.data) {
+      if (res.data.institution_name) {
+        institutionName.value = res.data.institution_name;
+      }
+      if (res.data.institution_logo) {
+        institutionLogo.value = res.data.institution_logo;
+      }
+    }
+  } catch (e) {
+    console.warn("Could not load institution info:", e);
+  }
+}
 
 const form = reactive({
   email: "",
@@ -156,6 +196,10 @@ async function handleLogin() {
     isLoading.value = false;
   }
 }
+
+onMounted(() => {
+  loadInstitutionInfo();
+});
 </script>
 
 <style scoped>

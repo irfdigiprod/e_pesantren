@@ -8,6 +8,37 @@ import { updateSettingsSchema } from "../validators/settings";
 
 const settingsRoute = new Hono();
 
+// Public endpoint for institution info (no auth required)
+// Used by login page, public pages, etc.
+settingsRoute.get("/public", async (c) => {
+  try {
+    const publicKeys = [
+      "institution_name",
+      "foundation_name",
+      "institution_logo",
+      "institution_address",
+    ];
+
+    const result = await db.query.settings.findMany({
+      where: inArray(settings.key, publicKeys),
+    });
+
+    const settingsMap = result.reduce((acc, curr) => {
+      acc[curr.key] = curr.value;
+      return acc;
+    }, {} as Record<string, any>);
+
+    return c.json({
+      success: true,
+      data: settingsMap,
+    });
+  } catch (error) {
+    console.error("Get public settings error:", error);
+    return c.json({ success: false, message: "Failed to fetch settings" }, 500);
+  }
+});
+
+// All other routes require authentication
 settingsRoute.use("*", authMiddleware);
 
 // Get all settings (or filter by queries if needed in future)

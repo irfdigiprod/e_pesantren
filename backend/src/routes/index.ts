@@ -19,6 +19,9 @@ import divisionsRoute from "./divisions";
 
 import settingsRoute from "./settings";
 import permissionsRoute from "./permissions";
+import salaryRoute from "./salary";
+import salaryReportRoute from "./salary-report";
+import salaryGradesRoute from "./salary-grades";
 
 export {
   authRoute,
@@ -41,4 +44,7 @@ export {
   divisionsRoute,
   settingsRoute,
   permissionsRoute,
+  salaryRoute,
+  salaryReportRoute,
+  salaryGradesRoute,
 };

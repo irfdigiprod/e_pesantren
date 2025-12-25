@@ -4,13 +4,32 @@ import { Icon } from "@iconify/vue";
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import wsClient from "@/services/websocket.js";
-import { chatApi, notificationsApi, usersApi } from "@/services/api.js";
+import {
+  chatApi,
+  notificationsApi,
+  usersApi,
+  settingsApi,
+} from "@/services/api.js";
 
 const emit = defineEmits(["toggle-sidebar"]);
 const router = useRouter();
 
 const BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost/backend";
+
+// Institution name from settings
+const institutionName = ref("Minhajul Haq"); // default fallback
+
+async function loadInstitutionName() {
+  try {
+    const res = await settingsApi.getAll(["institution_name"]);
+    if (res.success && res.data?.institution_name) {
+      institutionName.value = res.data.institution_name;
+    }
+  } catch (e) {
+    console.warn("Could not load institution name:", e);
+  }
+}
 
 /* ======================================================
    NOTIFICATION (Real-time unread messages with sound)
@@ -371,6 +390,7 @@ onMounted(() => {
   loadStoredUser();
   // Always fetch fresh data to sync name/avatar
   fetchCurrent();
+  loadInstitutionName(); // Load institution name from settings
   window.addEventListener("user-updated", onUserUpdated);
   window.addEventListener("chat-messages-read", onChatMessagesRead);
 
@@ -495,7 +515,7 @@ function goSettings() {
       <h1
         class="font-semibold philosopher-bold text-primary text-base lg:text-lg select-none"
       >
-        Minhajul Haq
+        {{ institutionName }}
       </h1>
 
       <!-- KANAN -->

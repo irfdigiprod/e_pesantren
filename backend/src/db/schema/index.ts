@@ -16,3 +16,4 @@ export * from "./divisions";
 export * from "./relations";
 export * from "./settings";
 export * from "./permissions";
+export * from "./salary";

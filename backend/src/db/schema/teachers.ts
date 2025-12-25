@@ -30,6 +30,13 @@ export const teachers = mysqlTable("teachers", {
   status: mysqlEnum("status", ["active", "inactive", "retired"]).default(
     "active"
   ),
+  salaryGradeId: int("salary_grade_id"), // Relation to salary_grades
+  positionAllowanceId: int("position_allowance_id"), // Relation to position_allowances
+  teachingHours: int("teaching_hours").default(0), // Jam mengajar per minggu
+  bankName: varchar("bank_name", { length: 100 }), // Nama Bank
+  bankCode: varchar("bank_code", { length: 20 }), // Kode Bank
+  bankAccountNumber: varchar("bank_account_number", { length: 50 }), // Nomor Rekening
+  bankAccountName: varchar("bank_account_name", { length: 255 }), // Nama pada Rekening
   photo: varchar("photo", { length: 500 }),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
