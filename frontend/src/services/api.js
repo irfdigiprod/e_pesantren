@@ -1,7 +1,16 @@
 // src/services/api.js
 // Centralized API service for Pesantren Management System
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
+const getBaseUrl = () => {
+  if (import.meta.env.VITE_API_BASE_URL)
+    return import.meta.env.VITE_API_BASE_URL;
+  // If in development mode and no env var set, assume localhost:3000
+  if (import.meta.env.DEV) return "http://localhost:3000";
+  // In production (built), assume relative path (proxy)
+  return "";
+};
+
+const BASE_URL = getBaseUrl();
 
 /**
  * Get auth token from localStorage
