@@ -1,7 +1,14 @@
 // src/services/websocket.js
 // WebSocket client for real-time chat
 
-const WS_URL = import.meta.env.VITE_WS_URL || "ws://localhost:3000/ws";
+const getWsUrl = () => {
+  if (import.meta.env.VITE_WS_URL) return import.meta.env.VITE_WS_URL;
+  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+  // Use current hostname but always port 3000 for backend
+  return `${protocol}//${window.location.hostname}:3000/ws`;
+};
+
+const WS_URL = getWsUrl();
 
 class WebSocketClient {
   constructor() {
