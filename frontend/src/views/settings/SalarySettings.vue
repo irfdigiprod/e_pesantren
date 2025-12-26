@@ -277,213 +277,241 @@
     <!-- MODALS (Preserved) -->
 
     <!-- GRADE MODAL -->
-    <div
-      v-if="modal.type === 'grade'"
-      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 overflow-y-auto"
-    >
-      <div class="bg-white rounded-xl shadow-lg w-full max-w-2xl p-6 relative">
-        <h3 class="text-lg font-bold mb-4">
-          {{ modal.isEdit ? "Edit" : "Tambah" }} Golongan Gaji
-        </h3>
-        <form @submit.prevent="submitModal">
-          <div class="space-y-4">
-            <div>
-              <label class="block text-sm font-medium mb-1"
-                >Nama Golongan</label
+    <Teleport to="body">
+      <div
+        v-if="modal.type === 'grade'"
+        class="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/50 overflow-y-auto"
+      >
+        <div
+          class="bg-white rounded-xl shadow-lg w-full max-w-2xl p-6 relative"
+        >
+          <h3 class="text-lg font-bold mb-4">
+            {{ modal.isEdit ? "Edit" : "Tambah" }} Golongan Gaji
+          </h3>
+          <form @submit.prevent="submitModal">
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium mb-1"
+                  >Nama Golongan</label
+                >
+                <input
+                  v-model="form.name"
+                  type="text"
+                  required
+                  placeholder="Contoh: Golongan IA"
+                  class="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-200"
+                />
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-medium mb-1"
+                    >Gaji Pokok</label
+                  >
+                  <div class="relative">
+                    <span class="absolute left-3 top-2 text-slate-400">Rp</span>
+                    <input
+                      v-model.number="form.baseSalary"
+                      type="number"
+                      min="0"
+                      placeholder="0"
+                      class="w-full pl-9 pr-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-200"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium mb-1"
+                    >Tunjangan Kehadiran (Harian)</label
+                  >
+                  <div class="relative">
+                    <span class="absolute left-3 top-2 text-slate-400">Rp</span>
+                    <input
+                      v-model.number="form.dailyAttendanceRate"
+                      type="number"
+                      min="0"
+                      class="w-full pl-9 pr-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-200"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium mb-1"
+                    >Tunjangan Kesehatan</label
+                  >
+                  <div class="relative">
+                    <span class="absolute left-3 top-2 text-slate-400">Rp</span>
+                    <input
+                      v-model.number="form.healthAllowance"
+                      type="number"
+                      min="0"
+                      class="w-full pl-9 pr-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-200"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium mb-1"
+                    >Tunjangan Tempat Tinggal</label
+                  >
+                  <div class="relative">
+                    <span class="absolute left-3 top-2 text-slate-400">Rp</span>
+                    <input
+                      v-model.number="form.housingAllowance"
+                      type="number"
+                      min="0"
+                      class="w-full pl-9 pr-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-200"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium mb-1"
+                    >Tunjangan Transportasi</label
+                  >
+                  <div class="relative">
+                    <span class="absolute left-3 top-2 text-slate-400">Rp</span>
+                    <input
+                      v-model.number="form.transportAllowance"
+                      type="number"
+                      min="0"
+                      class="w-full pl-9 pr-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-200"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium mb-1"
+                    >Tunjangan Jam KBM (per jam)</label
+                  >
+                  <div class="relative">
+                    <span class="absolute left-3 top-2 text-slate-400">Rp</span>
+                    <input
+                      v-model.number="form.teachingHourRate"
+                      type="number"
+                      min="0"
+                      class="w-full pl-9 pr-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-200"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex justify-end gap-2 mt-6">
+              <button
+                type="button"
+                @click="closeModal"
+                class="px-4 py-2 border rounded-lg hover:bg-slate-50"
               >
-              <input
-                v-model="form.name"
-                type="text"
-                required
-                placeholder="Contoh: Golongan IA"
-                class="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-200"
-              />
+                Batal
+              </button>
+              <button
+                type="submit"
+                class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+              >
+                Simpan
+              </button>
             </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm font-medium mb-1">Gaji Pokok</label>
-                <div class="relative">
-                  <span class="absolute left-3 top-2 text-slate-400">Rp</span>
-                  <input
-                    v-model.number="form.baseSalary"
-                    type="number"
-                    min="0"
-                    placeholder="0"
-                    class="w-full pl-9 pr-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-200"
-                  />
-                </div>
-              </div>
-              <div>
-                <label class="block text-sm font-medium mb-1"
-                  >Tunjangan Kehadiran (Harian)</label
-                >
-                <div class="relative">
-                  <span class="absolute left-3 top-2 text-slate-400">Rp</span>
-                  <input
-                    v-model.number="form.dailyAttendanceRate"
-                    type="number"
-                    min="0"
-                    class="w-full pl-9 pr-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-200"
-                  />
-                </div>
-              </div>
-              <div>
-                <label class="block text-sm font-medium mb-1"
-                  >Tunjangan Kesehatan</label
-                >
-                <div class="relative">
-                  <span class="absolute left-3 top-2 text-slate-400">Rp</span>
-                  <input
-                    v-model.number="form.healthAllowance"
-                    type="number"
-                    min="0"
-                    class="w-full pl-9 pr-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-200"
-                  />
-                </div>
-              </div>
-              <div>
-                <label class="block text-sm font-medium mb-1"
-                  >Tunjangan Tempat Tinggal</label
-                >
-                <div class="relative">
-                  <span class="absolute left-3 top-2 text-slate-400">Rp</span>
-                  <input
-                    v-model.number="form.housingAllowance"
-                    type="number"
-                    min="0"
-                    class="w-full pl-9 pr-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-200"
-                  />
-                </div>
-              </div>
-              <div>
-                <label class="block text-sm font-medium mb-1"
-                  >Tunjangan Transportasi</label
-                >
-                <div class="relative">
-                  <span class="absolute left-3 top-2 text-slate-400">Rp</span>
-                  <input
-                    v-model.number="form.transportAllowance"
-                    type="number"
-                    min="0"
-                    class="w-full pl-9 pr-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-200"
-                  />
-                </div>
-              </div>
-              <div>
-                <label class="block text-sm font-medium mb-1"
-                  >Tunjangan Jam KBM (per jam)</label
-                >
-                <div class="relative">
-                  <span class="absolute left-3 top-2 text-slate-400">Rp</span>
-                  <input
-                    v-model.number="form.teachingHourRate"
-                    type="number"
-                    min="0"
-                    class="w-full pl-9 pr-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-200"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="flex justify-end gap-2 mt-6">
-            <button
-              type="button"
-              @click="closeModal"
-              class="px-4 py-2 border rounded-lg hover:bg-slate-50"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
-            >
-              Simpan
-            </button>
-          </div>
-        </form>
+          </form>
+        </div>
       </div>
-    </div>
+    </Teleport>
 
     <!-- Position Modal -->
-    <div
-      v-if="modal.type === 'position'"
-      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
-    >
-      <div class="bg-white rounded-xl shadow-lg w-full max-w-md p-6">
-        <h3 class="text-lg font-bold mb-4">
-          {{ modal.isEdit ? "Edit" : "Tambah" }} Jabatan
-        </h3>
-        <form @submit.prevent="submitModal">
-          <div class="space-y-4">
-            <div>
-              <label class="block text-sm font-medium mb-1">Nama Jabatan</label>
-              <input
-                v-model="form.position"
-                type="text"
-                required
-                class="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-200"
-              />
+    <Teleport to="body">
+      <div
+        v-if="modal.type === 'position'"
+        class="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/50"
+      >
+        <div class="bg-white rounded-xl shadow-lg w-full max-w-md p-6">
+          <h3 class="text-lg font-bold mb-4">
+            {{ modal.isEdit ? "Edit" : "Tambah" }} Jabatan
+          </h3>
+          <form @submit.prevent="submitModal">
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium mb-1"
+                  >Nama Jabatan</label
+                >
+                <input
+                  v-model="form.position"
+                  type="text"
+                  required
+                  class="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-200"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium mb-1"
+                  >Nominal Tunjangan</label
+                >
+                <input
+                  v-model.number="form.amount"
+                  type="number"
+                  min="0"
+                  required
+                  class="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-200"
+                />
+              </div>
             </div>
-            <div>
-              <label class="block text-sm font-medium mb-1"
-                >Nominal Tunjangan</label
+            <div class="flex justify-end gap-2 mt-6">
+              <button
+                type="button"
+                @click="closeModal"
+                class="px-4 py-2 border rounded-lg hover:bg-slate-50"
               >
-              <input
-                v-model.number="form.amount"
-                type="number"
-                min="0"
-                required
-                class="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-200"
-              />
+                Batal
+              </button>
+              <button
+                type="submit"
+                class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+              >
+                Simpan
+              </button>
             </div>
-          </div>
-          <div class="flex justify-end gap-2 mt-6">
-            <button
-              type="button"
-              @click="closeModal"
-              class="px-4 py-2 border rounded-lg hover:bg-slate-50"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
-            >
-              Simpan
-            </button>
-          </div>
-        </form>
+          </form>
+        </div>
       </div>
-    </div>
+    </Teleport>
 
     <!-- Tenure Modal -->
-    <div
-      v-if="modal.type === 'tenure'"
-      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
-    >
-      <div class="bg-white rounded-xl shadow-lg w-full max-w-md p-6">
-        <h3 class="text-lg font-bold mb-4">
-          {{ modal.isEdit ? "Edit" : "Tambah" }} Masa Kerja
-        </h3>
-        <form @submit.prevent="submitModal">
-          <div class="space-y-4">
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm font-medium mb-1">Min Tahun</label>
-                <input
-                  v-model.number="form.minYears"
-                  type="number"
-                  min="0"
-                  required
-                  class="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-200"
-                />
+    <Teleport to="body">
+      <div
+        v-if="modal.type === 'tenure'"
+        class="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/50"
+      >
+        <div class="bg-white rounded-xl shadow-lg w-full max-w-md p-6">
+          <h3 class="text-lg font-bold mb-4">
+            {{ modal.isEdit ? "Edit" : "Tambah" }} Masa Kerja
+          </h3>
+          <form @submit.prevent="submitModal">
+            <div class="space-y-4">
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-medium mb-1"
+                    >Min Tahun</label
+                  >
+                  <input
+                    v-model.number="form.minYears"
+                    type="number"
+                    min="0"
+                    required
+                    class="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-200"
+                  />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium mb-1"
+                    >Max Tahun</label
+                  >
+                  <input
+                    v-model.number="form.maxYears"
+                    type="number"
+                    min="0"
+                    required
+                    class="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-200"
+                  />
+                </div>
               </div>
               <div>
-                <label class="block text-sm font-medium mb-1">Max Tahun</label>
+                <label class="block text-sm font-medium mb-1"
+                  >Nominal Tunjangan</label
+                >
                 <input
-                  v-model.number="form.maxYears"
+                  v-model.number="form.amount"
                   type="number"
                   min="0"
                   required
@@ -491,100 +519,90 @@
                 />
               </div>
             </div>
-            <div>
-              <label class="block text-sm font-medium mb-1"
-                >Nominal Tunjangan</label
+            <div class="flex justify-end gap-2 mt-6">
+              <button
+                type="button"
+                @click="closeModal"
+                class="px-4 py-2 border rounded-lg hover:bg-slate-50"
               >
-              <input
-                v-model.number="form.amount"
-                type="number"
-                min="0"
-                required
-                class="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-200"
-              />
+                Batal
+              </button>
+              <button
+                type="submit"
+                class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+              >
+                Simpan
+              </button>
             </div>
-          </div>
-          <div class="flex justify-end gap-2 mt-6">
-            <button
-              type="button"
-              @click="closeModal"
-              class="px-4 py-2 border rounded-lg hover:bg-slate-50"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
-            >
-              Simpan
-            </button>
-          </div>
-        </form>
+          </form>
+        </div>
       </div>
-    </div>
+    </Teleport>
 
     <!-- Custom Modal -->
-    <div
-      v-if="modal.type === 'custom'"
-      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
-    >
-      <div class="bg-white rounded-xl shadow-lg w-full max-w-md p-6">
-        <h3 class="text-lg font-bold mb-4">
-          {{ modal.isEdit ? "Edit" : "Tambah" }} Custom Allowance
-        </h3>
-        <form @submit.prevent="submitModal">
-          <div class="space-y-4">
-            <div>
-              <label class="block text-sm font-medium mb-1"
-                >Nama Tunjangan</label
+    <Teleport to="body">
+      <div
+        v-if="modal.type === 'custom'"
+        class="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/50"
+      >
+        <div class="bg-white rounded-xl shadow-lg w-full max-w-md p-6">
+          <h3 class="text-lg font-bold mb-4">
+            {{ modal.isEdit ? "Edit" : "Tambah" }} Custom Allowance
+          </h3>
+          <form @submit.prevent="submitModal">
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium mb-1"
+                  >Nama Tunjangan</label
+                >
+                <input
+                  v-model="form.name"
+                  type="text"
+                  required
+                  class="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-200"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium mb-1"
+                  >Nominal Default</label
+                >
+                <input
+                  v-model.number="form.amount"
+                  type="number"
+                  min="0"
+                  required
+                  class="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-200"
+                />
+              </div>
+              <div v-if="modal.isEdit" class="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  v-model="form.isActive"
+                  id="isActive"
+                  class="rounded text-indigo-600"
+                />
+                <label for="isActive" class="text-sm">Aktif</label>
+              </div>
+            </div>
+            <div class="flex justify-end gap-2 mt-6">
+              <button
+                type="button"
+                @click="closeModal"
+                class="px-4 py-2 border rounded-lg hover:bg-slate-50"
               >
-              <input
-                v-model="form.name"
-                type="text"
-                required
-                class="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-200"
-              />
-            </div>
-            <div>
-              <label class="block text-sm font-medium mb-1"
-                >Nominal Default</label
+                Batal
+              </button>
+              <button
+                type="submit"
+                class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
               >
-              <input
-                v-model.number="form.amount"
-                type="number"
-                min="0"
-                required
-                class="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-200"
-              />
+                Simpan
+              </button>
             </div>
-            <div v-if="modal.isEdit" class="flex items-center gap-2">
-              <input
-                type="checkbox"
-                v-model="form.isActive"
-                id="isActive"
-                class="rounded text-indigo-600"
-              />
-              <label for="isActive" class="text-sm">Aktif</label>
-            </div>
-          </div>
-          <div class="flex justify-end gap-2 mt-6">
-            <button
-              type="button"
-              @click="closeModal"
-              class="px-4 py-2 border rounded-lg hover:bg-slate-50"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
-            >
-              Simpan
-            </button>
-          </div>
-        </form>
+          </form>
+        </div>
       </div>
-    </div>
+    </Teleport>
 
     <StatusModal
       :is-open="statusModal.open"
