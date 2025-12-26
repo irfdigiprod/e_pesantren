@@ -1969,7 +1969,9 @@
 </template>
 
 <script setup>
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+const API_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  (import.meta.env.DEV ? "http://localhost:3000" : "");
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from "vue";
 import { useRoute } from "vue-router";
 import { Icon } from "@iconify/vue";
