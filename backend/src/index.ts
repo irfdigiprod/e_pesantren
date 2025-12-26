@@ -151,16 +151,21 @@ const server = Bun.serve<WebSocketData>({
 
     // Handle WebSocket upgrade for /ws path
     if (url.pathname === "/ws") {
+      console.log(`[WS] Connection attempt from ${req.url}`);
       const wsData = authenticateWebSocket(req.url, req.headers);
 
       if (!wsData) {
+        console.error(`[WS] Authentication failed for ${req.url}`);
         return new Response("Unauthorized", { status: 401 });
       }
 
+      console.log(`[WS] Authenticated user: ${wsData.email}`);
       const success = server.upgrade(req, { data: wsData });
       if (success) {
+        console.log(`[WS] Upgrade successful for ${wsData.email}`);
         return undefined; // Return nothing on successful upgrade
       }
+      console.error(`[WS] Upgrade failed for ${wsData.email}`);
       return new Response("WebSocket upgrade failed", { status: 500 });
     }
 
