@@ -1,356 +1,280 @@
 <template>
-  <div class="max-w-4xl mx-auto pb-12">
-    <!-- Header -->
-    <div class="mb-6">
-      <h1 class="text-2xl font-bold text-slate-800">Komponen Gaji Guru</h1>
-      <p class="text-slate-500 mt-1">
-        Kelola golongan gaji, tunjangan jabatan, masa kerja, dan tunjangan
-        lainnya.
-      </p>
-    </div>
-
-    <!-- TABS -->
-    <div
-      class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl mb-6 overflow-x-auto"
+  <div class="max-w-7xl mx-auto pb-12">
+    <!-- DataTable -->
+    <DataTable
+      :key="currentTab"
+      :items="paginatedData"
+      :columns="currentColumns"
+      :loading="loading"
+      :pagination="pagination"
+      :viewMode="viewMode"
+      title="Komponen Gaji Guru"
+      description="Kelola golongan gaji, tunjangan jabatan, masa kerja, dan tunjangan lainnya."
+      icon="solar:wallet-money-bold-duotone"
+      filterButtonIcon="solar:hamburger-menu-line-duotone"
+      filterButtonLabel=""
+      :search="search"
+      @update:search="search = $event"
+      @update:limit="
+        pagination.limit = $event;
+        pagination.page = 1;
+      "
+      @page-change="pagination.page = $event"
+      @update:viewMode="viewMode = $event"
     >
-      <button
-        v-for="tab in tabs"
-        :key="tab.id"
-        @click="currentTab = tab.id"
-        class="px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap"
-        :class="
-          currentTab === tab.id
-            ? 'bg-white text-indigo-600 shadow-sm'
-            : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
-        "
-      >
-        {{ tab.label }}
-      </button>
-    </div>
-
-    <!-- TAB CONTENT -->
-    <div v-if="loading" class="flex justify-center py-12">
-      <Icon
-        icon="lucide:loader-2"
-        class="w-8 h-8 animate-spin text-indigo-600"
-      />
-    </div>
-
-    <div v-else class="space-y-6">
-      <!-- 1. SALARY GRADES (GOLONGAN) -->
-      <div
-        v-if="currentTab === 'grades'"
-        class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden"
-      >
-        <div
-          class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50"
-        >
-          <h2
-            class="text-lg font-semibold text-slate-800 flex items-center gap-2"
+      <!-- Filters Slot to hold Custom Menu List -->
+      <template #filters="{ close }">
+        <div class="flex flex-col min-w-[200px] py-1">
+          <div
+            class="px-3 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wider"
           >
+            Kategori Komponen
+          </div>
+          <button
+            v-for="tab in tabs"
+            :key="tab.id"
+            @click="
+              currentTab = tab.id;
+              close();
+            "
+            class="w-full text-left px-4 py-2.5 text-sm font-medium transition-colors flex items-center gap-3 hover:bg-slate-50 relative"
+            :class="
+              currentTab === tab.id
+                ? 'text-indigo-600 bg-indigo-50/50'
+                : 'text-slate-600'
+            "
+          >
+            <Icon :icon="tab.icon" class="w-4 h-4" />
+            {{ tab.label }}
             <Icon
-              icon="solar:banknote-2-line-duotone"
-              class="w-5 h-5 text-indigo-600"
+              v-if="currentTab === tab.id"
+              icon="lucide:check"
+              class="w-4 h-4 ml-auto text-indigo-600"
             />
-            Daftar Golongan Gaji
-          </h2>
-          <button
-            @click="openModal('grade')"
-            class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-lg font-medium transition-colors flex items-center gap-2"
-          >
-            <Icon icon="lucide:plus" class="w-4 h-4" /> Tambah Golongan
           </button>
         </div>
-        <div class="overflow-x-auto">
-          <table class="w-full text-sm text-left">
-            <thead
-              class="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200"
+      </template>
+
+      <!-- Header Actions -->
+      <template #header-actions>
+        <button
+          @click="openModal(currentModalType)"
+          class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-lg font-medium transition-colors flex items-center gap-2"
+        >
+          <Icon icon="lucide:plus" class="w-4 h-4" />
+          <span class="hidden sm:inline">Tambah {{ currentTabLabel }}</span>
+          <span class="sm:hidden">Baru</span>
+        </button>
+      </template>
+
+      <!-- SLOTS FOR GRADES -->
+      <template #cell-baseSalary="{ item }">
+        <span class="font-mono text-indigo-700 font-medium">
+          {{ formatCurrency(item.baseSalary) }}
+        </span>
+      </template>
+      <template #cell-dailyAttendanceRate="{ item }">
+        <span class="font-mono">
+          {{ formatCurrency(item.dailyAttendanceRate) }} /hari
+        </span>
+      </template>
+      <template #cell-healthAllowance="{ item }">
+        <span class="font-mono">{{
+          formatCurrency(item.healthAllowance)
+        }}</span>
+      </template>
+      <template #cell-others="{ item }">
+        <div class="text-xs text-slate-500 space-y-0.5">
+          <div class="flex justify-between gap-4">
+            <span>Housing:</span>
+            <span class="font-mono">{{
+              formatCurrency(item.housingAllowance)
+            }}</span>
+          </div>
+          <div class="flex justify-between gap-4">
+            <span>Transport:</span>
+            <span class="font-mono">{{
+              formatCurrency(item.transportAllowance)
+            }}</span>
+          </div>
+          <div class="flex justify-between gap-4">
+            <span>KBM:</span>
+            <span class="font-mono"
+              >{{ formatCurrency(item.teachingHourRate) }}/jam</span
             >
-              <tr>
-                <th class="px-6 py-3">Nama Golongan</th>
-                <th class="px-6 py-3 text-right">Gaji Pokok</th>
-                <th class="px-6 py-3 text-right">Tun. Kehadiran</th>
-                <th class="px-6 py-3 text-right">Tun. Kesehatan</th>
-                <th class="px-6 py-3 text-right">Tun. Lainnya</th>
-                <th class="px-6 py-3 text-right">Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="item in grades"
-                :key="item.id"
-                class="border-b border-slate-100 hover:bg-slate-50"
+          </div>
+        </div>
+      </template>
+
+      <!-- SLOTS FOR POSITIONS / TENURE / CUSTOM -->
+      <template #cell-amount="{ item }">
+        <span class="font-mono font-medium text-slate-700">
+          {{ formatCurrency(item.amount) }}
+        </span>
+      </template>
+
+      <!-- SLOT FOR TENURE RANGE -->
+      <template #cell-range="{ item }">
+        <span class="font-medium text-slate-800">
+          {{ item.minYears }} - {{ item.maxYears }} Tahun
+        </span>
+      </template>
+
+      <!-- SLOT FOR CUSTOM STATUS -->
+      <template #cell-status="{ item }">
+        <span
+          v-if="item.isActive"
+          class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"
+        >
+          Aktif
+        </span>
+        <span
+          v-else
+          class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800"
+        >
+          Nonaktif
+        </span>
+      </template>
+
+      <!-- COMMON ACTIONS SLOT -->
+      <template #cell-actions="{ item }">
+        <div class="flex justify-end gap-2">
+          <button
+            @click="openModal(currentModalType, item)"
+            class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+            title="Edit"
+          >
+            <Icon icon="lucide:pencil" class="w-4 h-4" />
+          </button>
+          <button
+            @click="deleteItem(currentModalType, item.id)"
+            class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            title="Hapus"
+          >
+            <Icon icon="lucide:trash-2" class="w-4 h-4" />
+          </button>
+        </div>
+      </template>
+
+      <!-- CARD VIEW IMPLEMENTATION -->
+      <template #card-item="{ item }">
+        <div
+          class="bg-white rounded-xl p-4 shadow-sm border border-slate-100 flex flex-col h-full hover:shadow-md transition-shadow"
+        >
+          <!-- Header: Name/Title -->
+          <div class="mb-3">
+            <h3 class="font-semibold text-slate-800 text-lg">
+              <span v-if="currentTab === 'grades'">{{ item.name }}</span>
+              <span v-else-if="currentTab === 'positions'">{{
+                item.position
+              }}</span>
+              <span v-else-if="currentTab === 'tenure'"
+                >{{ item.minYears }} - {{ item.maxYears }} Tahun</span
               >
-                <td class="px-6 py-4 font-medium text-slate-800">
-                  {{ item.name }}
-                </td>
-                <td
-                  class="px-6 py-4 text-right font-mono text-indigo-700 font-medium"
+              <span v-else-if="currentTab === 'custom'">{{ item.name }}</span>
+            </h3>
+            <div v-if="currentTab === 'custom'" class="mt-1">
+              <span
+                v-if="item.isActive"
+                class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800"
+                >Aktif</span
+              >
+              <span
+                v-else
+                class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-800"
+                >Nonaktif</span
+              >
+            </div>
+          </div>
+
+          <!-- Body: Details based on Tab -->
+          <div class="flex-1 space-y-2 text-sm text-slate-600 mb-4">
+            <!-- Grade Details -->
+            <template v-if="currentTab === 'grades'">
+              <div
+                class="flex justify-between items-center py-1 border-b border-slate-50"
+              >
+                <span>Gaji Pokok</span>
+                <span class="font-mono font-medium text-indigo-600">{{
+                  formatCurrency(item.baseSalary)
+                }}</span>
+              </div>
+              <div
+                class="flex justify-between items-center py-1 border-b border-slate-50"
+              >
+                <span>Tun. Kehadiran</span>
+                <span class="font-mono"
+                  >{{ formatCurrency(item.dailyAttendanceRate)
+                  }}<span class="text-xs text-slate-400">/hari</span></span
                 >
-                  {{ formatCurrency(item.baseSalary) }}
-                </td>
-                <td class="px-6 py-4 text-right font-mono">
-                  {{ formatCurrency(item.dailyAttendanceRate) }} /hari
-                </td>
-                <td class="px-6 py-4 text-right font-mono">
-                  {{ formatCurrency(item.healthAllowance) }}
-                </td>
-                <td
-                  class="px-6 py-4 text-right font-mono text-xs text-slate-500"
-                >
-                  <div>
-                    Housing: {{ formatCurrency(item.housingAllowance) }}
-                  </div>
-                  <div>
-                    Transport: {{ formatCurrency(item.transportAllowance) }}
-                  </div>
-                  <div>
-                    KBM: {{ formatCurrency(item.teachingHourRate) }}/jam
-                  </div>
-                </td>
-                <td class="px-6 py-4 text-right flex justify-end gap-2">
-                  <button
-                    @click="openModal('grade', item)"
-                    class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                    title="Edit"
+              </div>
+              <div
+                class="flex justify-between items-center py-1 border-b border-slate-50"
+              >
+                <span>Tun. Kesehatan</span>
+                <span class="font-mono">{{
+                  formatCurrency(item.healthAllowance)
+                }}</span>
+              </div>
+              <div class="mt-2 p-2 bg-slate-50 rounded-lg space-y-1 text-xs">
+                <div class="grid grid-cols-2 gap-2">
+                  <span>Housing:</span>
+                  <span class="font-mono text-right">{{
+                    formatCurrency(item.housingAllowance)
+                  }}</span>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                  <span>Transport:</span>
+                  <span class="font-mono text-right">{{
+                    formatCurrency(item.transportAllowance)
+                  }}</span>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                  <span>KBM:</span>
+                  <span class="font-mono text-right"
+                    >{{ formatCurrency(item.teachingHourRate) }}/jam</span
                   >
-                    <Icon icon="lucide:pencil" class="w-4 h-4" />
-                  </button>
-                  <button
-                    @click="deleteItem('grade', item.id)"
-                    class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                    title="Hapus"
-                  >
-                    <Icon icon="lucide:trash-2" class="w-4 h-4" />
-                  </button>
-                </td>
-              </tr>
-              <tr v-if="grades.length === 0">
-                <td colspan="5" class="px-6 py-12 text-center text-slate-500">
-                  Belum ada data golongan gaji. Silakan tambah data baru.
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
+                </div>
+              </div>
+            </template>
 
-      <!-- 2. POSITION ALLOWANCES -->
-      <div
-        v-if="currentTab === 'positions'"
-        class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden"
-      >
-        <div
-          class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50"
-        >
-          <h2
-            class="text-lg font-semibold text-slate-800 flex items-center gap-2"
+            <!-- Other Types (Simple Amount) -->
+            <template v-else>
+              <div
+                class="flex justify-between items-center bg-slate-50 p-3 rounded-lg"
+              >
+                <span class="font-medium">Nominal</span>
+                <span class="font-mono font-bold text-slate-700">{{
+                  formatCurrency(item.amount)
+                }}</span>
+              </div>
+            </template>
+          </div>
+
+          <!-- Footer: Actions -->
+          <div
+            class="flex items-center gap-2 mt-auto pt-3 border-t border-slate-100"
           >
-            <Icon icon="lucide:briefcase" class="w-5 h-5 text-indigo-600" />
-            Daftar Jabatan
-          </h2>
-          <button
-            @click="openModal('position')"
-            class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-lg font-medium transition-colors flex items-center gap-2"
-          >
-            <Icon icon="lucide:plus" class="w-4 h-4" /> Tambah
-          </button>
-        </div>
-        <table class="w-full text-sm text-left">
-          <thead
-            class="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200"
-          >
-            <tr>
-              <th class="px-6 py-3">Nama Jabatan</th>
-              <th class="px-6 py-3 text-right">Nominal Tunjangan</th>
-              <th class="px-6 py-3 text-right">Aksi</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="item in positions"
-              :key="item.id"
-              class="border-b border-slate-100 hover:bg-slate-50"
+            <button
+              @click="openModal(currentModalType, item)"
+              class="flex-1 py-2 px-3 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors flex items-center justify-center gap-2"
             >
-              <td class="px-6 py-4 font-medium text-slate-800">
-                {{ item.position }}
-              </td>
-              <td class="px-6 py-4 text-right font-mono">
-                {{ formatCurrency(item.amount) }}
-              </td>
-              <td class="px-6 py-4 text-right flex justify-end gap-2">
-                <button
-                  @click="openModal('position', item)"
-                  class="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
-                >
-                  <Icon icon="lucide:pencil" class="w-4 h-4" />
-                </button>
-                <button
-                  @click="deleteItem('position', item.id)"
-                  class="p-1.5 text-red-600 hover:bg-red-50 rounded"
-                >
-                  <Icon icon="lucide:trash-2" class="w-4 h-4" />
-                </button>
-              </td>
-            </tr>
-            <tr v-if="positions.length === 0">
-              <td colspan="3" class="px-6 py-8 text-center text-slate-500">
-                Belum ada data jabatan
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- 3. TENURE ALLOWANCES -->
-      <div
-        v-if="currentTab === 'tenure'"
-        class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden"
-      >
-        <div
-          class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50"
-        >
-          <h2
-            class="text-lg font-semibold text-slate-800 flex items-center gap-2"
-          >
-            <Icon icon="lucide:clock" class="w-5 h-5 text-indigo-600" />
-            Masa Kerja
-          </h2>
-          <button
-            @click="openModal('tenure')"
-            class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-lg font-medium transition-colors flex items-center gap-2"
-          >
-            <Icon icon="lucide:plus" class="w-4 h-4" /> Tambah
-          </button>
-        </div>
-        <table class="w-full text-sm text-left">
-          <thead
-            class="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200"
-          >
-            <tr>
-              <th class="px-6 py-3">Rentang Tahun</th>
-              <th class="px-6 py-3 text-right">Nominal Tunjangan</th>
-              <th class="px-6 py-3 text-right">Aksi</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="item in tenures"
-              :key="item.id"
-              class="border-b border-slate-100 hover:bg-slate-50"
+              <Icon icon="lucide:pencil" class="w-4 h-4" />
+              Edit
+            </button>
+            <button
+              @click="deleteItem(currentModalType, item.id)"
+              class="flex-1 py-2 px-3 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors flex items-center justify-center gap-2"
             >
-              <td class="px-6 py-4 font-medium text-slate-800">
-                {{ item.minYears }} - {{ item.maxYears }} Tahun
-              </td>
-              <td class="px-6 py-4 text-right font-mono">
-                {{ formatCurrency(item.amount) }}
-              </td>
-              <td class="px-6 py-4 text-right flex justify-end gap-2">
-                <button
-                  @click="openModal('tenure', item)"
-                  class="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
-                >
-                  <Icon icon="lucide:pencil" class="w-4 h-4" />
-                </button>
-                <button
-                  @click="deleteItem('tenure', item.id)"
-                  class="p-1.5 text-red-600 hover:bg-red-50 rounded"
-                >
-                  <Icon icon="lucide:trash-2" class="w-4 h-4" />
-                </button>
-              </td>
-            </tr>
-            <tr v-if="tenures.length === 0">
-              <td colspan="3" class="px-6 py-8 text-center text-slate-500">
-                Belum ada data masa kerja
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- 4. CUSTOM ALLOWANCES -->
-      <div
-        v-if="currentTab === 'custom'"
-        class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden"
-      >
-        <div
-          class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50"
-        >
-          <h2
-            class="text-lg font-semibold text-slate-800 flex items-center gap-2"
-          >
-            <Icon icon="lucide:star" class="w-5 h-5 text-indigo-600" />
-            Tunjangan Custom
-          </h2>
-          <button
-            @click="openModal('custom')"
-            class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-lg font-medium transition-colors flex items-center gap-2"
-          >
-            <Icon icon="lucide:plus" class="w-4 h-4" /> Tambah
-          </button>
+              <Icon icon="lucide:trash-2" class="w-4 h-4" />
+              Hapus
+            </button>
+          </div>
         </div>
-        <table class="w-full text-sm text-left">
-          <thead
-            class="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200"
-          >
-            <tr>
-              <th class="px-6 py-3">Nama Tunjangan</th>
-              <th class="px-6 py-3 text-right">Nominal Default</th>
-              <th class="px-6 py-3 text-center">Status</th>
-              <th class="px-6 py-3 text-right">Aksi</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="item in customs"
-              :key="item.id"
-              class="border-b border-slate-100 hover:bg-slate-50"
-            >
-              <td class="px-6 py-4 font-medium text-slate-800">
-                {{ item.name }}
-              </td>
-              <td class="px-6 py-4 text-right font-mono">
-                {{ formatCurrency(item.amount) }}
-              </td>
-              <td class="px-6 py-4 text-center">
-                <span
-                  v-if="item.isActive"
-                  class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"
-                  >Aktif</span
-                >
-                <span
-                  v-else
-                  class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800"
-                  >Nonaktif</span
-                >
-              </td>
-              <td class="px-6 py-4 text-right flex justify-end gap-2">
-                <button
-                  @click="openModal('custom', item)"
-                  class="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
-                >
-                  <Icon icon="lucide:pencil" class="w-4 h-4" />
-                </button>
-                <button
-                  @click="deleteItem('custom', item.id)"
-                  class="p-1.5 text-red-600 hover:bg-red-50 rounded"
-                >
-                  <Icon icon="lucide:trash-2" class="w-4 h-4" />
-                </button>
-              </td>
-            </tr>
-            <tr v-if="customs.length === 0">
-              <td colspan="4" class="px-6 py-8 text-center text-slate-500">
-                Belum ada tunjangan custom
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
+      </template>
+    </DataTable>
 
-    <!-- MODALS -->
+    <!-- MODALS (Preserved) -->
 
     <!-- GRADE MODAL -->
     <div
@@ -673,16 +597,21 @@
 </template>
 
 <script setup>
-import { ref, onMounted, reactive } from "vue";
+import { ref, onMounted, reactive, computed, watch } from "vue";
 import { Icon } from "@iconify/vue";
 import { salaryApi, salaryGradesApi } from "@/services/api";
 import StatusModal from "@/components/ui/StatusModal.vue";
+import DataTable from "@/components/ui/DataTable.vue";
 
 const tabs = [
-  { id: "grades", label: "Golongan Gaji" },
-  { id: "positions", label: "Jabatan" },
-  { id: "tenure", label: "Masa Kerja" },
-  { id: "custom", label: "Tunjangan Lain" },
+  {
+    id: "grades",
+    label: "Golongan Gaji",
+    icon: "solar:banknote-2-line-duotone",
+  },
+  { id: "positions", label: "Jabatan", icon: "lucide:briefcase" },
+  { id: "tenure", label: "Masa Kerja", icon: "lucide:clock" },
+  { id: "custom", label: "Tunjangan Lain", icon: "lucide:star" },
 ];
 const currentTab = ref("grades");
 const loading = ref(true);
@@ -692,6 +621,16 @@ const positions = ref([]);
 const tenures = ref([]);
 const customs = ref([]);
 
+// DataTable State
+const viewMode = ref(window.innerWidth < 768 ? "card" : "table");
+const search = ref("");
+const pagination = reactive({
+  page: 1,
+  limit: 10,
+  total: 0,
+  totalPages: 0,
+});
+
 const statusModal = reactive({
   open: false,
   type: "success",
@@ -700,15 +639,115 @@ const statusModal = reactive({
 });
 
 const modal = reactive({
-  type: null, // grade, position, tenure, custom
+  type: null,
   isEdit: false,
   id: null,
 });
 
-const form = reactive({
-  // Dynamic fields
+const form = reactive({});
+
+// Watch tab change to reset search/pagination
+watch(currentTab, () => {
+  search.value = "";
+  pagination.page = 1;
 });
 
+const currentModalType = computed(() => {
+  // Map tab ID to modal type name (grade, position, tenure, custom)
+  // They happen to be the same in my code except potentially pluralization
+  if (currentTab.value === "grades") return "grade";
+  if (currentTab.value === "positions") return "position";
+  return currentTab.value;
+});
+
+const currentTabLabel = computed(() => {
+  const t = tabs.find((x) => x.id === currentTab.value);
+  return t ? t.label : "Data";
+});
+
+const currentColumns = computed(() => {
+  if (currentTab.value === "grades") {
+    return [
+      { field: "name", label: "Nama Golongan", sortable: true },
+      {
+        field: "baseSalary",
+        label: "Gaji Pokok",
+        sortable: true,
+        align: "right",
+      },
+      { field: "dailyAttendanceRate", label: "Tun. Kehadiran", align: "right" },
+      { field: "healthAllowance", label: "Tun. Kesehatan", align: "right" },
+      { field: "others", label: "Tun. Lainnya", align: "right" },
+      { field: "actions", label: "Aksi", align: "right" },
+    ];
+  } else if (currentTab.value === "positions") {
+    return [
+      { field: "position", label: "Nama Jabatan", sortable: true },
+      {
+        field: "amount",
+        label: "Nominal Tunjangan",
+        sortable: true,
+        align: "right",
+      },
+      { field: "actions", label: "Aksi", align: "right" },
+    ];
+  } else if (currentTab.value === "tenure") {
+    return [
+      { field: "range", label: "Rentang Tahun", sortable: true },
+      {
+        field: "amount",
+        label: "Nominal Tunjangan",
+        sortable: true,
+        align: "right",
+      },
+      { field: "actions", label: "Aksi", align: "right" },
+    ];
+  } else if (currentTab.value === "custom") {
+    return [
+      { field: "name", label: "Nama Tunjangan", sortable: true },
+      {
+        field: "amount",
+        label: "Nominal Default",
+        sortable: true,
+        align: "right",
+      },
+      { field: "status", label: "Status", align: "center" },
+      { field: "actions", label: "Aksi", align: "right" },
+    ];
+  }
+  return [];
+});
+
+const filteredData = computed(() => {
+  let data = [];
+  if (currentTab.value === "grades") data = grades.value;
+  else if (currentTab.value === "positions") data = positions.value;
+  else if (currentTab.value === "tenure") data = tenures.value;
+  else if (currentTab.value === "custom") data = customs.value;
+
+  if (search.value) {
+    const q = search.value.toLowerCase();
+    data = data.filter((item) => {
+      // Check common fields
+      if (item.name && item.name.toLowerCase().includes(q)) return true;
+      if (item.position && item.position.toLowerCase().includes(q)) return true;
+      return false;
+    });
+  }
+  return data;
+});
+
+const paginatedData = computed(() => {
+  const start = (pagination.page - 1) * pagination.limit;
+  const end = start + pagination.limit;
+
+  pagination.total = filteredData.value.length;
+  pagination.totalPages = Math.ceil(pagination.total / pagination.limit);
+
+  return filteredData.value.slice(start, end);
+});
+
+// Actions
 function openModal(type, item = null) {
   modal.type = type;
   modal.isEdit = !!item;
@@ -760,7 +799,7 @@ function showStatus(type, title, message) {
   statusModal.open = true;
 }
 
-// API Calls
+// API Calls (Preserving Original Logic)
 async function loadData() {
   loading.value = true;
   try {
@@ -770,11 +809,9 @@ async function loadData() {
     ]);
 
     if (resSettings.success) {
-      const data = resSettings.data;
-      // We ignore global settings now (salarySettings table)
-      positions.value = data.positions;
-      tenures.value = data.tenures;
-      customs.value = data.customs;
+      positions.value = resSettings.data.positionAllowances || [];
+      tenures.value = resSettings.data.tenureAllowances || [];
+      customs.value = resSettings.data.customAllowances || [];
     }
 
     if (resGrades.success) {
@@ -782,7 +819,7 @@ async function loadData() {
     }
   } catch (err) {
     console.error(err);
-    showStatus("error", "Error", "Gagal memuat data pengaturan.");
+    showStatus("error", "Error", "Gagal memuat data");
   } finally {
     loading.value = false;
   }
@@ -791,37 +828,83 @@ async function loadData() {
 async function submitModal() {
   try {
     if (modal.type === "grade") {
-      if (modal.isEdit) await salaryGradesApi.update(modal.id, form);
-      else await salaryGradesApi.create(form);
-    } else if (modal.type === "position") {
-      if (modal.isEdit) await salaryApi.updatePosition(modal.id, form);
-      else await salaryApi.createPosition(form);
-    } else if (modal.type === "tenure") {
-      if (modal.isEdit) await salaryApi.updateTenure(modal.id, form);
-      else await salaryApi.createTenure(form);
-    } else if (modal.type === "custom") {
-      if (modal.isEdit) await salaryApi.updateCustom(modal.id, form);
-      else await salaryApi.createCustom(form);
+      if (modal.isEdit) {
+        await salaryGradesApi.update(modal.id, form);
+        showStatus("success", "Berhasil", "Golongan berhasil diperbarui");
+      } else {
+        await salaryGradesApi.create(form);
+        showStatus("success", "Berhasil", "Golongan berhasil ditambahkan");
+      }
+    } else {
+      const settingsPayload = {};
+      if (modal.type === "position") {
+        const newPositions = [...positions.value];
+        if (modal.isEdit) {
+          const idx = newPositions.findIndex((p) => p.id === modal.id);
+          newPositions[idx] = { ...newPositions[idx], ...form };
+        } else {
+          newPositions.push({ ...form, id: Date.now() }); // Mock ID for optimistic, backend will solve
+        }
+        settingsPayload.positionAllowances = newPositions;
+      } else if (modal.type === "tenure") {
+        const newTenures = [...tenures.value];
+        if (modal.isEdit) {
+          const idx = newTenures.findIndex((t) => t.id === modal.id);
+          newTenures[idx] = { ...newTenures[idx], ...form };
+        } else {
+          newTenures.push({ ...form, id: Date.now() });
+        }
+        settingsPayload.tenureAllowances = newTenures;
+      } else if (modal.type === "custom") {
+        const newCustoms = [...customs.value];
+        if (modal.isEdit) {
+          const idx = newCustoms.findIndex((c) => c.id === modal.id);
+          newCustoms[idx] = { ...newCustoms[idx], ...form };
+        } else {
+          newCustoms.push({ ...form, id: Date.now() });
+        }
+        settingsPayload.customAllowances = newCustoms;
+      }
+
+      await salaryApi.updateSettings(settingsPayload);
+      showStatus("success", "Berhasil", "Data berhasil disimpan");
     }
     closeModal();
-    loadData(); // Refresh list
-    showStatus("success", "Berhasil", "Data berhasil disimpan.");
+    loadData();
   } catch (err) {
-    showStatus("error", "Gagal", err.message);
+    console.error(err);
+    showStatus("error", "Gagal", "Terjadi kesalahan saat menyimpan");
   }
 }
 
 async function deleteItem(type, id) {
   if (!confirm("Apakah Anda yakin ingin menghapus data ini?")) return;
+
   try {
-    if (type === "grade") await salaryGradesApi.delete(id);
-    else if (type === "position") await salaryApi.deletePosition(id);
-    else if (type === "tenure") await salaryApi.deleteTenure(id);
-    else if (type === "custom") await salaryApi.deleteCustom(id);
+    if (type === "grade") {
+      await salaryGradesApi.delete(id);
+    } else {
+      const settingsPayload = {};
+      if (type === "position") {
+        settingsPayload.positionAllowances = positions.value.filter(
+          (p) => p.id !== id
+        );
+      } else if (type === "tenure") {
+        settingsPayload.tenureAllowances = tenures.value.filter(
+          (t) => t.id !== id
+        );
+      } else if (type === "custom") {
+        settingsPayload.customAllowances = customs.value.filter(
+          (c) => c.id !== id
+        );
+      }
+      await salaryApi.updateSettings(settingsPayload);
+    }
+    showStatus("success", "Berhasil", "Data berhasil dihapus");
     loadData();
-    showStatus("success", "Berhasil", "Data berhasil dihapus.");
   } catch (err) {
-    showStatus("error", "Gagal", err.message);
+    console.error(err);
+    showStatus("error", "Gagal", "Terjadi kesalahan saat menghapus");
   }
 }
 

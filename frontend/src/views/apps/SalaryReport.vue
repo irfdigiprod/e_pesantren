@@ -1,289 +1,255 @@
 <template>
   <div class="max-w-6xl mx-auto pb-12">
-    <!-- Header -->
-    <div
-      class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4"
+    <!-- DataTable -->
+    <DataTable
+      :items="paginatedData"
+      :columns="columns"
+      :loading="loading"
+      :pagination="pagination"
+      :viewMode="viewMode"
+      title="Laporan Gaji Pegawai"
+      description="Rekapitulasi perhitungan gaji pegawai berdasarkan absensi dan komponen tunjangan."
+      icon="solar:bill-list-bold-duotone"
+      :search="search"
+      @update:search="search = $event"
+      @update:limit="
+        pagination.limit = $event;
+        pagination.page = 1;
+      "
+      @page-change="pagination.page = $event"
+      @update:viewMode="viewMode = $event"
+      @sort="handleSort"
+      :sortBy="sortBy"
+      :sortOrder="sortOrder"
     >
-      <div>
-        <h1 class="text-2xl font-bold text-slate-800">Laporan Gaji Pegawai</h1>
-        <p class="text-slate-500 mt-1">
-          Rekapitulasi perhitungan gaji pegawai berdasarkan absensi dan komponen
-          tunjangan.
-        </p>
-      </div>
-    </div>
-
-    <!-- Filters & Actions Row -->
-    <div
-      class="mb-6 flex flex-col lg:flex-row items-start lg:items-center gap-3 flex-wrap bg-white p-4 rounded-xl border border-slate-200 shadow-sm"
-    >
-      <!-- View Toggle -->
-      <div class="bg-slate-100 p-1 rounded-lg flex items-center">
+      <!-- Header Actions -->
+      <template #header-actions>
         <button
-          @click="viewMode = 'table'"
-          class="p-1.5 rounded-md transition-all"
-          :class="
-            viewMode === 'table'
-              ? 'bg-white text-indigo-600 shadow-sm'
-              : 'text-slate-400 hover:text-slate-600'
-          "
+          @click="loadData"
+          class="p-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg transition-colors"
+          title="Refresh"
         >
-          <Icon icon="lucide:table-2" class="w-5 h-5" />
+          <Icon
+            icon="lucide:refresh-cw"
+            class="w-5 h-5"
+            :class="{ 'animate-spin': loading }"
+          />
         </button>
         <button
-          @click="viewMode = 'card'"
-          class="p-1.5 rounded-md transition-all"
-          :class="
-            viewMode === 'card'
-              ? 'bg-white text-indigo-600 shadow-sm'
-              : 'text-slate-400 hover:text-slate-600'
-          "
+          @click="exportToExcel"
+          :disabled="exporting || filteredData.length === 0"
+          class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
-          <Icon icon="lucide:layout-grid" class="w-5 h-5" />
+          <Icon
+            v-if="exporting"
+            icon="lucide:loader-2"
+            class="w-4 h-4 animate-spin"
+          />
+          <Icon v-else icon="lucide:file-spreadsheet" class="w-4 h-4" />
+          <span class="hidden sm:inline">Export Excel</span>
         </button>
-      </div>
+      </template>
 
-      <!-- Date Filters -->
-      <div class="flex items-center gap-2">
-        <label class="text-sm text-slate-500">Dari:</label>
-        <input
-          v-model="filter.startDate"
-          type="date"
-          @change="loadData"
-          class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-100"
-        />
-      </div>
-      <div class="flex items-center gap-2">
-        <label class="text-sm text-slate-500">Sampai:</label>
-        <input
-          v-model="filter.endDate"
-          type="date"
-          @change="loadData"
-          class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-100"
-        />
-      </div>
+      <!-- Filters -->
+      <template #filters>
+        <div class="grid grid-cols-1 gap-4">
+          <!-- Date Filters -->
+          <div class="space-y-1">
+            <label class="text-xs font-medium text-slate-500">Periode</label>
+            <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+              <input
+                v-model="filter.startDate"
+                type="date"
+                @change="loadData"
+                class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-100"
+              />
+              <span class="text-slate-400 hidden sm:inline">-</span>
+              <span class="text-xs text-slate-400 sm:hidden">Sampai</span>
+              <input
+                v-model="filter.endDate"
+                type="date"
+                @change="loadData"
+                class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-100"
+              />
+            </div>
+          </div>
 
-      <!-- Division Filter -->
-      <select
-        v-model="filter.divisionId"
-        class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-100"
-      >
-        <option value="">Semua Divisi</option>
-        <option v-for="div in divisions" :key="div.id" :value="div.id">
-          {{ div.name }}
-        </option>
-      </select>
-
-      <!-- Grade Filter -->
-      <select
-        v-model="filter.gradeId"
-        class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-100"
-      >
-        <option value="">Semua Golongan</option>
-        <option v-for="g in grades" :key="g.id" :value="g.id">
-          {{ g.name }}
-        </option>
-      </select>
-
-      <!-- Gender Filter -->
-      <select
-        v-model="filter.gender"
-        class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-100"
-      >
-        <option value="">Semua Gender</option>
-        <option value="male">Laki-laki</option>
-        <option value="female">Perempuan</option>
-      </select>
-
-      <!-- Refresh Button -->
-      <button
-        @click="loadData"
-        class="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg"
-        title="Refresh"
-      >
-        <Icon
-          icon="lucide:refresh-cw"
-          class="w-5 h-5"
-          :class="{ 'animate-spin': loading }"
-        />
-      </button>
-
-      <!-- Spacer -->
-      <div class="flex-grow"></div>
-
-      <!-- Export Excel Button -->
-      <button
-        @click="exportToExcel"
-        :disabled="exporting || filteredData.length === 0"
-        class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        <Icon
-          v-if="exporting"
-          icon="lucide:loader-2"
-          class="w-4 h-4 animate-spin"
-        />
-        <Icon v-else icon="lucide:file-spreadsheet" class="w-4 h-4" />
-        Export Excel
-      </button>
-    </div>
-
-    <!-- Content -->
-    <div
-      v-if="loading"
-      class="p-12 text-center bg-white rounded-xl shadow-sm border border-slate-200"
-    >
-      <Icon
-        icon="lucide:loader-2"
-        class="w-8 h-8 animate-spin text-indigo-600 mx-auto mb-2"
-      />
-      <p class="text-slate-500">Menghitung gaji...</p>
-    </div>
-
-    <div
-      v-else-if="error"
-      class="p-12 text-center text-red-500 bg-white rounded-xl shadow-sm border border-slate-200"
-    >
-      <Icon icon="lucide:alert-circle" class="w-8 h-8 mx-auto mb-2" />
-      <p>{{ error }}</p>
-    </div>
-
-    <div v-else>
-      <!-- TABLE VIEW -->
-      <div
-        v-if="viewMode === 'table'"
-        class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden"
-      >
-        <div class="overflow-x-auto">
-          <table class="w-full text-sm text-left">
-            <thead
-              class="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200"
+          <!-- Division Filter -->
+          <div class="space-y-1">
+            <label class="text-xs font-medium text-slate-500">Divisi</label>
+            <select
+              v-model="filter.divisionId"
+              class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-100"
             >
-              <tr>
-                <th class="px-6 py-3">Nama Pegawai</th>
-                <th class="px-6 py-3">Golongan</th>
-                <th class="px-6 py-3 text-right">Gaji Pokok</th>
-                <th class="px-6 py-3 text-center">Kehadiran</th>
-                <th class="px-6 py-3 text-right">Tun. Kehadiran</th>
-                <th class="px-6 py-3 text-right">Tun. Jabatan</th>
-                <th class="px-6 py-3 text-right">Tun. Jam Ajar</th>
-                <th class="px-6 py-3 text-right">Tun. Lainnya</th>
-                <th class="px-6 py-3 text-right font-bold text-slate-800">
-                  Total Gaji
-                </th>
-                <th class="px-6 py-3 text-center">Aksi</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100">
-              <tr
-                v-for="row in filteredData"
-                :key="row.teacher.id"
-                class="hover:bg-slate-50"
-              >
-                <td class="px-6 py-4">
-                  <div class="font-medium text-slate-800">
-                    {{ row.teacher.name }}
-                  </div>
-                  <div class="text-xs text-slate-500">
-                    {{ row.teacher.position || "Guru" }} •
-                    {{ row.teacher.yearsService }} Thn •
-                    {{ row.teacher.teachingHours || 0 }} Jam
-                  </div>
-                </td>
-                <td class="px-6 py-4">
-                  <span
-                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-100"
-                  >
-                    {{ row.teacher.gradeName || "-" }}
-                  </span>
-                </td>
-                <td class="px-6 py-4 text-right font-mono text-slate-600">
-                  {{ formatCurrency(row.baseSalary || 0) }}
-                </td>
-                <td class="px-6 py-4 text-center">
-                  <span
-                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
-                  >
-                    {{ row.attendance.days }} Hari
-                  </span>
-                </td>
-                <td class="px-6 py-4 text-right font-mono text-slate-600">
-                  {{ formatCurrency(row.attendance.total) }}
-                </td>
-                <td class="px-6 py-4 text-right font-mono text-slate-600">
-                  {{ formatCurrency(row.allowances.position) }}
-                </td>
-                <td class="px-6 py-4 text-right font-mono text-slate-600">
-                  {{ formatCurrency(row.allowances.teaching || 0) }}
-                </td>
-                <td class="px-6 py-4 text-right font-mono text-slate-600">
-                  {{
-                    formatCurrency(
-                      row.allowances.health +
-                        row.allowances.housing +
-                        row.allowances.transport +
-                        row.allowances.tenure +
-                        row.allowances.customTotal
-                    )
-                  }}
-                </td>
-                <td
-                  class="px-6 py-4 text-right font-mono font-bold text-emerald-600"
-                >
-                  {{ formatCurrency(row.totalSalary) }}
-                </td>
-                <td class="px-6 py-4 text-center">
-                  <button
-                    @click="openSlip(row)"
-                    class="inline-flex items-center gap-1 px-3 py-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-lg text-xs font-medium transition-colors"
-                  >
-                    <Icon icon="lucide:printer" class="w-3.5 h-3.5" />
-                    Cetak
-                  </button>
-                </td>
-              </tr>
-              <tr v-if="filteredData.length === 0">
-                <td colspan="8" class="px-6 py-12 text-center text-slate-500">
-                  Tidak ada data gaji untuk periode ini.
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
+              <option value="">Semua Divisi</option>
+              <option v-for="div in divisions" :key="div.id" :value="div.id">
+                {{ div.name }}
+              </option>
+            </select>
+          </div>
 
-      <!-- CARD VIEW -->
-      <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <!-- Grade Filter -->
+          <div class="space-y-1">
+            <label class="text-xs font-medium text-slate-500">Golongan</label>
+            <select
+              v-model="filter.gradeId"
+              class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-100"
+            >
+              <option value="">Semua Golongan</option>
+              <option v-for="g in grades" :key="g.id" :value="g.id">
+                {{ g.name }}
+              </option>
+            </select>
+          </div>
+
+          <!-- Gender Filter -->
+          <div class="space-y-1">
+            <label class="text-xs font-medium text-slate-500">Gender</label>
+            <select
+              v-model="filter.gender"
+              class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-100"
+            >
+              <option value="">Semua Gender</option>
+              <option value="male">Laki-laki</option>
+              <option value="female">Perempuan</option>
+            </select>
+          </div>
+        </div>
+      </template>
+      <!-- Cell: Name -->
+      <template #cell-name="{ item }">
+        <div class="font-medium text-slate-800">
+          {{ item.teacher.name }}
+        </div>
+        <div class="text-xs text-slate-500">
+          {{ item.teacher.position || "Guru" }} •
+          {{ item.teacher.yearsService }} Thn •
+          {{ item.teacher.teachingHours || 0 }} Jam
+        </div>
+      </template>
+
+      <!-- Cell: Grade -->
+      <template #cell-grade="{ item }">
+        <span
+          class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-100"
+        >
+          {{ item.teacher.gradeName || "-" }}
+        </span>
+      </template>
+
+      <!-- Cell: Base Salary -->
+      <template #cell-baseSalary="{ item }">
+        <span class="font-mono text-slate-600">
+          {{ formatCurrency(item.baseSalary || 0) }}
+        </span>
+      </template>
+
+      <!-- Cell: Attendance Days -->
+      <template #cell-attendanceDays="{ item }">
+        <span
+          class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+        >
+          {{ item.attendance.days }} Hari
+        </span>
+      </template>
+
+      <!-- Cell: Attendance Allowance -->
+      <template #cell-attendanceTotal="{ item }">
+        <span class="font-mono text-slate-600">
+          {{ formatCurrency(item.attendance.total) }}
+        </span>
+      </template>
+
+      <!-- Cell: Position Allowance -->
+      <template #cell-allowancesPosition="{ item }">
+        <span class="font-mono text-slate-600">
+          {{ formatCurrency(item.allowances.position) }}
+        </span>
+      </template>
+
+      <!-- Cell: Teaching Allowance -->
+      <template #cell-allowancesTeaching="{ item }">
+        <span class="font-mono text-slate-600">
+          {{ formatCurrency(item.allowances.teaching || 0) }}
+        </span>
+      </template>
+
+      <!-- Cell: Other Allowances -->
+      <template #cell-allowancesOthers="{ item }">
+        <span class="font-mono text-slate-600">
+          {{
+            formatCurrency(
+              item.allowances.health +
+                item.allowances.housing +
+                item.allowances.transport +
+                item.allowances.tenure +
+                item.allowances.customTotal
+            )
+          }}
+        </span>
+      </template>
+
+      <!-- Cell: Total Salary -->
+      <template #cell-totalSalary="{ item }">
+        <span class="font-mono font-bold text-emerald-600">
+          {{ formatCurrency(item.totalSalary) }}
+        </span>
+      </template>
+
+      <!-- Cell: Actions -->
+      <template #cell-actions="{ item }">
+        <button
+          @click="openSlip(item)"
+          class="inline-flex items-center gap-1 px-3 py-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-lg text-xs font-medium transition-colors"
+        >
+          <Icon icon="lucide:printer" class="w-3.5 h-3.5" />
+          Cetak
+        </button>
+      </template>
+
+      <!-- Card Item View -->
+      <template #card-item="{ item }">
         <div
-          v-for="row in filteredData"
-          :key="row.teacher.id"
-          class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 hover:shadow-md transition-shadow"
+          class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 hover:shadow-md transition-shadow h-full flex flex-col"
         >
           <div class="flex justify-between items-start mb-4">
             <div>
-              <h3 class="font-bold text-slate-800">{{ row.teacher.name }}</h3>
+              <h3 class="font-bold text-slate-800">{{ item.teacher.name }}</h3>
               <p class="text-xs text-slate-500 mt-0.5">
-                {{ row.teacher.position || "Guru" }} •
-                {{ row.teacher.yearsService }} Tahun
+                {{ item.teacher.position || "Guru" }} •
+                {{ item.grade || "-" }} • {{ item.teacher.yearsService }} Thn
               </p>
             </div>
             <span
               class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
             >
-              {{ row.attendance.days }} Hari
+              {{ item.attendance.days }} Hari
             </span>
           </div>
 
-          <div class="space-y-2 text-sm border-t border-slate-100 pt-3">
+          <div class="space-y-2 text-sm border-t border-slate-100 pt-3 flex-1">
+            <div class="flex justify-between">
+              <span class="text-slate-500">Gaji Pokok</span>
+              <span class="font-mono text-slate-700 font-medium">{{
+                formatCurrency(item.baseSalary)
+              }}</span>
+            </div>
             <div class="flex justify-between">
               <span class="text-slate-500">Tunjangan Kehadiran</span>
               <span class="font-mono text-slate-700">{{
-                formatCurrency(row.attendance.total)
+                formatCurrency(item.attendance.total)
               }}</span>
             </div>
             <div class="flex justify-between">
               <span class="text-slate-500">Tunjangan Jabatan</span>
               <span class="font-mono text-slate-700">{{
-                formatCurrency(row.allowances.position)
+                formatCurrency(item.allowances.position)
+              }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-500">Tun. Jam Ajar</span>
+              <span class="font-mono text-slate-700">{{
+                formatCurrency(item.allowances.teaching || 0)
               }}</span>
             </div>
             <div class="flex justify-between">
@@ -291,11 +257,11 @@
               <span class="font-mono text-slate-700">
                 {{
                   formatCurrency(
-                    row.allowances.health +
-                      row.allowances.housing +
-                      row.allowances.transport +
-                      row.allowances.tenure +
-                      row.allowances.customTotal
+                    item.allowances.health +
+                      item.allowances.housing +
+                      item.allowances.transport +
+                      item.allowances.tenure +
+                      item.allowances.customTotal
                   )
                 }}
               </span>
@@ -308,11 +274,11 @@
             <div>
               <p class="text-xs text-slate-500">Total Gaji</p>
               <p class="font-bold text-emerald-600 text-lg">
-                {{ formatCurrency(row.totalSalary) }}
+                {{ formatCurrency(item.totalSalary) }}
               </p>
             </div>
             <button
-              @click="openSlip(row)"
+              @click="openSlip(item)"
               class="p-2 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-lg transition-colors"
               title="Cetak Slip"
             >
@@ -320,15 +286,8 @@
             </button>
           </div>
         </div>
-
-        <div
-          v-if="filteredData.length === 0"
-          class="col-span-full py-12 text-center text-slate-500 bg-white rounded-xl border border-slate-200"
-        >
-          Tidak ada data gaji untuk periode ini.
-        </div>
-      </div>
-    </div>
+      </template>
+    </DataTable>
 
     <!-- MODAL SLIP -->
     <div
@@ -392,7 +351,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from "vue";
+import { ref, reactive, computed, onMounted, watch } from "vue";
 import { Icon } from "@iconify/vue";
 import {
   salaryApi,
@@ -401,29 +360,13 @@ import {
   salaryGradesApi,
 } from "@/services/api";
 import SalarySlip from "@/components/SalarySlip.vue";
+import DataTable from "@/components/ui/DataTable.vue";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import ExcelJS from "exceljs/dist/exceljs.min.js";
 import { saveAs } from "file-saver";
 
-const months = [
-  "Januari",
-  "Februari",
-  "Maret",
-  "April",
-  "Mei",
-  "Juni",
-  "Juli",
-  "Agustus",
-  "September",
-  "Oktober",
-  "November",
-  "Desember",
-];
-
 const now = new Date();
-
-// Default to first and last day of current month
 const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
@@ -435,16 +378,72 @@ const filter = reactive({
   gender: "",
 });
 
-const loading = ref(false);
-const exporting = ref(false);
-const error = ref(null);
 const reportData = ref([]);
 const divisions = ref([]);
 const grades = ref([]);
-const selectedRow = ref(null);
-const downloading = ref(null); // 'png' | 'pdf' | null
-const viewMode = ref("table"); // 'table' | 'card'
 const institutionSettings = ref({});
+
+const loading = ref(true);
+const exporting = ref(false);
+const error = ref(null);
+const selectedRow = ref(null);
+const downloading = ref(null);
+
+// DataTable State
+const viewMode = ref(window.innerWidth < 768 ? "card" : "table");
+const search = ref("");
+const sortBy = ref("");
+const sortOrder = ref("asc");
+const pagination = reactive({
+  page: 1,
+  limit: 10,
+  total: 0,
+  totalPages: 0,
+});
+
+const columns = [
+  { field: "name", label: "Nama Pegawai", sortable: true },
+  { field: "grade", label: "Golongan", sortable: true },
+  { field: "baseSalary", label: "Gaji Pokok", sortable: true, align: "right" },
+  {
+    field: "attendanceDays",
+    label: "Kehadiran",
+    sortable: true,
+    align: "center",
+  },
+  {
+    field: "attendanceTotal",
+    label: "Tun. Kehadiran",
+    sortable: true,
+    align: "right",
+  },
+  {
+    field: "allowancesPosition",
+    label: "Tun. Jabatan",
+    sortable: true,
+    align: "right",
+  },
+  {
+    field: "allowancesTeaching",
+    label: "Tun. Jam Ajar",
+    sortable: true,
+    align: "right",
+  },
+  {
+    field: "allowancesOthers",
+    label: "Tun. Lainnya",
+    sortable: false,
+    align: "right",
+  },
+  {
+    field: "totalSalary",
+    label: "Total Gaji",
+    sortable: true,
+    align: "right",
+    headerClass: "font-bold text-slate-800",
+  },
+  { field: "actions", label: "Aksi", sortable: false, align: "center" },
+];
 
 const formatCurrency = (val) =>
   new Intl.NumberFormat("id-ID", {
@@ -453,26 +452,18 @@ const formatCurrency = (val) =>
     minimumFractionDigits: 0,
   }).format(val);
 
-// Computed filtered data
+// 1. Initial Filtering (by explicit filters)
 const filteredData = computed(() => {
   let result = reportData.value;
 
-  // Filter by Division
   if (filter.divisionId) {
     const divId = parseInt(filter.divisionId);
-    result = result.filter((row) => {
-      // Check divisionId column
-      return row.teacher.divisionId === divId;
-    });
+    result = result.filter((row) => row.teacher.divisionId === divId);
   }
-
-  // Filter by Grade
   if (filter.gradeId) {
     const gId = parseInt(filter.gradeId);
     result = result.filter((row) => row.teacher.salaryGradeId === gId);
   }
-
-  // Filter by Gender
   if (filter.gender) {
     result = result.filter((row) => row.teacher.gender === filter.gender);
   }
@@ -480,11 +471,95 @@ const filteredData = computed(() => {
   return result;
 });
 
+// 2. Search & Sort (for DataTable)
+const processedData = computed(() => {
+  let data = [...filteredData.value];
+
+  // Search
+  if (search.value) {
+    const q = search.value.toLowerCase();
+    data = data.filter((row) => row.teacher.name.toLowerCase().includes(q));
+  }
+
+  // Sort
+  if (sortBy.value) {
+    data.sort((a, b) => {
+      let aVal, bVal;
+
+      switch (sortBy.value) {
+        case "name":
+          aVal = a.teacher.name;
+          bVal = b.teacher.name;
+          break;
+        case "grade":
+          aVal = a.teacher.gradeName || "";
+          bVal = b.teacher.gradeName || "";
+          break;
+        case "baseSalary":
+          aVal = a.baseSalary || 0;
+          bVal = b.baseSalary || 0;
+          break;
+        case "attendanceDays":
+          aVal = a.attendance.days;
+          bVal = b.attendance.days;
+          break;
+        case "attendanceTotal":
+          aVal = a.attendance.total;
+          bVal = b.attendance.total;
+          break;
+        case "allowancesPosition":
+          aVal = a.allowances.position;
+          bVal = b.allowances.position;
+          break;
+        case "allowancesTeaching":
+          aVal = a.allowances.teaching || 0;
+          bVal = b.allowances.teaching || 0;
+          break;
+        case "totalSalary":
+          aVal = a.totalSalary;
+          bVal = b.totalSalary;
+          break;
+        default:
+          return 0;
+      }
+
+      const modifier = sortOrder.value === "asc" ? 1 : -1;
+      if (typeof aVal === "string") return aVal.localeCompare(bVal) * modifier;
+      return (aVal - bVal) * modifier;
+    });
+  }
+
+  return data;
+});
+
+// 3. Pagination
+const paginatedData = computed(() => {
+  const start = (pagination.page - 1) * pagination.limit;
+  const end = start + pagination.limit;
+
+  pagination.total = processedData.value.length;
+  pagination.totalPages = Math.ceil(pagination.total / pagination.limit);
+
+  return processedData.value.slice(start, end);
+});
+
+watch([search], () => {
+  pagination.page = 1;
+});
+
+function handleSort(field) {
+  if (sortBy.value === field) {
+    sortOrder.value = sortOrder.value === "asc" ? "desc" : "asc";
+  } else {
+    sortBy.value = field;
+    sortOrder.value = "asc";
+  }
+}
+
 async function loadData() {
   loading.value = true;
   error.value = null;
   try {
-    // Parse month/year from startDate for API call (backward compatible)
     const startDateObj = new Date(filter.startDate);
     const month = startDateObj.getMonth() + 1;
     const year = startDateObj.getFullYear();
@@ -498,18 +573,10 @@ async function loadData() {
       ]
     );
 
-    if (resReport.success) {
-      reportData.value = resReport.data.rows;
-    }
-    if (resSettings.success) {
-      institutionSettings.value = resSettings.data;
-    }
-    if (resDivisions.success) {
-      divisions.value = resDivisions.data;
-    }
-    if (resGrades.success) {
-      grades.value = resGrades.data;
-    }
+    if (resReport.success) reportData.value = resReport.data.rows;
+    if (resSettings.success) institutionSettings.value = resSettings.data;
+    if (resDivisions.success) divisions.value = resDivisions.data;
+    if (resGrades.success) grades.value = resGrades.data;
   } catch (err) {
     console.error(err);
     error.value = "Gagal memuat data laporan gaji.";
@@ -522,6 +589,7 @@ function openSlip(row) {
   selectedRow.value = row;
 }
 
+// Export logic remains mostly the same, using filteredData (not paginated)
 async function exportToExcel() {
   if (filteredData.value.length === 0) return;
 
@@ -531,14 +599,12 @@ async function exportToExcel() {
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet("Laporan Gaji");
 
-    // Period text
     const startDate = new Date(filter.startDate);
     const endDate = new Date(filter.endDate);
     const periodText = `Periode: ${startDate.toLocaleDateString(
       "id-ID"
     )} - ${endDate.toLocaleDateString("id-ID")}`;
 
-    // Title Row
     sheet.mergeCells("A1:Q1");
     const titleCell = sheet.getCell("A1");
     titleCell.value = "LAPORAN GAJI PEGAWAI";
@@ -546,7 +612,6 @@ async function exportToExcel() {
     titleCell.alignment = { horizontal: "center", vertical: "middle" };
     sheet.getRow(1).height = 30;
 
-    // Period Row
     sheet.mergeCells("A2:Q2");
     const periodCell = sheet.getCell("A2");
     periodCell.value = periodText;
@@ -554,10 +619,8 @@ async function exportToExcel() {
     periodCell.alignment = { horizontal: "center", vertical: "middle" };
     sheet.getRow(2).height = 20;
 
-    // Empty Row
     sheet.getRow(3).height = 10;
 
-    // Header Row (Row 4)
     const headers = [
       "No",
       "Nama Pegawai",
@@ -586,7 +649,7 @@ async function exportToExcel() {
       cell.fill = {
         type: "pattern",
         pattern: "solid",
-        fgColor: { argb: "FF4F46E5" }, // Indigo 600
+        fgColor: { argb: "FF4F46E5" },
       };
       cell.alignment = { horizontal: "center", vertical: "middle" };
       cell.border = {
@@ -598,7 +661,6 @@ async function exportToExcel() {
     });
     headerRow.height = 25;
 
-    // Column Widths
     sheet.columns = [
       { key: "no", width: 5 },
       { key: "name", width: 30 },
@@ -619,7 +681,6 @@ async function exportToExcel() {
       { key: "total", width: 20 },
     ];
 
-    // Data Rows
     filteredData.value.forEach((row, index) => {
       const dataRow = sheet.addRow([
         index + 1,
@@ -641,7 +702,6 @@ async function exportToExcel() {
         row.totalSalary,
       ]);
 
-      // Style data cells
       dataRow.eachCell((cell, colNumber) => {
         cell.border = {
           top: { style: "thin", color: { argb: "FFE2E8F0" } },
@@ -650,22 +710,19 @@ async function exportToExcel() {
           right: { style: "thin", color: { argb: "FFE2E8F0" } },
         };
 
-        // Alternate row colors
         if (index % 2 === 1) {
           cell.fill = {
             type: "pattern",
             pattern: "solid",
-            fgColor: { argb: "FFF8FAFC" }, // Slate 50
+            fgColor: { argb: "FFF8FAFC" },
           };
         }
 
-        // Number formatting for currency columns (7-17)
         if (colNumber >= 7 && colNumber <= 17) {
           cell.numFmt = "#,##0";
           cell.alignment = { horizontal: "right" };
         }
 
-        // Center alignment for No, Years, Hours, Days columns
         if (
           colNumber === 1 ||
           colNumber === 5 ||
@@ -675,23 +732,20 @@ async function exportToExcel() {
           cell.alignment = { horizontal: "center" };
         }
 
-        // Bold and green for Total Gaji column (last column = 17)
         if (colNumber === 17) {
-          cell.font = { bold: true, color: { argb: "FF059669" } }; // Emerald 600
+          cell.font = { bold: true, color: { argb: "FF059669" } };
           cell.fill = {
             type: "pattern",
             pattern: "solid",
-            fgColor: { argb: "FFD1FAE5" }, // Emerald 100
+            fgColor: { argb: "FFD1FAE5" },
           };
         }
       });
     });
 
-    // Add Summary Row
     const summaryRowIndex = sheet.rowCount + 1;
     const summaryRow = sheet.getRow(summaryRowIndex);
 
-    // Calculate all totals
     const totalBaseSalary = filteredData.value.reduce(
       (sum, r) => sum + (r.baseSalary || 0),
       0
@@ -738,7 +792,6 @@ async function exportToExcel() {
     summaryRow.getCell(1).font = { bold: true };
     summaryRow.getCell(1).alignment = { horizontal: "center" };
     summaryRow.getCell(7).value = totalBaseSalary;
-    // Column 8 = hari hadir (skip)
     summaryRow.getCell(9).value = totalAttendance;
     summaryRow.getCell(10).value = totalPosition;
     summaryRow.getCell(11).value = totalTeaching;
@@ -749,14 +802,13 @@ async function exportToExcel() {
     summaryRow.getCell(16).value = totalCustom;
     summaryRow.getCell(17).value = totalSalary;
 
-    // Style all cells in summary row (columns 1-17)
     for (let colNumber = 1; colNumber <= 17; colNumber++) {
       const cell = summaryRow.getCell(colNumber);
       cell.font = { bold: true };
       cell.fill = {
         type: "pattern",
         pattern: "solid",
-        fgColor: { argb: "FFE0E7FF" }, // Indigo 100
+        fgColor: { argb: "FFE0E7FF" },
       };
       cell.border = {
         top: { style: "medium", color: { argb: "FF4F46E5" } },
@@ -768,7 +820,6 @@ async function exportToExcel() {
         cell.numFmt = "#,##0";
         cell.alignment = { horizontal: "right" };
       }
-      // Special styling for Total Gaji
       if (colNumber === 17) {
         cell.font = { bold: true, color: { argb: "FF059669" } };
         cell.fill = {
@@ -779,7 +830,6 @@ async function exportToExcel() {
       }
     }
 
-    // Generate and download
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -796,116 +846,37 @@ async function exportToExcel() {
   }
 }
 
-async function downloadPNG() {
-  downloading.value = "png";
-  const element = document.getElementById("salary-slip-node");
-  if (!element) return;
-
-  // Store original styles to revert later
-  const originalWidth = element.style.width;
-  const originalMinWidth = element.style.minWidth;
-
-  try {
-    // Force fixed width for better mobile capture
-    element.style.width = "800px";
-    element.style.minWidth = "800px";
-
-    // Wait for layout update
-    await new Promise((resolve) => setTimeout(resolve, 100));
-
-    const canvas = await html2canvas(element, {
-      scale: 2, // High resolution
-      useCORS: true,
-      backgroundColor: "#ffffff",
-      windowWidth: 1200,
-    });
-
-    const link = document.createElement("a");
-    link.download = `Slip_Gaji_${selectedRow.value.teacher.name.replace(
-      /\s+/g,
-      "_"
-    )}_${months[new Date(filter.startDate).getMonth()]}_${new Date(
-      filter.startDate
-    ).getFullYear()}.png`;
-    link.href = canvas.toDataURL("image/png");
-    link.click();
-  } catch (err) {
-    console.error("Failed to generate image", err);
-    alert("Gagal mengunduh slip gaji.");
-  } finally {
-    // Revert styles
-    element.style.width = originalWidth;
-    element.style.minWidth = originalMinWidth;
-    downloading.value = null;
-  }
-}
-
 async function downloadPDF() {
   downloading.value = "pdf";
   const element = document.getElementById("salary-slip-node");
   if (!element) return;
-
-  // Store original styles to revert later
-  const originalWidth = element.style.width;
-  const originalMinWidth = element.style.minWidth;
-
   try {
-    // Force fixed width for A4-like ratio
-    element.style.width = "800px";
-    element.style.minWidth = "800px";
-
-    // Wait for layout update
-    await new Promise((resolve) => setTimeout(resolve, 100));
-
-    const canvas = await html2canvas(element, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: "#ffffff",
-      windowWidth: 1200,
-    });
-
+    const canvas = await html2canvas(element, { scale: 2 });
     const imgData = canvas.toDataURL("image/png");
     const pdf = new jsPDF("p", "mm", "a4");
-
-    // A4 Dimensions
-    const pageWidth = pdf.internal.pageSize.getWidth(); // 210
-    const pageHeight = pdf.internal.pageSize.getHeight(); // 297
-
-    // Margins
-    const margin = 10;
-    const availableWidth = pageWidth - margin * 2;
-    const availableHeight = pageHeight - margin * 2;
-
-    // Calculate dimensions to fit
-    const imgWidth = canvas.width;
-    const imgHeight = canvas.height;
-
-    const widthRatio = availableWidth / imgWidth;
-    const heightRatio = availableHeight / imgHeight;
-
-    // Choose the smaller ratio to ensure it fits both dimensions
-    const ratio = Math.min(widthRatio, heightRatio);
-
-    const finalWidth = imgWidth * ratio;
-    const finalHeight = imgHeight * ratio;
-
-    // Center the image
-    const x = (pageWidth - finalWidth) / 2;
-    const y = margin; // Top margin
-
-    pdf.addImage(imgData, "PNG", x, y, finalWidth, finalHeight);
-    pdf.save(
-      `Slip_Gaji_${selectedRow.value.teacher.name.replace(/\s+/g, "_")}_${
-        months[new Date(filter.startDate).getMonth()]
-      }_${new Date(filter.startDate).getFullYear()}.pdf`
-    );
-  } catch (err) {
-    console.error("Failed to generate PDF", err);
-    alert("Gagal mengunduh slip PDF.");
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+    pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+    pdf.save(`Slip_Gaji_${selectedRow.value.teacher.name}.pdf`);
+  } catch (e) {
+    console.error(e);
   } finally {
-    // Revert styles
-    element.style.width = originalWidth;
-    element.style.minWidth = originalMinWidth;
+    downloading.value = null;
+  }
+}
+
+async function downloadPNG() {
+  downloading.value = "png";
+  const element = document.getElementById("salary-slip-node");
+  if (!element) return;
+  try {
+    const canvas = await html2canvas(element, { scale: 2 });
+    canvas.toBlob((blob) => {
+      saveAs(blob, `Slip_Gaji_${selectedRow.value.teacher.name}.png`);
+    });
+  } catch (e) {
+    console.error(e);
+  } finally {
     downloading.value = null;
   }
 }

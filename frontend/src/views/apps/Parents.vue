@@ -378,7 +378,7 @@ const btnPrimaryOutline = { borderColor: primary };
 const btnSecondary = { background: secondary, color: "#fff" };
 
 const parents = ref([]);
-const loading = ref(false);
+const loading = ref(true);
 const saving = ref(false);
 
 const limitOptions = ["5", "10", "20", "50"];

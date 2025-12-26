@@ -8,7 +8,51 @@
       </p>
     </div>
 
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200">
+    <!-- SKELETON -->
+    <div
+      v-if="loading"
+      class="bg-white rounded-xl shadow-sm border border-slate-200 animate-pulse"
+    >
+      <div class="p-6 border-b border-slate-100">
+        <div class="h-6 bg-slate-200 rounded w-1/4"></div>
+      </div>
+      <div class="p-6 space-y-6">
+        <div>
+          <div class="h-4 bg-slate-200 rounded w-32 mb-2"></div>
+          <div class="flex items-center gap-6">
+            <div class="w-32 h-32 bg-slate-200 rounded-lg"></div>
+            <div class="flex-1 space-y-2">
+              <div class="h-10 w-40 bg-slate-200 rounded"></div>
+              <div class="h-3 w-64 bg-slate-100 rounded"></div>
+            </div>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="col-span-full space-y-2">
+            <div class="h-4 w-32 bg-slate-200 rounded"></div>
+            <div class="h-10 bg-slate-100 rounded"></div>
+          </div>
+          <div class="col-span-full space-y-2">
+            <div class="h-4 w-32 bg-slate-200 rounded"></div>
+            <div class="h-10 bg-slate-100 rounded"></div>
+          </div>
+          <div class="col-span-full space-y-2">
+            <div class="h-4 w-32 bg-slate-200 rounded"></div>
+            <div class="h-20 bg-slate-100 rounded"></div>
+          </div>
+          <div class="space-y-2">
+            <div class="h-4 w-32 bg-slate-200 rounded"></div>
+            <div class="h-10 bg-slate-100 rounded"></div>
+          </div>
+          <div class="space-y-2">
+            <div class="h-4 w-32 bg-slate-200 rounded"></div>
+            <div class="h-10 bg-slate-100 rounded"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div v-else class="bg-white rounded-xl shadow-sm border border-slate-200">
       <div class="p-6 border-b border-slate-100">
         <h2 class="font-semibold text-slate-800">Profil Lembaga</h2>
       </div>
@@ -178,7 +222,7 @@ import { Icon } from "@iconify/vue";
 import { settingsApi, uploadsApi } from "@/services/api";
 import StatusModal from "@/components/ui/StatusModal.vue";
 
-const loading = ref(false);
+const loading = ref(true);
 const saving = ref(false);
 const uploading = ref(false);
 const error = ref(null);

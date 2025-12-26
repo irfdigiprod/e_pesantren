@@ -15,16 +15,16 @@ import {
 } from "@/composables/routeLoading";
 
 // global router hooks
-router.beforeEach((to, from, next) => {
-  // aktifkan skeleton sebelum navigasi
-  startRouteLoading();
-  next();
-});
+// router.beforeEach((to, from, next) => {
+//   // aktifkan skeleton sebelum navigasi
+//   startRouteLoading();
+//   next();
+// });
 
-router.afterEach(() => {
-  // hentikan loading setelah navigasi; beri sedikit delay biar transisi halus
-  stopRouteLoading(600); // contoh 600ms, sesuaikan
-});
+// router.afterEach(() => {
+//   // hentikan loading setelah navigasi; beri sedikit delay biar transisi halus
+//   stopRouteLoading(600); // contoh 600ms, sesuaikan
+// });
 
 // tunggu router ready lalu mount
 router.isReady().then(() => {

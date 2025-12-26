@@ -1,5 +1,5 @@
 <template>
-  <footer class="border-t border-slate-200 mt-auto">
+  <footer class="border-t border-slate-200 mt-4">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="py-6">
         <!-- Main Footer Content -->

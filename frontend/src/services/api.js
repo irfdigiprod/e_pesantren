@@ -1275,3 +1275,49 @@ export const uploadsApi = {
 // SETTINGS API
 // ============================================
 // Already defined above
+
+// ============================================
+// TAHFIDZ API
+// ============================================
+
+export const tahfidzApi = {
+  async getStats() {
+    return request("/api/tahfidz/stats");
+  },
+  async getDeposits(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    const endpoint = query
+      ? `/api/tahfidz/deposits?${query}`
+      : "/api/tahfidz/deposits";
+    return request(endpoint);
+  },
+  async createDeposit(data) {
+    return request("/api/tahfidz/deposits", { method: "POST", body: data });
+  },
+  async updateDeposit(id, data) {
+    return request(`/api/tahfidz/deposits/${id}`, {
+      method: "PUT",
+      body: data,
+    });
+  },
+  async getExams(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    const endpoint = query
+      ? `/api/tahfidz/exams?${query}`
+      : "/api/tahfidz/exams";
+    return request(endpoint);
+  },
+  async createExam(data) {
+    return request("/api/tahfidz/exams", { method: "POST", body: data });
+  },
+  async getHalaqahDailySummary(groupId, date) {
+    return request(
+      `/api/tahfidz/halaqah/${groupId}/daily-summary?date=${date}`
+    );
+  },
+  async getHalaqahMonthlySummary(groupId, month, year) {
+    return request(
+      `/api/tahfidz/halaqah/${groupId}/monthly-summary?month=${month}&year=${year}`
+    );
+  },
+};

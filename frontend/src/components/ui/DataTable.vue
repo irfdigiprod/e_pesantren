@@ -70,8 +70,8 @@
         </div>
 
         <!-- Right: Search + Filters -->
-        <div class="flex items-center gap-2">
-          <div class="relative">
+        <div class="flex items-center gap-2 w-full md:w-auto">
+          <div class="relative flex-1 md:flex-none">
             <Icon
               icon="solar:magnifer-linear"
               class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
@@ -80,7 +80,7 @@
               :value="search"
               @input="$emit('update:search', $event.target.value)"
               placeholder="Cari..."
-              class="pl-10 pr-4 py-2 w-48 md:w-56 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-[#602515] transition-colors"
+              class="pl-10 pr-4 py-2 w-full md:w-56 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-[#602515] transition-colors"
             />
           </div>
 
@@ -89,8 +89,8 @@
               @click="showFilters = !showFilters"
               class="flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-200 text-sm text-slate-600 hover:bg-slate-50 transition-colors"
             >
-              <Icon icon="solar:filter-line-duotone" class="text-base" />
-              <span>Filters</span>
+              <Icon :icon="filterButtonIcon" class="text-base" />
+              <span v-if="filterButtonLabel">{{ filterButtonLabel }}</span>
             </button>
 
             <!-- Backdrop -->
@@ -103,7 +103,7 @@
             <!-- Filters Dropdown -->
             <div
               v-if="showFilters"
-              class="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-slate-200 p-4 z-30"
+              class="absolute right-0 mt-2 w-72 xs:w-80 sm:w-96 bg-white rounded-xl shadow-lg border border-slate-200 p-4 z-30"
             >
               <slot name="filters" :close="() => (showFilters = false)"></slot>
             </div>
@@ -281,7 +281,10 @@
           <span class="text-sm text-slate-500">Show:</span>
           <select
             :value="pagination?.limit"
-            @change="$emit('update:limit', Number($event.target.value))"
+            @change="
+              $emit('update:limit', Number($event.target.value));
+              $emit('page-change', 1);
+            "
             class="border border-slate-200 rounded-lg text-sm px-2 py-1 bg-white focus:outline-none focus:border-[#602515]"
           >
             <option :value="10">10</option>
@@ -326,6 +329,14 @@ const props = defineProps({
   },
   sortBy: String,
   sortOrder: String,
+  filterButtonIcon: {
+    type: String,
+    default: "solar:filter-line-duotone",
+  },
+  filterButtonLabel: {
+    type: String,
+    default: "Filters",
+  },
 });
 
 defineEmits([

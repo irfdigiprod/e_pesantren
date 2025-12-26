@@ -12,7 +12,7 @@
       :viewMode="viewMode"
       :search="searchQuery"
       @update:search="onSearchInput"
-      @changeLimit="changeLimit"
+      @update:limit="changeLimit"
       @page-change="changePage"
       @update:viewMode="(v) => (viewMode = v)"
     >
@@ -716,7 +716,7 @@ const columns = [
 const allTeachers = ref([]); // Store all data
 const teachers = ref([]); // Displayed data (paginated)
 const divisionsList = ref([]);
-const loading = ref(false);
+const loading = ref(true);
 const saving = ref(false);
 const searchQuery = ref("");
 const statusFilter = ref("");

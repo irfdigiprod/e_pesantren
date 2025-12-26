@@ -1,201 +1,175 @@
 <template>
-  <div class="space-y-6 overflow-hidden max-w-full">
-    <div
-      class="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+  <div class="space-y-6 max-w-full">
+    <DataTable
+      :items="paginatedPermissions"
+      :columns="columns"
+      :loading="loading"
+      :pagination="pagination"
+      :viewMode="viewMode"
+      title="Perizinan Saya"
+      description="Daftar pengajuan izin dan sakit saya."
+      icon="solar:clipboard-list-bold-duotone"
+      :search="search"
+      @update:search="search = $event"
+      @update:limit="
+        pagination.limit = $event;
+        pagination.page = 1;
+      "
+      @page-change="pagination.page = $event"
+      @update:viewMode="viewMode = $event"
     >
-      <div>
-        <h1 class="text-xl font-bold text-slate-800">Perizinan Saya</h1>
-        <p class="text-sm text-slate-500 mt-1">
-          Daftar pengajuan izin dan sakit saya.
-        </p>
-      </div>
-      <div class="flex items-center gap-2">
-        <!-- View Toggle -->
-        <div
-          class="flex items-center bg-slate-100 rounded-lg p-1 border border-slate-200"
-        >
-          <button
-            @click="viewMode = 'table'"
-            class="p-2 rounded-md transition-all flex items-center justify-center"
-            :class="
-              viewMode === 'table'
-                ? 'bg-white shadow text-indigo-600'
-                : 'text-slate-500 hover:text-slate-700'
-            "
-            title="Tampilan Tabel"
-          >
-            <Icon icon="solar:list-bold-duotone" class="w-5 h-5" />
-          </button>
-          <button
-            @click="viewMode = 'card'"
-            class="p-2 rounded-md transition-all flex items-center justify-center"
-            :class="
-              viewMode === 'card'
-                ? 'bg-white shadow text-indigo-600'
-                : 'text-slate-500 hover:text-slate-700'
-            "
-            title="Tampilan Kartu"
-          >
-            <Icon icon="solar:gallery-wide-bold-duotone" class="w-5 h-5" />
-          </button>
-        </div>
+      <!-- Header Actions -->
+      <template #header-actions>
         <button
           @click="showModal = true"
-          class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium text-sm flex items-center gap-2"
+          class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium text-sm flex items-center gap-2 transition-colors"
         >
           <Icon icon="solar:add-circle-bold-duotone" class="w-5 h-5" />
           <span class="hidden sm:inline">Ajukan Izin</span>
         </button>
-      </div>
-    </div>
+      </template>
 
-    <!-- Table View -->
-    <div
-      v-if="viewMode === 'table'"
-      class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden"
-    >
-      <!-- Skeleton Loading -->
-      <TableSkeleton
-        v-if="loading"
-        viewMode="table"
-        :rows="5"
-        :columnCount="5"
-        class="p-4"
-      />
-
-      <div v-else class="overflow-x-auto">
-        <table class="w-full min-w-[600px] text-sm text-left">
-          <thead class="bg-slate-50 text-slate-500 border-b border-slate-100">
-            <tr>
-              <th class="px-6 py-3 font-medium whitespace-nowrap">Jenis</th>
-              <th class="px-6 py-3 font-medium whitespace-nowrap">Tanggal</th>
-              <th class="px-6 py-3 font-medium w-1/3">Alasan</th>
-              <th class="px-6 py-3 font-medium whitespace-nowrap">Status</th>
-              <th class="px-6 py-3 font-medium whitespace-nowrap">Dibuat</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-100">
-            <tr
-              v-for="p in permissions"
-              :key="p.id"
-              class="hover:bg-slate-50/50"
-            >
-              <td class="px-6 py-4">
-                <span
-                  class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize"
-                  :class="
-                    p.type === 'sick'
-                      ? 'bg-rose-100 text-rose-800'
-                      : 'bg-blue-100 text-blue-800'
-                  "
-                >
-                  {{ p.type === "sick" ? "Sakit" : "Izin" }}
-                </span>
-              </td>
-              <td class="px-6 py-4">
-                <div class="flex flex-col">
-                  <span>{{ formatDate(p.startDate) }}</span>
-                  <span
-                    v-if="p.startDate !== p.endDate"
-                    class="text-slate-400 text-xs"
-                  >
-                    s.d {{ formatDate(p.endDate) }}
-                  </span>
-                </div>
-              </td>
-              <td class="px-6 py-4 max-w-xs" :title="p.reason">
-                <p class="line-clamp-2 text-slate-600">{{ p.reason }}</p>
-              </td>
-              <td class="px-6 py-4">
-                <span
-                  class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium"
-                  :class="{
-                    'bg-amber-100 text-amber-800': p.status === 'pending',
-                    'bg-emerald-100 text-emerald-800': p.status === 'approved',
-                    'bg-slate-100 text-slate-600': p.status === 'rejected',
-                  }"
-                >
-                  <Icon :icon="statusIcon(p.status)" class="w-3.5 h-3.5" />
-                  <span class="capitalize">{{ formatStatus(p.status) }}</span>
-                </span>
-              </td>
-              <td class="px-6 py-4 text-slate-400 text-xs">
-                {{ new Date(p.createdAt).toLocaleDateString("id-ID") }}
-              </td>
-            </tr>
-            <tr v-if="!loading && permissions.length === 0">
-              <td colspan="5" class="px-6 py-12 text-center text-slate-400">
-                <Icon
-                  icon="solar:document-text-line-duotone"
-                  class="w-12 h-12 mx-auto mb-3 opacity-50"
-                />
-                <p>Belum ada pengajuan izin.</p>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- Card View -->
-    <div v-else class="space-y-3">
-      <!-- Skeleton Loading -->
-      <TableSkeleton v-if="loading" viewMode="card" :rows="4" class="p-2" />
-
-      <template v-else>
-        <div
-          v-if="permissions.length === 0"
-          class="bg-white rounded-xl border border-slate-200 p-12 text-center text-slate-400"
-        >
-          <Icon
-            icon="solar:document-text-line-duotone"
-            class="w-12 h-12 mx-auto mb-3 opacity-50"
-          />
-          <p>Belum ada pengajuan izin.</p>
+      <!-- Filters -->
+      <template #filters>
+        <div class="space-y-4">
+          <h3 class="font-medium text-slate-800 border-b border-slate-100 pb-2">
+            Filter Status
+          </h3>
+          <div class="space-y-2">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                value="pending"
+                v-model="filterStatus"
+                class="rounded text-indigo-600 focus:ring-indigo-500"
+              />
+              <span class="text-sm text-slate-600">Diajukan (Menunggu)</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                value="approved"
+                v-model="filterStatus"
+                class="rounded text-indigo-600 focus:ring-indigo-500"
+              />
+              <span class="text-sm text-slate-600">Disetujui</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                value="rejected"
+                v-model="filterStatus"
+                class="rounded text-indigo-600 focus:ring-indigo-500"
+              />
+              <span class="text-sm text-slate-600">Ditolak</span>
+            </label>
+          </div>
         </div>
+      </template>
+
+      <!-- Cell: Type -->
+      <template #cell-type="{ item }">
+        <span
+          class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize"
+          :class="
+            item.type === 'sick'
+              ? 'bg-rose-100 text-rose-800'
+              : 'bg-blue-100 text-blue-800'
+          "
+        >
+          {{ item.type === "sick" ? "Sakit" : "Izin" }}
+        </span>
+      </template>
+
+      <!-- Cell: Date -->
+      <template #cell-startDate="{ item }">
+        <div class="flex flex-col">
+          <span class="font-medium text-slate-700">{{
+            formatDate(item.startDate)
+          }}</span>
+          <span
+            v-if="item.startDate !== item.endDate"
+            class="text-slate-400 text-xs"
+          >
+            s.d {{ formatDate(item.endDate) }}
+          </span>
+        </div>
+      </template>
+
+      <!-- Cell: Reason -->
+      <template #cell-reason="{ item }">
+        <p class="line-clamp-2 text-slate-600 max-w-xs" :title="item.reason">
+          {{ item.reason }}
+        </p>
+      </template>
+
+      <!-- Cell: Status -->
+      <template #cell-status="{ item }">
+        <span
+          class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium"
+          :class="{
+            'bg-amber-100 text-amber-800': item.status === 'pending',
+            'bg-emerald-100 text-emerald-800': item.status === 'approved',
+            'bg-slate-100 text-slate-600': item.status === 'rejected',
+          }"
+        >
+          <Icon :icon="statusIcon(item.status)" class="w-3.5 h-3.5" />
+          <span class="capitalize">{{ formatStatus(item.status) }}</span>
+        </span>
+      </template>
+
+      <!-- Cell: CreatedAt -->
+      <template #cell-createdAt="{ item }">
+        <span class="text-slate-400 text-xs">
+          {{ new Date(item.createdAt).toLocaleDateString("id-ID") }}
+        </span>
+      </template>
+
+      <!-- Card Item View (Responsive Grid) -->
+      <template #card-item="{ item }">
         <div
-          v-for="p in permissions"
-          :key="p.id"
-          class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 hover:shadow-md transition-shadow"
+          class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 hover:shadow-md transition-shadow h-full flex flex-col"
         >
           <div class="flex items-start justify-between gap-3 mb-3">
             <div class="flex items-center gap-2">
               <span
                 class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize"
                 :class="
-                  p.type === 'sick'
+                  item.type === 'sick'
                     ? 'bg-rose-100 text-rose-800'
                     : 'bg-blue-100 text-blue-800'
                 "
               >
-                {{ p.type === "sick" ? "Sakit" : "Izin" }}
+                {{ item.type === "sick" ? "Sakit" : "Izin" }}
               </span>
               <span
                 class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium"
                 :class="{
-                  'bg-amber-100 text-amber-800': p.status === 'pending',
-                  'bg-emerald-100 text-emerald-800': p.status === 'approved',
-                  'bg-slate-100 text-slate-600': p.status === 'rejected',
+                  'bg-amber-100 text-amber-800': item.status === 'pending',
+                  'bg-emerald-100 text-emerald-800': item.status === 'approved',
+                  'bg-slate-100 text-slate-600': item.status === 'rejected',
                 }"
               >
-                <Icon :icon="statusIcon(p.status)" class="w-3 h-3" />
-                {{ formatStatus(p.status) }}
+                <Icon :icon="statusIcon(item.status)" class="w-3 h-3" />
+                {{ formatStatus(item.status) }}
               </span>
             </div>
             <span class="text-xs text-slate-400">{{
-              new Date(p.createdAt).toLocaleDateString("id-ID")
+              new Date(item.createdAt).toLocaleDateString("id-ID")
             }}</span>
           </div>
           <div class="text-sm text-slate-700 mb-2">
-            <span class="font-medium">{{ formatDate(p.startDate) }}</span>
-            <span v-if="p.startDate !== p.endDate" class="text-slate-500">
-              s.d {{ formatDate(p.endDate) }}
+            <span class="font-medium">{{ formatDate(item.startDate) }}</span>
+            <span v-if="item.startDate !== item.endDate" class="text-slate-500">
+              s.d {{ formatDate(item.endDate) }}
             </span>
           </div>
-          <p class="text-sm text-slate-600 line-clamp-2">{{ p.reason }}</p>
+          <p class="text-sm text-slate-600 line-clamp-2 mt-auto">
+            {{ item.reason }}
+          </p>
         </div>
       </template>
-    </div>
+    </DataTable>
 
     <!-- Submission Modal -->
     <Teleport to="body">
@@ -405,10 +379,10 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from "vue";
+import { ref, reactive, onMounted, computed, watch } from "vue";
 import { Icon } from "@iconify/vue";
 import { permissionsApi, uploadFile } from "@/services/api";
-import TableSkeleton from "@/components/ui/TableSkeleton.vue";
+import DataTable from "@/components/ui/DataTable.vue";
 import StatusModal from "@/components/ui/StatusModal.vue";
 
 // Responsive default: card for mobile (<768px), table for desktop
@@ -416,11 +390,29 @@ const isDesktop = window.matchMedia("(min-width: 768px)").matches;
 const viewMode = ref(isDesktop ? "table" : "card");
 
 const permissions = ref([]);
-const loading = ref(false);
+const loading = ref(true);
 const showModal = ref(false);
 const submitting = ref(false);
 const fileError = ref("");
 const fileInput = ref(null);
+
+// Pagination & Filter State
+const search = ref("");
+const filterStatus = ref([]);
+const pagination = reactive({
+  page: 1,
+  limit: 10,
+  total: 0,
+  totalPages: 0,
+});
+
+const columns = [
+  { field: "type", label: "Jenis", sortable: true },
+  { field: "startDate", label: "Tanggal", sortable: true },
+  { field: "reason", label: "Alasan", sortable: false },
+  { field: "status", label: "Status", sortable: true },
+  { field: "createdAt", label: "Dibuat", sortable: true, align: "right" },
+];
 
 const statusModal = reactive({
   isOpen: false,
@@ -471,6 +463,45 @@ function statusIcon(status) {
   if (status === "rejected") return "solar:close-circle-bold";
   return "solar:clock-circle-bold";
 }
+
+// Client-side Filtering & Pagination
+const filteredPermissions = computed(() => {
+  let data = [...permissions.value];
+
+  // Search
+  if (search.value) {
+    const q = search.value.toLowerCase();
+    data = data.filter(
+      (p) =>
+        p.reason.toLowerCase().includes(q) ||
+        p.type.toLowerCase().includes(q) ||
+        formatStatus(p.status).toLowerCase().includes(q)
+    );
+  }
+
+  // Filter Status
+  if (filterStatus.value.length > 0) {
+    data = data.filter((p) => filterStatus.value.includes(p.status));
+  }
+
+  return data;
+});
+
+const paginatedPermissions = computed(() => {
+  const start = (pagination.page - 1) * pagination.limit;
+  const end = start + pagination.limit;
+
+  // Update total counts
+  pagination.total = filteredPermissions.value.length;
+  pagination.totalPages = Math.ceil(pagination.total / pagination.limit);
+
+  return filteredPermissions.value.slice(start, end);
+});
+
+// Reset page when filter changes
+watch(search, () => {
+  pagination.page = 1;
+});
 
 // File handling functions
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB

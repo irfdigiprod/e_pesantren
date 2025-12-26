@@ -91,9 +91,15 @@ const submenuByMain = {
         route: "/apps/divisions",
       },
       {
-        label: "Hafalan Quran",
+        label: "Tahfidz",
         icon: "solar:book-bookmark-line-duotone",
-        route: "/apps/quran-memorization",
+        children: [
+          { label: "Grup Halaqah", route: "/apps/halaqah" },
+          { label: "Mutaba'ah", route: "/apps/tahfidz/dashboard" },
+          { label: "Input per Halaqah", route: "/apps/tahfidz/halaqah" },
+          { label: "Ujian Tahfidz", route: "/apps/tahfidz/exams" },
+          { label: "Laporan & Sertifikat", route: "/apps/tahfidz/reports" },
+        ],
       },
       {
         label: "Absensi",

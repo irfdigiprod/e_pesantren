@@ -161,7 +161,7 @@ const btnPrimaryOutline = { borderColor: "#602515" };
 const btnSecondary = { background: "#f8ae19", color: "#fff" };
 
 const subjects = ref([]);
-const loading = ref(false);
+const loading = ref(true);
 const saving = ref(false);
 
 const modal = reactive({ show: false, mode: "create", error: "" });

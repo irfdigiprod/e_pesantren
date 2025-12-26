@@ -11,7 +11,56 @@
       @close="closeModal"
     />
 
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+    <div
+      v-if="loading"
+      class="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-pulse"
+    >
+      <!-- LEFT COL SKELETON -->
+      <aside class="lg:col-span-4 space-y-6">
+        <div class="bg-white rounded-3xl shadow-xl overflow-hidden relative">
+          <div class="h-32 bg-slate-200"></div>
+          <div
+            class="px-6 pb-8 text-center -mt-16 relative z-10 flex flex-col items-center"
+          >
+            <div
+              class="w-32 h-32 rounded-full border-4 border-white bg-slate-300 mb-4"
+            ></div>
+            <div class="h-6 bg-slate-200 rounded w-1/2 mb-2"></div>
+            <div class="h-4 bg-slate-200 rounded w-1/3 mb-4"></div>
+            <div class="flex gap-2 justify-center mb-8 w-full">
+              <div class="h-6 w-16 bg-slate-200 rounded"></div>
+              <div class="h-6 w-16 bg-slate-200 rounded"></div>
+            </div>
+            <div class="w-full space-y-3">
+              <div class="h-10 bg-slate-200 rounded-xl w-full"></div>
+              <div class="h-10 bg-slate-200 rounded-xl w-full"></div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- RIGHT COL SKELETON -->
+      <main class="lg:col-span-8 space-y-8">
+        <div class="bg-white rounded-3xl shadow-xl p-8">
+          <div class="flex items-center gap-3 mb-8">
+            <div class="w-1 h-8 bg-slate-200 rounded-full"></div>
+            <div class="h-6 w-1/3 bg-slate-200 rounded"></div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+            <div class="h-14 bg-slate-100 rounded-lg"></div>
+            <div class="h-14 bg-slate-100 rounded-lg"></div>
+            <div class="h-14 bg-slate-100 rounded-lg"></div>
+            <div class="h-14 bg-slate-100 rounded-lg"></div>
+            <div class="h-14 bg-slate-100 rounded-lg col-span-2"></div>
+          </div>
+        </div>
+        <div
+          class="bg-slate-800 rounded-3xl shadow-xl p-8 h-40 opacity-50"
+        ></div>
+      </main>
+    </div>
+
+    <div v-else class="grid grid-cols-1 lg:grid-cols-12 gap-8">
       <!-- LEFT COL: IDENTITY CARD -->
       <aside class="lg:col-span-4 space-y-6">
         <div
@@ -556,7 +605,7 @@ import "@vuepic/vue-datepicker/dist/main.css";
 
 const router = useRouter();
 const user = ref({});
-const loading = ref(false);
+const loading = ref(true);
 const error = ref("");
 const editing = ref(false);
 const draft = ref({});

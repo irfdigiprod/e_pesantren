@@ -38,46 +38,70 @@
       </div>
 
       <div class="conversation-list">
-        <div
-          v-for="conv in filteredConversations"
-          :key="conv.id"
-          :class="[
-            'conversation-item',
-            { active: activeConversation?.id === conv.id },
-          ]"
-          @click="
-            selectConversation(conv);
-            showMobileSidebar = false;
-          "
-        >
-          <div class="conv-avatar">
-            <img
-              v-if="getConversationAvatar(conv).includes('/')"
-              :src="getConversationAvatar(conv)"
-              alt="Avatar"
-              class="avatar-img"
-            />
-            <span v-else>{{ getConversationAvatar(conv) }}</span>
-          </div>
-          <div class="conv-info">
-            <div class="conv-header">
-              <span class="conv-name">{{ getConversationName(conv) }}</span>
-              <span class="conv-time">{{
-                formatTime(conv.lastMessageAt)
-              }}</span>
-            </div>
-            <div class="conv-preview">
-              <span class="preview-text">{{ getPreviewText(conv) }}</span>
-              <span v-if="conv.unreadCount > 0" class="unread-badge">
-                {{ conv.unreadCount }}
-              </span>
+        <!-- Skeleton Loading -->
+        <div v-if="loadingConversations" class="w-full">
+          <div
+            v-for="i in 6"
+            :key="i"
+            class="flex items-center gap-3 py-3 px-4 border-b border-slate-100 animate-pulse"
+          >
+            <div class="w-12 h-12 bg-slate-200 rounded-full shrink-0"></div>
+            <div class="flex-1 min-w-0 space-y-2">
+              <div class="flex justify-between items-center">
+                <div class="h-4 w-24 bg-slate-200 rounded"></div>
+                <div class="h-3 w-10 bg-slate-200 rounded"></div>
+              </div>
+              <div class="flex justify-between items-center">
+                <div class="h-3 w-32 bg-slate-200 rounded"></div>
+                <!-- Unread badge skeleton -->
+                <div class="h-5 w-5 bg-slate-200 rounded-full"></div>
+              </div>
             </div>
           </div>
         </div>
 
-        <div v-if="conversations.length === 0" class="empty-state">
-          <Icon icon="mdi:chat-outline" class="empty-icon" />
-          <p>Belum ada percakapan</p>
+        <div v-else>
+          <div
+            v-for="conv in filteredConversations"
+            :key="conv.id"
+            :class="[
+              'conversation-item',
+              { active: activeConversation?.id === conv.id },
+            ]"
+            @click="
+              selectConversation(conv);
+              showMobileSidebar = false;
+            "
+          >
+            <div class="conv-avatar">
+              <img
+                v-if="getConversationAvatar(conv).includes('/')"
+                :src="getConversationAvatar(conv)"
+                alt="Avatar"
+                class="avatar-img"
+              />
+              <span v-else>{{ getConversationAvatar(conv) }}</span>
+            </div>
+            <div class="conv-info">
+              <div class="conv-header">
+                <span class="conv-name">{{ getConversationName(conv) }}</span>
+                <span class="conv-time">{{
+                  formatTime(conv.lastMessageAt)
+                }}</span>
+              </div>
+              <div class="conv-preview">
+                <span class="preview-text">{{ getPreviewText(conv) }}</span>
+                <span v-if="conv.unreadCount > 0" class="unread-badge">
+                  {{ conv.unreadCount }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="conversations.length === 0" class="empty-state">
+            <Icon icon="mdi:chat-outline" class="empty-icon" />
+            <p>Belum ada percakapan</p>
+          </div>
         </div>
       </div>
     </aside>
@@ -158,8 +182,26 @@
             paddingBottom: activeMessageActions.isFixed ? '60px' : '0',
           }"
         >
-          <div v-if="loadingMessages" class="loading-messages">
-            <Icon icon="mdi:loading" class="spin" />
+          <div
+            v-if="loadingMessages"
+            class="p-4 space-y-6 animate-pulse w-full"
+          >
+            <div v-for="i in 3" :key="i" class="flex flex-col w-full space-y-4">
+              <!-- Left Bubble -->
+              <div class="flex flex-col items-start max-w-[70%]">
+                <div
+                  class="h-12 w-48 bg-slate-200 rounded-tr-2xl rounded-b-2xl rounded-tl-sm mb-1"
+                ></div>
+                <div class="h-3 w-12 bg-slate-100 rounded"></div>
+              </div>
+              <!-- Right Bubble -->
+              <div class="flex flex-col items-end max-w-[70%] ml-auto">
+                <div
+                  class="h-16 w-64 bg-slate-200 rounded-tl-2xl rounded-b-2xl rounded-tr-sm mb-1"
+                ></div>
+                <div class="h-3 w-12 bg-slate-100 rounded"></div>
+              </div>
+            </div>
           </div>
 
           <div
@@ -4603,12 +4645,18 @@ async function createNewConversation() {
   newChatUserId.value = "";
 }
 
+// Loading state for sidebar
+const loadingConversations = ref(true);
+
 async function loadConversations() {
+  loadingConversations.value = true;
   try {
     const res = await chatApi.getConversations();
     conversations.value = res.data || [];
   } catch (e) {
     console.error("Failed to load conversations:", e);
+  } finally {
+    loadingConversations.value = false;
   }
 }
 

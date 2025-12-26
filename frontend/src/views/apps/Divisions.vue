@@ -12,7 +12,7 @@
       :viewMode="viewMode"
       :searchQuery="searchQuery"
       @search="onSearchInput"
-      @changeLimit="changeLimit"
+      @update:limit="changeLimit"
       @page-change="changePage"
       @update:viewMode="(v) => (viewMode = v)"
     >

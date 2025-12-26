@@ -12,7 +12,7 @@
       </div>
 
       <div
-        class="flex flex-col md:flex-row items-end md:items-center gap-3 w-full md:w-auto"
+        class="flex flex-col md:flex-row md:flex-wrap items-end md:items-center justify-end gap-3 w-full md:w-auto"
       >
         <!-- Filter Mode Toggle -->
         <div class="flex items-center gap-2 bg-slate-100 p-1 rounded-lg">
@@ -411,7 +411,14 @@
     </div>
 
     <!-- Card View -->
-    <div v-else-if="viewMode === 'card'" class="space-y-3">
+    <div
+      v-else-if="viewMode === 'card'"
+      :class="
+        loading
+          ? 'space-y-3'
+          : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'
+      "
+    >
 
 
       <!-- Skeleton Loading -->
@@ -563,7 +570,7 @@ const filter = reactive({
   divisionId: "",
   useCustomRange: false,
 });
-const loading = ref(false);
+const loading = ref(true);
 const recapData = reactive({
   period: { start: "", end: "" },
   teachers: [],

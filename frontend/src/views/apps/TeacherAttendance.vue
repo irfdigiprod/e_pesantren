@@ -11,627 +11,693 @@
       </div>
     </div>
 
-    <!-- Check In/Out Cards -->
-    <div class="grid grid-cols-2 gap-3 mb-4">
-      <!-- Masuk Card -->
-      <div class="bg-white rounded-2xl p-4 shadow-sm">
-        <div class="flex items-center gap-2 mb-3">
-          <span class="w-2 h-2 rounded-full bg-amber-500"></span>
-          <span class="text-xs text-slate-600 font-medium">Masuk</span>
-          <span class="text-xs text-slate-400 ml-auto">{{
-            distance !== null ? formatDistance(distance) : "..."
-          }}</span>
-          <Icon
-            v-if="isWithinRadius"
-            icon="lucide:map-pin"
-            class="w-3 h-3 text-emerald-500"
-          />
-        </div>
-
-        <!-- Activity Selection -->
-        <div v-if="!todayAttendance?.checkIn || newShiftAllowed" class="mb-3">
-          <select
-            v-model="selectedActivity"
-            class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 bg-slate-50 focus:border-amber-500 focus:ring-1 focus:ring-amber-200 transition-all outline-none"
-          >
-            <option value="" disabled>Pilih Kegiatan</option>
-            <option
-              v-for="activity in settings.activityTypes"
-              :key="activity"
-              :value="activity"
-            >
-              {{ activity }}
-            </option>
-          </select>
-        </div>
-
-        <!-- Time Display -->
-        <div class="text-center mb-4" v-else>
-          <div
-            class="text-2xl font-bold text-slate-800 tracking-wider font-mono"
-          >
-            {{ todayAttendance?.checkIn || "──:──" }}
+    <!-- Skeleton Loader -->
+    <div v-if="loading" class="animate-pulse space-y-4">
+      <!-- Check In/Out Cards Skeleton -->
+      <div class="grid grid-cols-2 gap-3 mb-4">
+        <div class="bg-white rounded-2xl p-4 shadow-sm h-48">
+          <div class="flex items-center gap-2 mb-3">
+            <div class="w-2 h-2 rounded-full bg-slate-200"></div>
+            <div class="h-3 w-10 bg-slate-200 rounded"></div>
+            <div class="ml-auto h-3 w-16 bg-slate-200 rounded"></div>
           </div>
-          <div class="text-xs text-slate-400 mt-1">
-            {{ todayAttendance?.checkIn ? "Tercatat" : "Belum absen" }}
+          <div class="flex flex-col items-center justify-center h-24 gap-2">
+            <div class="h-8 w-24 bg-slate-200 rounded"></div>
+            <div class="h-3 w-20 bg-slate-200 rounded"></div>
           </div>
+          <div class="h-10 w-full bg-slate-200 rounded-full mt-2"></div>
         </div>
-
-        <button
-          @click="handleCheckIn"
-          :disabled="
-            saving ||
-            !selectedActivity ||
-            (!!todayAttendance?.checkIn && !newShiftAllowed) ||
-            !isWithinRadius ||
-            distance === null
-          "
-          class="w-full py-2.5 rounded-full text-sm font-semibold transition-all flex items-center justify-center gap-2"
-          :class="
-            (todayAttendance?.checkIn && !newShiftAllowed) || !selectedActivity
-              ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-              : isWithinRadius
-              ? 'bg-amber-600 text-white hover:bg-amber-700 shadow-md'
-              : 'bg-slate-200 text-slate-400 cursor-not-allowed'
-          "
-        >
-          <span
-            v-if="
-              !saving &&
-              (!todayAttendance?.checkIn || newShiftAllowed) &&
-              selectedActivity
-            "
-            class="w-2 h-2 rounded-full bg-white"
-          ></span>
-          <Icon
-            v-if="saving"
-            icon="lucide:loader-2"
-            class="w-4 h-4 animate-spin"
-          />
-          <span>Masuk</span>
-        </button>
+        <div class="bg-white rounded-2xl p-4 shadow-sm h-48">
+          <div class="flex items-center gap-2 mb-3">
+            <div class="w-2 h-2 rounded-full bg-slate-200"></div>
+            <div class="h-3 w-10 bg-slate-200 rounded"></div>
+            <div class="ml-auto h-3 w-16 bg-slate-200 rounded"></div>
+          </div>
+          <div class="flex flex-col items-center justify-center h-24 gap-2">
+            <div class="h-8 w-24 bg-slate-200 rounded"></div>
+            <div class="h-3 w-20 bg-slate-200 rounded"></div>
+          </div>
+          <div class="h-10 w-full bg-slate-200 rounded-full mt-2"></div>
+        </div>
       </div>
 
-      <!-- Pulang Card -->
-      <div class="bg-white rounded-2xl p-4 shadow-sm">
-        <div class="flex items-center gap-2 mb-3">
-          <span class="w-2 h-2 rounded-full bg-amber-500"></span>
-          <span class="text-xs text-slate-600 font-medium">Pulang</span>
-          <span class="text-xs text-slate-400 ml-auto">{{
-            distance !== null ? formatDistance(distance) : "..."
-          }}</span>
-          <Icon
-            v-if="isWithinRadius"
-            icon="lucide:map-pin"
-            class="w-3 h-3 text-emerald-500"
-          />
+      <!-- History Skeleton -->
+      <div class="bg-white rounded-2xl shadow-sm p-4">
+        <div class="flex justify-between items-center mb-4">
+          <div class="h-4 w-32 bg-slate-200 rounded"></div>
+          <div class="h-8 w-8 bg-slate-200 rounded"></div>
         </div>
-
-        <!-- Time Display -->
-        <div class="text-center mb-4">
+        <div class="space-y-4">
           <div
-            class="text-2xl font-bold text-slate-800 tracking-wider font-mono"
+            v-for="i in 3"
+            :key="i"
+            class="flex justify-between items-center"
           >
-            {{ todayAttendance?.checkOut || "──:──" }}
-          </div>
-          <div class="text-xs text-slate-400 mt-1">
-            {{ todayAttendance?.checkOut ? "Tercatat" : "Belum absen" }}
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-full bg-slate-200"></div>
+              <div class="space-y-2">
+                <div class="h-3 w-24 bg-slate-200 rounded"></div>
+                <div class="h-2 w-16 bg-slate-200 rounded"></div>
+              </div>
+            </div>
+            <div class="h-6 w-16 bg-slate-200 rounded-full"></div>
           </div>
         </div>
-
-        <button
-          @click="handleCheckOut"
-          :disabled="
-            saving ||
-            !todayAttendance?.checkIn ||
-            !!todayAttendance?.checkOut ||
-            !isWithinRadius ||
-            distance === null
-          "
-          class="w-full py-2.5 rounded-full text-sm font-semibold transition-all"
-          :class="
-            !!todayAttendance?.checkOut
-              ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-              : isWithinRadius && todayAttendance?.checkIn
-              ? 'bg-amber-500 text-white hover:bg-amber-600 shadow-md'
-              : 'bg-slate-200 text-slate-400 cursor-not-allowed'
-          "
-        >
-          <Icon
-            v-if="saving"
-            icon="lucide:loader-2"
-            class="w-4 h-4 animate-spin inline mr-1"
-          />
-          <span>Pulang</span>
-        </button>
       </div>
     </div>
 
-    <!-- Today's Activity Section -->
-    <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
-      <div
-        class="flex items-center justify-between px-4 py-3 border-b border-slate-100"
-      >
-        <div class="flex items-center gap-2">
-          <Icon icon="lucide:calendar" class="w-5 h-5 text-slate-400" />
-          <span class="text-sm font-medium text-slate-700">
-            {{ showFullHistory ? "Riwayat Absensi Saya" : "Kegiatan hari ini" }}
-            <span v-if="!showFullHistory">, {{ formattedToday }}</span>
-          </span>
-        </div>
-        <button
-          @click="showFullHistory = !showFullHistory"
-          class="p-1 rounded-lg hover:bg-slate-100 transition-colors"
-          :title="showFullHistory ? 'Tampilan Ringkas' : 'Lihat Semua Riwayat'"
-        >
-          <Icon
-            :icon="
-              showFullHistory ? 'lucide:layout-grid' : 'lucide:calendar-days'
-            "
-            class="w-5 h-5 text-amber-500"
-          />
-        </button>
-      </div>
+    <!-- Real Content Wrapper -->
+    <div v-else class="space-y-4">
+      <!-- Check In/Out Cards -->
+      <div class="grid grid-cols-2 gap-3">
+        <!-- Masuk Card -->
+        <div class="bg-white rounded-2xl p-4 shadow-sm">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+            <span class="text-xs text-slate-600 font-medium">Masuk</span>
+            <span class="text-xs text-slate-400 ml-auto">{{
+              distance !== null ? formatDistance(distance) : "..."
+            }}</span>
+            <Icon
+              v-if="isWithinRadius"
+              icon="lucide:map-pin"
+              class="w-3 h-3 text-emerald-500"
+            />
+          </div>
 
-      <!-- Compact View (Today only) -->
-      <div v-if="!showFullHistory" class="divide-y divide-slate-100">
-        <div
-          v-if="todayRecords.length === 0"
-          class="px-4 py-8 text-center text-slate-400 text-sm"
-        >
-          Belum ada absensi kegiatan !
-        </div>
-
-        <div
-          v-for="item in todayRecords"
-          :key="item.id"
-          class="px-4 py-3 flex items-center justify-between"
-        >
-          <div class="flex items-center gap-3">
-            <div
-              class="w-8 h-8 rounded-full flex items-center justify-center"
-              :class="
-                item.checkOut
-                  ? 'bg-emerald-100 text-emerald-600'
-                  : 'bg-amber-100 text-amber-600'
-              "
+          <!-- Activity Selection -->
+          <div v-if="!todayAttendance?.checkIn || newShiftAllowed" class="mb-3">
+            <select
+              v-model="selectedActivity"
+              class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 bg-slate-50 focus:border-amber-500 focus:ring-1 focus:ring-amber-200 transition-all outline-none"
             >
-              <Icon
-                :icon="item.checkOut ? 'lucide:check' : 'lucide:clock'"
-                class="w-4 h-4"
-              />
-            </div>
-            <div>
-              <p class="text-sm font-medium text-slate-800">
-                {{ item.checkIn }} - {{ item.checkOut || "..." }}
-                <span v-if="item.activity" class="ml-1 text-xs text-slate-500"
-                  >({{ item.activity }})</span
-                >
-              </p>
-              <p class="text-xs text-slate-400">
-                {{ item.checkOut ? "Selesai" : "Sedang berlangsung" }}
-              </p>
-              <p
-                v-if="item.checkInLatitude || item.checkOutLatitude"
-                class="text-xs text-slate-400 mt-0.5"
+              <option value="" disabled>Pilih Kegiatan</option>
+              <option
+                v-for="activity in settings.activityTypes"
+                :key="activity"
+                :value="activity"
               >
-                <span v-if="item.checkInLatitude">
-                  Masuk:
-                  {{
-                    calculateDistanceFromCoords(
-                      item.checkInLatitude,
-                      item.checkInLongitude
-                    )
-                  }}
-                </span>
-                <span v-if="item.checkOutLatitude" class="ml-2">
-                  Pulang:
-                  {{
-                    calculateDistanceFromCoords(
-                      item.checkOutLatitude,
-                      item.checkOutLongitude
-                    )
-                  }}
-                </span>
-              </p>
+                {{ activity }}
+              </option>
+            </select>
+          </div>
+
+          <!-- Time Display -->
+          <div class="text-center mb-4" v-else>
+            <div
+              class="text-2xl font-bold text-slate-800 tracking-wider font-mono"
+            >
+              {{ todayAttendance?.checkIn || "──:──" }}
+            </div>
+            <div class="text-xs text-slate-400 mt-1">
+              {{ todayAttendance?.checkIn ? "Tercatat" : "Belum absen" }}
             </div>
           </div>
-          <span
-            class="px-2 py-1 text-xs font-medium rounded-full"
-            :class="getStatusClass(item.status)"
+
+          <button
+            @click="handleCheckIn"
+            :disabled="
+              saving ||
+              !selectedActivity ||
+              (!!todayAttendance?.checkIn && !newShiftAllowed) ||
+              !isWithinRadius ||
+              distance === null
+            "
+            class="w-full py-2.5 rounded-full text-sm font-semibold transition-all flex items-center justify-center gap-2"
+            :class="
+              (todayAttendance?.checkIn && !newShiftAllowed) ||
+              !selectedActivity
+                ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                : isWithinRadius
+                ? 'bg-amber-600 text-white hover:bg-amber-700 shadow-md'
+                : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+            "
           >
-            {{ formatAttendanceStatus(item.status) }}
-          </span>
+            <span
+              v-if="
+                !saving &&
+                (!todayAttendance?.checkIn || newShiftAllowed) &&
+                selectedActivity
+              "
+              class="w-2 h-2 rounded-full bg-white"
+            ></span>
+            <Icon
+              v-if="saving"
+              icon="lucide:loader-2"
+              class="w-4 h-4 animate-spin"
+            />
+            <span>Masuk</span>
+          </button>
+        </div>
+
+        <!-- Pulang Card -->
+        <div class="bg-white rounded-2xl p-4 shadow-sm">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+            <span class="text-xs text-slate-600 font-medium">Pulang</span>
+            <span class="text-xs text-slate-400 ml-auto">{{
+              distance !== null ? formatDistance(distance) : "..."
+            }}</span>
+            <Icon
+              v-if="isWithinRadius"
+              icon="lucide:map-pin"
+              class="w-3 h-3 text-emerald-500"
+            />
+          </div>
+
+          <!-- Time Display -->
+          <div class="text-center mb-4">
+            <div
+              class="text-2xl font-bold text-slate-800 tracking-wider font-mono"
+            >
+              {{ todayAttendance?.checkOut || "──:──" }}
+            </div>
+            <div class="text-xs text-slate-400 mt-1">
+              {{ todayAttendance?.checkOut ? "Tercatat" : "Belum absen" }}
+            </div>
+          </div>
+
+          <button
+            @click="handleCheckOut"
+            :disabled="
+              saving ||
+              !todayAttendance?.checkIn ||
+              !!todayAttendance?.checkOut ||
+              !isWithinRadius ||
+              distance === null
+            "
+            class="w-full py-2.5 rounded-full text-sm font-semibold transition-all"
+            :class="
+              !!todayAttendance?.checkOut
+                ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                : isWithinRadius && todayAttendance?.checkIn
+                ? 'bg-amber-500 text-white hover:bg-amber-600 shadow-md'
+                : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+            "
+          >
+            <Icon
+              v-if="saving"
+              icon="lucide:loader-2"
+              class="w-4 h-4 animate-spin inline mr-1"
+            />
+            <span>Pulang</span>
+          </button>
         </div>
       </div>
 
-      <!-- Full Table View (All user's records) -->
-      <!-- Full Table View -->
-      <div v-else>
-        <!-- Mobile: Card View -->
-        <div class="md:hidden divide-y divide-slate-100">
-          <template v-for="date in periodDates" :key="date.toISOString()">
-            <!-- Has Data -->
-            <template v-if="getAttendancesForDate(date).length > 0">
+      <!-- Today's Activity Section -->
+      <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+        <div
+          class="flex items-center justify-between px-4 py-3 border-b border-slate-100"
+        >
+          <div class="flex items-center gap-2">
+            <Icon icon="lucide:calendar" class="w-5 h-5 text-slate-400" />
+            <span class="text-sm font-medium text-slate-700">
+              {{
+                showFullHistory ? "Riwayat Absensi Saya" : "Kegiatan hari ini"
+              }}
+              <span v-if="!showFullHistory">, {{ formattedToday }}</span>
+            </span>
+          </div>
+          <button
+            @click="showFullHistory = !showFullHistory"
+            class="p-1 rounded-lg hover:bg-slate-100 transition-colors"
+            :title="
+              showFullHistory ? 'Tampilan Ringkas' : 'Lihat Semua Riwayat'
+            "
+          >
+            <Icon
+              :icon="
+                showFullHistory ? 'lucide:layout-grid' : 'lucide:calendar-days'
+              "
+              class="w-5 h-5 text-amber-500"
+            />
+          </button>
+        </div>
+
+        <!-- Compact View (Today only) -->
+        <div v-if="!showFullHistory" class="divide-y divide-slate-100">
+          <div
+            v-if="todayRecords.length === 0"
+            class="px-4 py-8 text-center text-slate-400 text-sm"
+          >
+            Belum ada absensi kegiatan !
+          </div>
+
+          <div
+            v-for="item in todayRecords"
+            :key="item.id"
+            class="px-4 py-3 flex items-center justify-between"
+          >
+            <div class="flex items-center gap-3">
               <div
-                class="p-4 relative transition-colors"
+                class="w-8 h-8 rounded-full flex items-center justify-center"
                 :class="
-                  settings.holidays?.includes(date.getDay())
-                    ? 'bg-rose-50'
-                    : 'bg-white hover:bg-slate-50'
+                  item.checkOut
+                    ? 'bg-emerald-100 text-emerald-600'
+                    : 'bg-amber-100 text-amber-600'
                 "
               >
-                <!-- Single Header for Date & Status -->
-                <div
-                  class="flex items-center justify-between mb-3 border-b border-slate-100 pb-2"
-                >
-                  <span class="text-sm font-bold text-slate-800">{{
-                    formatDate(getAttendancesForDate(date)[0].date)
-                  }}</span>
-                  <span
-                    class="px-2 py-0.5 rounded-full text-xs font-medium"
-                    :class="
-                      getStatusClass(getAttendancesForDate(date)[0].status)
-                    "
+                <Icon
+                  :icon="item.checkOut ? 'lucide:check' : 'lucide:clock'"
+                  class="w-4 h-4"
+                />
+              </div>
+              <div>
+                <p class="text-sm font-medium text-slate-800">
+                  {{ item.checkIn }} - {{ item.checkOut || "..." }}
+                  <span v-if="item.activity" class="ml-1 text-xs text-slate-500"
+                    >({{ item.activity }})</span
                   >
+                </p>
+                <p class="text-xs text-slate-400">
+                  {{ item.checkOut ? "Selesai" : "Sedang berlangsung" }}
+                </p>
+                <p
+                  v-if="item.checkInLatitude || item.checkOutLatitude"
+                  class="text-xs text-slate-400 mt-0.5"
+                >
+                  <span v-if="item.checkInLatitude">
+                    Masuk:
                     {{
-                      formatAttendanceStatus(
-                        getAttendancesForDate(date)[0].status
+                      calculateDistanceFromCoords(
+                        item.checkInLatitude,
+                        item.checkInLongitude
                       )
                     }}
                   </span>
-                </div>
-
-                <!-- List of Sessions for this Date -->
-                <div class="space-y-3">
-                  <div
-                    v-for="(item, idx) in getAttendancesForDate(date)"
-                    :key="item.id"
-                    class="space-y-1"
-                  >
-                    <div class="flex items-center gap-4 text-sm">
-                      <div class="min-w-[80px]">
-                        <span
-                          class="text-xs text-slate-400 block uppercase tracking-wider"
-                          >Masuk</span
-                        >
-                        <span class="text-emerald-600 font-medium">{{
-                          item.checkIn || "-"
-                        }}</span>
-                      </div>
-                      <div class="min-w-[80px]">
-                        <span
-                          class="text-xs text-slate-400 block uppercase tracking-wider"
-                          >Pulang</span
-                        >
-                        <span class="text-rose-600 font-medium">{{
-                          item.checkOut || "-"
-                        }}</span>
-                      </div>
-                    </div>
-                    <!-- Activity -->
-                    <div
-                      v-if="item.activity"
-                      class="text-xs text-slate-500 italic flex items-center gap-1.5 pt-0.5"
-                    >
-                      <Icon
-                        icon="lucide:clipboard-list"
-                        class="w-3 h-3 opacity-70"
-                      />
-                      {{ item.activity }}
-                    </div>
-
-                    <!-- Divider if not last item -->
-                    <div
-                      v-if="idx < getAttendancesForDate(date).length - 1"
-                      class="h-px bg-slate-100 my-2"
-                    ></div>
-                  </div>
-                </div>
+                  <span v-if="item.checkOutLatitude" class="ml-2">
+                    Pulang:
+                    {{
+                      calculateDistanceFromCoords(
+                        item.checkOutLatitude,
+                        item.checkOutLongitude
+                      )
+                    }}
+                  </span>
+                </p>
               </div>
-            </template>
-
-            <!-- Empty / Claim -->
-            <div
-              v-else
-              class="p-4 flex items-center justify-between"
-              :class="
-                settings.holidays?.includes(date.getDay())
-                  ? 'bg-rose-50'
-                  : 'bg-slate-50'
-              "
-            >
-              <span
-                class="text-sm font-medium text-slate-400"
-                :class="{
-                  'text-rose-400': settings.holidays?.includes(date.getDay()),
-                }"
-                >{{ formatDate(formatDateISO(date)) }}</span
-              >
-              <button
-                @click="openClaimModal(date)"
-                class="px-3 py-1 text-xs font-medium bg-white border border-slate-200 text-slate-600 rounded-full hover:bg-amber-50 hover:text-amber-600 transition-colors shadow-sm"
-              >
-                Klaim Kehadiran
-              </button>
             </div>
-          </template>
-
-          <div
-            v-if="periodDates.length === 0"
-            class="p-8 text-center text-slate-400 text-sm"
-          >
-            Menyiapkan periode absensi...
+            <span
+              class="px-2 py-1 text-xs font-medium rounded-full"
+              :class="getStatusClass(item.status)"
+            >
+              {{ formatAttendanceStatus(item.status) }}
+            </span>
           </div>
         </div>
 
-        <!-- Desktop: Table View -->
-        <div class="hidden md:block overflow-x-auto">
-          <table class="w-full text-sm">
-            <thead>
-              <tr
-                class="text-left text-xs font-semibold text-slate-500 bg-slate-50 uppercase tracking-wider border-b border-slate-100"
+        <!-- Full Table View (All user's records) -->
+        <!-- Full Table View -->
+        <div v-else>
+          <!-- Mobile: Card View -->
+          <div class="md:hidden divide-y divide-slate-100">
+            <template v-for="date in periodDates" :key="date.toISOString()">
+              <!-- Has Data -->
+              <template v-if="getAttendancesForDate(date).length > 0">
+                <div
+                  class="p-4 relative transition-colors"
+                  :class="
+                    settings.holidays?.includes(date.getDay())
+                      ? 'bg-rose-50'
+                      : 'bg-white hover:bg-slate-50'
+                  "
+                >
+                  <!-- Single Header for Date & Status -->
+                  <div
+                    class="flex items-center justify-between mb-3 border-b border-slate-100 pb-2"
+                  >
+                    <span class="text-sm font-bold text-slate-800">{{
+                      formatDate(getAttendancesForDate(date)[0].date)
+                    }}</span>
+                    <span
+                      class="px-2 py-0.5 rounded-full text-xs font-medium"
+                      :class="
+                        getStatusClass(getAttendancesForDate(date)[0].status)
+                      "
+                    >
+                      {{
+                        formatAttendanceStatus(
+                          getAttendancesForDate(date)[0].status
+                        )
+                      }}
+                    </span>
+                  </div>
+
+                  <!-- List of Sessions for this Date -->
+                  <div class="space-y-3">
+                    <div
+                      v-for="(item, idx) in getAttendancesForDate(date)"
+                      :key="item.id"
+                      class="space-y-1"
+                    >
+                      <div class="flex items-center gap-4 text-sm">
+                        <div class="min-w-[80px]">
+                          <span
+                            class="text-xs text-slate-400 block uppercase tracking-wider"
+                            >Masuk</span
+                          >
+                          <span class="text-emerald-600 font-medium">{{
+                            item.checkIn || "-"
+                          }}</span>
+                        </div>
+                        <div class="min-w-[80px]">
+                          <span
+                            class="text-xs text-slate-400 block uppercase tracking-wider"
+                            >Pulang</span
+                          >
+                          <span class="text-rose-600 font-medium">{{
+                            item.checkOut || "-"
+                          }}</span>
+                        </div>
+                      </div>
+                      <!-- Activity -->
+                      <div
+                        v-if="item.activity"
+                        class="text-xs text-slate-500 italic flex items-center gap-1.5 pt-0.5"
+                      >
+                        <Icon
+                          icon="lucide:clipboard-list"
+                          class="w-3 h-3 opacity-70"
+                        />
+                        {{ item.activity }}
+                      </div>
+
+                      <!-- Divider if not last item -->
+                      <div
+                        v-if="idx < getAttendancesForDate(date).length - 1"
+                        class="h-px bg-slate-100 my-2"
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              </template>
+
+              <!-- Empty / Claim -->
+              <div
+                v-else
+                class="p-4 flex items-center justify-between"
+                :class="
+                  settings.holidays?.includes(date.getDay())
+                    ? 'bg-rose-50'
+                    : 'bg-slate-50'
+                "
               >
-                <th class="px-4 py-3">Tanggal</th>
-                <th class="px-4 py-3">Masuk</th>
-                <th class="px-4 py-3">Jarak Masuk</th>
-                <th class="px-4 py-3">Pulang</th>
-                <th class="px-4 py-3">Jarak Pulang</th>
-                <th class="px-4 py-3">Status</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100">
-              <template v-for="date in periodDates" :key="date.toISOString()">
-                <!-- Check if date has attendances -->
-                <template v-if="getAttendancesForDate(date).length > 0">
+                <span
+                  class="text-sm font-medium text-slate-400"
+                  :class="{
+                    'text-rose-400': settings.holidays?.includes(date.getDay()),
+                  }"
+                  >{{ formatDate(formatDateISO(date)) }}</span
+                >
+                <button
+                  @click="openClaimModal(date)"
+                  class="px-3 py-1 text-xs font-medium bg-white border border-slate-200 text-slate-600 rounded-full hover:bg-amber-50 hover:text-amber-600 transition-colors shadow-sm"
+                >
+                  Klaim Kehadiran
+                </button>
+              </div>
+            </template>
+
+            <div
+              v-if="periodDates.length === 0"
+              class="p-8 text-center text-slate-400 text-sm"
+            >
+              Menyiapkan periode absensi...
+            </div>
+          </div>
+
+          <!-- Desktop: Table View -->
+          <div class="hidden md:block overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr
+                  class="text-left text-xs font-semibold text-slate-500 bg-slate-50 uppercase tracking-wider border-b border-slate-100"
+                >
+                  <th class="px-4 py-3">Tanggal</th>
+                  <th class="px-4 py-3">Masuk</th>
+                  <th class="px-4 py-3">Jarak Masuk</th>
+                  <th class="px-4 py-3">Pulang</th>
+                  <th class="px-4 py-3">Jarak Pulang</th>
+                  <th class="px-4 py-3">Status</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                <template v-for="date in periodDates" :key="date.toISOString()">
+                  <!-- Check if date has attendances -->
+                  <template v-if="getAttendancesForDate(date).length > 0">
+                    <tr
+                      v-for="(item, idx) in getAttendancesForDate(date)"
+                      :key="item.id"
+                      class="transition-colors"
+                      :class="
+                        settings.holidays?.includes(date.getDay())
+                          ? 'bg-rose-50'
+                          : 'hover:bg-slate-50/50'
+                      "
+                    >
+                      <!-- Date Cell: Only show on first row, span if multiple -->
+                      <td
+                        class="px-4 py-3 font-medium text-slate-900 border-r border-slate-100 align-top"
+                        v-if="idx === 0"
+                        :rowspan="getAttendancesForDate(date).length"
+                      >
+                        {{ formatDate(item.date) }}
+                      </td>
+
+                      <td
+                        class="px-4 py-3 text-emerald-600 font-medium align-top"
+                      >
+                        {{ item.checkIn || "-" }}
+                        <div
+                          v-if="item.activity"
+                          class="text-xs text-slate-400 font-normal mt-0.5 max-w-[150px] truncate"
+                          :title="item.activity"
+                        >
+                          {{ item.activity }}
+                        </div>
+                      </td>
+                      <td class="px-4 py-3 text-slate-500 text-xs align-top">
+                        {{
+                          item.checkInLatitude
+                            ? calculateDistanceFromCoords(
+                                item.checkInLatitude,
+                                item.checkInLongitude
+                              )
+                            : "-"
+                        }}
+                      </td>
+                      <td class="px-4 py-3 text-rose-600 font-medium align-top">
+                        {{ item.checkOut || "-" }}
+                      </td>
+                      <td class="px-4 py-3 text-slate-500 text-xs align-top">
+                        {{
+                          item.checkOutLatitude
+                            ? calculateDistanceFromCoords(
+                                item.checkOutLatitude,
+                                item.checkOutLongitude
+                              )
+                            : "-"
+                        }}
+                      </td>
+                      <td class="px-4 py-3 align-top">
+                        <span
+                          class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium capitalize"
+                          :class="getStatusClass(item.status)"
+                        >
+                          {{ formatAttendanceStatus(item.status) }}
+                          <span v-if="item.isClaim" class="ml-1 text-slate-500"
+                            >(Klaim)</span
+                          >
+                        </span>
+                      </td>
+                    </tr>
+                  </template>
+
+                  <!-- Missing Attendance Row -->
                   <tr
-                    v-for="(item, idx) in getAttendancesForDate(date)"
-                    :key="item.id"
+                    v-else
                     class="transition-colors"
                     :class="
                       settings.holidays?.includes(date.getDay())
                         ? 'bg-rose-50'
-                        : 'hover:bg-slate-50/50'
+                        : 'bg-transparent hover:bg-slate-50/50'
                     "
                   >
-                    <!-- Date Cell: Only show on first row, span if multiple -->
                     <td
-                      class="px-4 py-3 font-medium text-slate-900 border-r border-slate-100 align-top"
-                      v-if="idx === 0"
-                      :rowspan="getAttendancesForDate(date).length"
+                      class="px-4 py-3 font-medium text-slate-400 border-r border-slate-100"
                     >
-                      {{ formatDate(item.date) }}
+                      {{ formatDate(formatDateISO(date)) }}
                     </td>
-
                     <td
-                      class="px-4 py-3 text-emerald-600 font-medium align-top"
+                      colspan="4"
+                      class="px-4 py-3 text-center text-slate-300"
                     >
-                      {{ item.checkIn || "-" }}
-                      <div
-                        v-if="item.activity"
-                        class="text-xs text-slate-400 font-normal mt-0.5 max-w-[150px] truncate"
-                        :title="item.activity"
+                      -
+                    </td>
+                    <td class="px-4 py-3">
+                      <button
+                        @click="openClaimModal(date)"
+                        class="px-2 py-1 text-xs font-medium bg-slate-100 text-slate-500 rounded-full hover:bg-slate-200 transition-colors"
                       >
-                        {{ item.activity }}
-                      </div>
-                    </td>
-                    <td class="px-4 py-3 text-slate-500 text-xs align-top">
-                      {{
-                        item.checkInLatitude
-                          ? calculateDistanceFromCoords(
-                              item.checkInLatitude,
-                              item.checkInLongitude
-                            )
-                          : "-"
-                      }}
-                    </td>
-                    <td class="px-4 py-3 text-rose-600 font-medium align-top">
-                      {{ item.checkOut || "-" }}
-                    </td>
-                    <td class="px-4 py-3 text-slate-500 text-xs align-top">
-                      {{
-                        item.checkOutLatitude
-                          ? calculateDistanceFromCoords(
-                              item.checkOutLatitude,
-                              item.checkOutLongitude
-                            )
-                          : "-"
-                      }}
-                    </td>
-                    <td class="px-4 py-3 align-top">
-                      <span
-                        class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium capitalize"
-                        :class="getStatusClass(item.status)"
-                      >
-                        {{ formatAttendanceStatus(item.status) }}
-                        <span v-if="item.isClaim" class="ml-1 text-slate-500"
-                          >(Klaim)</span
-                        >
-                      </span>
+                        Tidak hadir (Klaim)
+                      </button>
                     </td>
                   </tr>
                 </template>
 
-                <!-- Missing Attendance Row -->
-                <tr
-                  v-else
-                  class="transition-colors"
-                  :class="
-                    settings.holidays?.includes(date.getDay())
-                      ? 'bg-rose-50'
-                      : 'bg-transparent hover:bg-slate-50/50'
-                  "
-                >
-                  <td
-                    class="px-4 py-3 font-medium text-slate-400 border-r border-slate-100"
-                  >
-                    {{ formatDate(formatDateISO(date)) }}
-                  </td>
-                  <td colspan="4" class="px-4 py-3 text-center text-slate-300">
-                    -
-                  </td>
-                  <td class="px-4 py-3">
-                    <button
-                      @click="openClaimModal(date)"
-                      class="px-2 py-1 text-xs font-medium bg-slate-100 text-slate-500 rounded-full hover:bg-slate-200 transition-colors"
-                    >
-                      Tidak hadir (Klaim)
-                    </button>
+                <tr v-if="periodDates.length === 0">
+                  <td colspan="6" class="px-4 py-8 text-center text-slate-400">
+                    Menyiapkan periode absensi...
                   </td>
                 </tr>
-              </template>
-
-              <tr v-if="periodDates.length === 0">
-                <td colspan="6" class="px-4 py-8 text-center text-slate-400">
-                  Menyiapkan periode absensi...
-                </td>
-              </tr>
-            </tbody>
-          </table>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- Claim Modal -->
-    <div
-      v-if="claimModal.open"
-      class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 transition-opacity"
-    >
-      <div class="bg-white rounded-2xl w-full max-w-md overflow-hidden">
-        <div
-          class="px-6 py-4 border-b border-slate-100 flex items-center justify-between"
-        >
-          <h3 class="font-semibold text-slate-800">Ajukan Klaim Kehadiran</h3>
-          <button
-            @click="claimModal.open = false"
-            class="text-slate-400 hover:text-slate-600"
-          >
-            <Icon icon="lucide:x" class="w-5 h-5" />
-          </button>
-        </div>
-        <div class="p-6 space-y-4">
-          <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1"
-              >Tanggal</label
-            >
-            <input
-              type="date"
-              :value="claimModal.date"
-              disabled
-              class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-600"
-            />
-          </div>
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-slate-700 mb-1"
-                >Jam Masuk</label
-              >
-              <VueDatePicker
-                v-model="claimModal.checkIn"
-                time-picker
-                :is-24="true"
-                model-type="HH:mm"
-                placeholder="--:--"
-                :teleport="true"
-                auto-apply
-                input-class-name="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-amber-100 outline-none !bg-white"
-              />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-slate-700 mb-1"
-                >Jam Pulang</label
-              >
-              <VueDatePicker
-                v-model="claimModal.checkOut"
-                time-picker
-                :is-24="true"
-                model-type="HH:mm"
-                placeholder="--:--"
-                :teleport="true"
-                auto-apply
-                input-class-name="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-amber-100 outline-none !bg-white"
-              />
-            </div>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1"
-              >Jenis Kegiatan</label
-            >
-            <select
-              v-model="claimModal.activity"
-              class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-amber-100 outline-none"
-            >
-              <option value="">Pilih Kegiatan...</option>
-              <option
-                v-for="act in settings.activityTypes"
-                :key="act"
-                :value="act"
-              >
-                {{ act }}
-              </option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1"
-              >Alasan / Catatan <span class="text-red-500">*</span></label
-            >
-            <textarea
-              v-model="claimModal.notes"
-              rows="3"
-              placeholder="Jelaskan alasan tidak absen secaran normal..."
-              class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-amber-100 outline-none"
-            ></textarea>
-          </div>
-        </div>
-        <div class="px-6 py-4 bg-slate-50 flex justify-end gap-3">
-          <button
-            @click="claimModal.open = false"
-            class="px-4 py-2 text-sm text-slate-600 font-medium hover:bg-slate-200 rounded-lg"
-          >
-            Batal
-          </button>
-          <button
-            @click="submitClaim"
-            :disabled="
-              claimModal.loading || !claimModal.checkIn || !claimModal.notes
-            "
-            class="px-4 py-2 text-sm text-white font-medium bg-amber-600 hover:bg-amber-700 rounded-lg disabled:opacity-50 flex items-center gap-2"
-          >
-            <Icon
-              v-if="claimModal.loading"
-              icon="lucide:loader-2"
-              class="w-4 h-4 animate-spin"
-            />
-            Kirim Pengajuan
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- New Session Button (when checked out) -->
-    <div
-      v-if="todayAttendance?.checkOut && !newShiftAllowed && isWithinRadius"
-      class="mt-4 text-center"
-    >
-      <button
-        @click="enableNewShift"
-        class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-full text-sm font-medium hover:bg-indigo-100 transition-colors"
+      <!-- Claim Modal -->
+      <div
+        v-if="claimModal.open"
+        class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 transition-opacity"
       >
-        <Icon icon="lucide:plus" class="w-4 h-4" />
-        Mulai Shift Baru
-      </button>
-    </div>
+        <div class="bg-white rounded-2xl w-full max-w-md overflow-hidden">
+          <div
+            class="px-6 py-4 border-b border-slate-100 flex items-center justify-between"
+          >
+            <h3 class="font-semibold text-slate-800">Ajukan Klaim Kehadiran</h3>
+            <button
+              @click="claimModal.open = false"
+              class="text-slate-400 hover:text-slate-600"
+            >
+              <Icon icon="lucide:x" class="w-5 h-5" />
+            </button>
+          </div>
+          <div class="p-6 space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1"
+                >Tanggal</label
+              >
+              <input
+                type="date"
+                :value="claimModal.date"
+                disabled
+                class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-600"
+              />
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1"
+                  >Jam Masuk</label
+                >
+                <VueDatePicker
+                  v-model="claimModal.checkIn"
+                  time-picker
+                  :is-24="true"
+                  model-type="HH:mm"
+                  placeholder="--:--"
+                  :teleport="true"
+                  auto-apply
+                  input-class-name="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-amber-100 outline-none !bg-white"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1"
+                  >Jam Pulang</label
+                >
+                <VueDatePicker
+                  v-model="claimModal.checkOut"
+                  time-picker
+                  :is-24="true"
+                  model-type="HH:mm"
+                  placeholder="--:--"
+                  :teleport="true"
+                  auto-apply
+                  input-class-name="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-amber-100 outline-none !bg-white"
+                />
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1"
+                >Jenis Kegiatan</label
+              >
+              <select
+                v-model="claimModal.activity"
+                class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-amber-100 outline-none"
+              >
+                <option value="">Pilih Kegiatan...</option>
+                <option
+                  v-for="act in settings.activityTypes"
+                  :key="act"
+                  :value="act"
+                >
+                  {{ act }}
+                </option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1"
+                >Alasan / Catatan <span class="text-red-500">*</span></label
+              >
+              <textarea
+                v-model="claimModal.notes"
+                rows="3"
+                placeholder="Jelaskan alasan tidak absen secaran normal..."
+                class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-amber-100 outline-none"
+              ></textarea>
+            </div>
+          </div>
+          <div class="px-6 py-4 bg-slate-50 flex justify-end gap-3">
+            <button
+              @click="claimModal.open = false"
+              class="px-4 py-2 text-sm text-slate-600 font-medium hover:bg-slate-200 rounded-lg"
+            >
+              Batal
+            </button>
+            <button
+              @click="submitClaim"
+              :disabled="
+                claimModal.loading || !claimModal.checkIn || !claimModal.notes
+              "
+              class="px-4 py-2 text-sm text-white font-medium bg-amber-600 hover:bg-amber-700 rounded-lg disabled:opacity-50 flex items-center gap-2"
+            >
+              <Icon
+                v-if="claimModal.loading"
+                icon="lucide:loader-2"
+                class="w-4 h-4 animate-spin"
+              />
+              Kirim Pengajuan
+            </button>
+          </div>
+        </div>
+      </div>
 
-    <!-- Location Error Alert -->
-    <div
-      v-if="locationError"
-      class="mt-4 p-3 rounded-xl bg-red-50 border border-red-100 flex items-start gap-2"
-    >
-      <Icon
-        icon="lucide:alert-circle"
-        class="w-4 h-4 text-red-500 shrink-0 mt-0.5"
-      />
-      <p class="text-xs text-red-600">{{ locationError }}</p>
+      <!-- New Session Button (when checked out) -->
+      <div
+        v-if="todayAttendance?.checkOut && !newShiftAllowed && isWithinRadius"
+        class="mt-4 text-center"
+      >
+        <button
+          @click="enableNewShift"
+          class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-full text-sm font-medium hover:bg-indigo-100 transition-colors"
+        >
+          <Icon icon="lucide:plus" class="w-4 h-4" />
+          Mulai Shift Baru
+        </button>
+      </div>
+
+      <!-- Location Error Alert -->
+      <div
+        v-if="locationError"
+        class="mt-4 p-3 rounded-xl bg-red-50 border border-red-100 flex items-start gap-2"
+      >
+        <Icon
+          icon="lucide:alert-circle"
+          class="w-4 h-4 text-red-500 shrink-0 mt-0.5"
+        />
+        <p class="text-xs text-red-600">{{ locationError }}</p>
+      </div>
     </div>
 
     <!-- Status Modal -->
@@ -663,7 +729,7 @@ import "@vuepic/vue-datepicker/dist/main.css";
 
 // State
 const attendances = ref([]);
-const loading = ref(false);
+const loading = ref(true);
 const saving = ref(false);
 const distance = ref(null);
 const locationError = ref("");

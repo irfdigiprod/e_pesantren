@@ -750,7 +750,7 @@ const columns = [
 
 /* ---------- State ---------- */
 const students = ref([]);
-const loading = ref(false);
+const loading = ref(true);
 const saving = ref(false);
 const showFiltersDropdown = ref(false); // Kept for logic if needed, but handled by DataTable now
 

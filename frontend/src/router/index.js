@@ -122,6 +122,26 @@ const router = createRouter({
           component: () => import("@/views/apps/QuranMemorization.vue"),
         },
         {
+          path: "apps/tahfidz/dashboard",
+          name: "TahfidzDashboard",
+          component: () => import("@/views/apps/tahfidz/TahfidzDashboard.vue"),
+        },
+        {
+          path: "apps/tahfidz/exams",
+          name: "TahfidzExams",
+          component: () => import("@/views/apps/tahfidz/TahfidzExams.vue"),
+        },
+        {
+          path: "apps/tahfidz/reports",
+          name: "TahfidzReports",
+          component: () => import("@/views/apps/tahfidz/TahfidzReports.vue"),
+        },
+        {
+          path: "apps/tahfidz/halaqah",
+          name: "TahfidzHalaqah",
+          component: () => import("@/views/apps/tahfidz/TahfidzHalaqah.vue"),
+        },
+        {
           path: "apps/attendance",
           name: "Attendance",
           component: () => import("@/views/apps/Attendance.vue"),

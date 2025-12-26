@@ -371,7 +371,7 @@ const columns = [
 const groups = ref([]);
 const allStudents = ref([]);
 const allTeachers = ref([]);
-const loading = ref(false);
+const loading = ref(true);
 const loadingStudents = ref(false);
 const loadingTeachers = ref(false);
 const saving = ref(false);
@@ -789,7 +789,9 @@ onMounted(fetchData);
 .line-clamp-1 {
   display: -webkit-box;
   -webkit-line-clamp: 1;
+  line-clamp: 1;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 </style>
+```

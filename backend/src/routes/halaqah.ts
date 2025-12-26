@@ -35,14 +35,62 @@ halaqahRoute.get("/", async (c) => {
     if (status) {
       groups = await db.query.halaqahGroups.findMany({
         where: eq(halaqahGroups.status, status as any),
+        with: {
+          mentors: {
+            with: {
+              teacher: true,
+            },
+          },
+        },
       });
     } else {
-      groups = await db.query.halaqahGroups.findMany();
+      groups = await db.query.halaqahGroups.findMany({
+        with: {
+          mentors: {
+            with: {
+              teacher: true,
+            },
+          },
+        },
+      });
     }
+
+    // Map to include mentorName using the new relations
+    const groupsWithMentor = groups.map((g: any) => {
+      // Prioritize active mentors, then by role (lead first)
+      const activeMentors = g.mentors.filter((m: any) => m.status === "active");
+
+      const leadMentor = activeMentors.find((m: any) => m.role === "lead");
+      const assistantMentors = activeMentors.filter(
+        (m: any) => m.role !== "lead"
+      );
+
+      // Construct mentor string: "Lead (Asst)" or just "Lead"
+      let mentorName = "-";
+      if (leadMentor) {
+        mentorName = leadMentor.teacher.fullName;
+        if (assistantMentors.length > 0) {
+          // efficient mapping
+          const asstNames = assistantMentors
+            .map((m: any) => m.teacher.fullName)
+            .join(", ");
+          mentorName += ` & ${asstNames}`;
+        }
+      } else if (assistantMentors.length > 0) {
+        mentorName = assistantMentors
+          .map((m: any) => m.teacher.fullName)
+          .join(", ");
+      }
+
+      return {
+        ...g,
+        mentorName,
+      };
+    });
 
     return c.json({
       success: true,
-      data: groups,
+      data: groupsWithMentor,
     });
   } catch (error) {
     console.error("Get halaqah groups error:", error);

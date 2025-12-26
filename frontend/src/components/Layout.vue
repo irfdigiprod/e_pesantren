@@ -22,9 +22,9 @@
         class="flex-1 overflow-y-auto overflow-x-auto p-4 lg:p-6"
         :style="{ maxHeight: 'calc(100vh - 4rem)' }"
       >
-        <LoadingSkeleton v-if="isRouteLoadingVal" />
+        <!-- <LoadingSkeleton v-if="isRouteLoadingVal" /> -->
 
-        <div v-else>
+        <div>
           <slot>
             <router-view />
           </slot>
