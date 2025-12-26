@@ -17,8 +17,7 @@
     "@types/better-sqlite3": "^7.6.13",
     "better-sqlite3": "^12.5.0",
     "@types/bun": "latest",
-    "@types/jsonwebtoken": "^9.0.10",
-    "drizzle-kit": "^0.31.8"
+    "@types/jsonwebtoken": "^9.0.10"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
@@ -26,6 +25,7 @@
   "dependencies": {
     "@hono/zod-validator": "^0.7.5",
     "bcryptjs": "^3.0.3",
+    "drizzle-kit": "^0.31.8",
     "drizzle-orm": "^0.45.1",
     "hono": "^4.10.8",
     "jsonwebtoken": "^9.0.3",
