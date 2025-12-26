@@ -382,7 +382,7 @@ router.beforeEach((to, from, next) => {
 
   // User login mencoba ke login/register → redirect ke dashboard
   if (token && isAuthPage) {
-    return next("/apps/ai");
+    return next("/apps/teacher-attendance");
   }
 
   // Lainnya → lanjut

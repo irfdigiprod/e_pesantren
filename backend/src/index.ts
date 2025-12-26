@@ -145,6 +145,7 @@ console.log(`
 // Single Bun.serve instance for both HTTP and WebSocket
 const server = Bun.serve<WebSocketData>({
   port,
+  hostname: "0.0.0.0", // Listen on all network interfaces
   fetch(req, server) {
     const url = new URL(req.url);
 

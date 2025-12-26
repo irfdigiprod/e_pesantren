@@ -189,7 +189,7 @@ async function handleLogin() {
     }
 
     // Sukses: redirect ke dashboard
-    router.push("/apps/students");
+    router.push("/apps/teacher-attendance");
   } catch (err) {
     serverError.value = err.message || "Login gagal";
   } finally {

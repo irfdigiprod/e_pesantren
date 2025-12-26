@@ -71,7 +71,7 @@
       <!-- Check In/Out Cards -->
       <div class="grid grid-cols-2 gap-3">
         <!-- Masuk Card -->
-        <div class="bg-white rounded-2xl p-4 shadow-sm">
+        <div class="bg-white rounded-2xl p-4 shadow-sm flex flex-col h-full">
           <div class="flex items-center gap-2 mb-3">
             <span class="w-2 h-2 rounded-full bg-amber-500"></span>
             <span class="text-xs text-slate-600 font-medium">Masuk</span>
@@ -123,7 +123,7 @@
               !isWithinRadius ||
               distance === null
             "
-            class="w-full py-2.5 rounded-full text-sm font-semibold transition-all flex items-center justify-center gap-2"
+            class="w-full py-2.5 rounded-full text-sm font-semibold transition-all flex items-center justify-center gap-2 mt-auto"
             :class="
               (todayAttendance?.checkIn && !newShiftAllowed) ||
               !selectedActivity
@@ -151,7 +151,7 @@
         </div>
 
         <!-- Pulang Card -->
-        <div class="bg-white rounded-2xl p-4 shadow-sm">
+        <div class="bg-white rounded-2xl p-4 shadow-sm flex flex-col h-full">
           <div class="flex items-center gap-2 mb-3">
             <span class="w-2 h-2 rounded-full bg-amber-500"></span>
             <span class="text-xs text-slate-600 font-medium">Pulang</span>
@@ -186,7 +186,7 @@
               !isWithinRadius ||
               distance === null
             "
-            class="w-full py-2.5 rounded-full text-sm font-semibold transition-all"
+            class="w-full py-2.5 rounded-full text-sm font-semibold transition-all mt-auto"
             :class="
               !!todayAttendance?.checkOut
                 ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
@@ -1043,6 +1043,32 @@ const isWithinRadius = computed(() => {
   return distance.value <= settings.value.radius;
 });
 
+const canCheckIn = computed(() => {
+  if (saving.value) return false;
+  if (!selectedActivity.value) return false;
+  if (!isWithinRadius.value) return false;
+
+  // Allow if not checked in OR new shift is explicitly allowed
+  if (!todayAttendance.value?.checkIn) return true;
+  if (newShiftAllowed.value) return true;
+
+  return false;
+});
+
+const canCheckOut = computed(() => {
+  if (saving.value) return false;
+  if (!isWithinRadius.value) return false;
+
+  // Must be checked in AND not checked out
+  if (!todayAttendance.value?.checkIn) return false;
+  if (todayAttendance.value?.checkOut) return false;
+
+  return true;
+});
+
+const isCheckInDisabled = computed(() => !canCheckIn.value);
+const isCheckOutDisabled = computed(() => !canCheckOut.value);
+
 // Formatted today's date
 const formattedToday = computed(() => {
   return new Date(now.value).toLocaleDateString("id-ID", {
@@ -1240,6 +1266,22 @@ async function handleCheckIn() {
   // Pre-check basic requirements
   if (!selectedActivity.value) {
     showStatus("error", "Gagal", "Pilih jenis kegiatan terlebih dahulu.");
+    return;
+  }
+
+  // Check if already on leave/sick today
+  if (
+    todayAttendance.value &&
+    [
+      "permitted",
+      "sick",
+      "permit_deduct",
+      "sick_deduct",
+      "permit_no_deduct",
+      "sick_no_deduct",
+    ].includes(todayAttendance.value.status)
+  ) {
+    showStatus("info", "Sedang Izin", "Anda sedang izin hari ini.");
     return;
   }
 
