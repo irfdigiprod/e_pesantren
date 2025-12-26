@@ -283,7 +283,7 @@
         class="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/50 overflow-y-auto"
       >
         <div
-          class="bg-white rounded-xl shadow-lg w-full max-w-2xl p-6 relative"
+          class="bg-white rounded-xl shadow-lg w-full max-w-2xl p-6 relative max-h-[90vh] overflow-y-auto"
         >
           <h3 class="text-lg font-bold mb-4">
             {{ modal.isEdit ? "Edit" : "Tambah" }} Golongan Gaji
@@ -418,7 +418,9 @@
         v-if="modal.type === 'position'"
         class="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/50"
       >
-        <div class="bg-white rounded-xl shadow-lg w-full max-w-md p-6">
+        <div
+          class="bg-white rounded-xl shadow-lg w-full max-w-md p-6 max-h-[90vh] overflow-y-auto"
+        >
           <h3 class="text-lg font-bold mb-4">
             {{ modal.isEdit ? "Edit" : "Tambah" }} Jabatan
           </h3>
@@ -474,7 +476,9 @@
         v-if="modal.type === 'tenure'"
         class="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/50"
       >
-        <div class="bg-white rounded-xl shadow-lg w-full max-w-md p-6">
+        <div
+          class="bg-white rounded-xl shadow-lg w-full max-w-md p-6 max-h-[90vh] overflow-y-auto"
+        >
           <h3 class="text-lg font-bold mb-4">
             {{ modal.isEdit ? "Edit" : "Tambah" }} Masa Kerja
           </h3>
@@ -545,7 +549,9 @@
         v-if="modal.type === 'custom'"
         class="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/50"
       >
-        <div class="bg-white rounded-xl shadow-lg w-full max-w-md p-6">
+        <div
+          class="bg-white rounded-xl shadow-lg w-full max-w-md p-6 max-h-[90vh] overflow-y-auto"
+        >
           <h3 class="text-lg font-bold mb-4">
             {{ modal.isEdit ? "Edit" : "Tambah" }} Custom Allowance
           </h3>
