@@ -1,210 +1,260 @@
 import { Hono } from "hono";
-import { zValidator } from "@hono/zod-validator";
-import { eq } from "drizzle-orm";
-import { db } from "../db";
-import { quranMemorizations } from "../db/schema/quran-memorization";
-import { authMiddleware, requireRole } from "../middleware/auth";
-import {
-  createMemorizationSchema,
-  updateMemorizationSchema,
-} from "../validators/quran";
+import { Database } from "bun:sqlite";
+import path from "path";
 
-const quranRoute = new Hono();
+const app = new Hono();
 
-// Apply auth to all routes
-quranRoute.use("*", authMiddleware);
+// Initialize Quran SQLite database
+const dbPath = path.join(process.cwd(), "data", "quran.db");
+const quranDb = new Database(dbPath, { readonly: true });
 
-// Get all memorizations
-quranRoute.get("/memorizations", async (c) => {
+// Types
+interface Surah {
+  sora: number;
+  sora_name_en: string;
+  sora_name_ar: string;
+  ayat_count: number;
+  start_page: number;
+  end_page: number;
+  juz_start: number;
+  juz_end: number;
+}
+
+interface Ayat {
+  id: number;
+  jozz: number;
+  sora: number;
+  sora_name_en: string;
+  sora_name_ar: string;
+  page: number;
+  line_start: number;
+  line_end: number;
+  aya_no: number;
+}
+
+// GET /surahs - List all surahs with metadata
+app.get("/surahs", (c) => {
   try {
-    const memorizations = await db.query.quranMemorizations.findMany();
+    const surahs = quranDb
+      .query(
+        `
+      SELECT 
+        sora,
+        sora_name_en,
+        sora_name_ar,
+        COUNT(*) as ayat_count,
+        MIN(page) as start_page,
+        MAX(page) as end_page,
+        MIN(jozz) as juz_start,
+        MAX(jozz) as juz_end
+      FROM quran 
+      GROUP BY sora, sora_name_en, sora_name_ar
+      ORDER BY sora
+    `
+      )
+      .all() as Surah[];
 
-    return c.json({
-      success: true,
-      data: memorizations,
-    });
-  } catch (error) {
-    console.error("Get memorizations error:", error);
-    return c.json(
-      { success: false, message: "Failed to get memorizations" },
-      500
-    );
+    return c.json({ success: true, data: surahs });
+  } catch (e: any) {
+    return c.json({ success: false, message: e.message }, 500);
   }
 });
 
-// Get memorizations by student ID
-quranRoute.get("/memorizations/student/:studentId", async (c) => {
-  try {
-    const studentId = parseInt(c.req.param("studentId"));
-    const memorizations = await db.query.quranMemorizations.findMany({
-      where: eq(quranMemorizations.studentId, studentId),
-    });
+// GET /surah/:id - Get surah details with all ayat
+app.get("/surah/:id", (c) => {
+  const surahId = Number(c.req.param("id"));
 
-    return c.json({
-      success: true,
-      data: memorizations,
-    });
-  } catch (error) {
-    console.error("Get student memorizations error:", error);
-    return c.json(
-      { success: false, message: "Failed to get memorizations" },
-      500
-    );
+  try {
+    const ayat = quranDb
+      .query(
+        `
+      SELECT 
+        id, jozz, sora, sora_name_en, sora_name_ar, 
+        page, line_start, line_end, aya_no
+      FROM quran 
+      WHERE sora = ?
+      ORDER BY aya_no
+    `
+      )
+      .all(surahId) as Ayat[];
+
+    if (!ayat.length) {
+      return c.json({ success: false, message: "Surah not found" }, 404);
+    }
+
+    const firstAyat = ayat[0]!;
+    const lastAyat = ayat[ayat.length - 1]!;
+
+    const surahInfo = {
+      sora: surahId,
+      sora_name_en: firstAyat.sora_name_en,
+      sora_name_ar: firstAyat.sora_name_ar,
+      ayat_count: ayat.length,
+      start_page: firstAyat.page,
+      end_page: lastAyat.page,
+      juz_start: firstAyat.jozz,
+      juz_end: lastAyat.jozz,
+    };
+
+    return c.json({ success: true, data: { surah: surahInfo, ayat } });
+  } catch (e: any) {
+    return c.json({ success: false, message: e.message }, 500);
   }
 });
 
-// Get memorization by ID
-quranRoute.get("/memorizations/:id", async (c) => {
-  try {
-    const id = parseInt(c.req.param("id"));
-    const memorization = await db.query.quranMemorizations.findFirst({
-      where: eq(quranMemorizations.id, id),
-    });
+// GET /ayat/:surah/:ayat - Get specific ayat info
+app.get("/ayat/:surah/:ayat", (c) => {
+  const surahId = Number(c.req.param("surah"));
+  const ayatNo = Number(c.req.param("ayat"));
 
-    if (!memorization) {
-      return c.json({ success: false, message: "Memorization not found" }, 404);
+  try {
+    const ayat = quranDb
+      .query(
+        `
+      SELECT 
+        id, jozz, sora, sora_name_en, sora_name_ar, 
+        page, line_start, line_end, aya_no
+      FROM quran 
+      WHERE sora = ? AND aya_no = ?
+    `
+      )
+      .get(surahId, ayatNo) as Ayat | null;
+
+    if (!ayat) {
+      return c.json({ success: false, message: "Ayat not found" }, 404);
     }
 
-    return c.json({
-      success: true,
-      data: memorization,
-    });
-  } catch (error) {
-    console.error("Get memorization error:", error);
-    return c.json(
-      { success: false, message: "Failed to get memorization" },
-      500
-    );
+    return c.json({ success: true, data: ayat });
+  } catch (e: any) {
+    return c.json({ success: false, message: e.message }, 500);
   }
 });
 
-// Create memorization
-quranRoute.post(
-  "/memorizations",
-  requireRole("admin", "teacher", "staff"),
-  zValidator("json", createMemorizationSchema),
-  async (c) => {
-    try {
-      const data = c.req.valid("json");
-      const user = c.get("user");
+// POST /calculate - Calculate lines between start and end positions
+app.post("/calculate", async (c) => {
+  const body = await c.req.json();
+  const { startSurah, startAyat, endSurah, endAyat } = body;
 
-      const result = await db.insert(quranMemorizations).values({
-        studentId: data.studentId,
-        surahNumber: data.surahNumber,
-        surahName: data.surahName,
-        juz: data.juz,
-        startAyah: data.startAyah,
-        endAyah: data.endAyah,
-        status: data.status || "memorizing",
-        grade: data.grade,
-        score: data.score,
-        teacherId: data.teacherId,
-        memorizedAt: data.memorizedAt ? new Date(data.memorizedAt) : new Date(),
-        notes: data.notes,
-      });
-
-      const newMemorization = await db.query.quranMemorizations.findFirst({
-        where: eq(quranMemorizations.id, Number(result[0].insertId)),
-      });
-
-      return c.json({
-        success: true,
-        message: "Memorization added successfully",
-        data: newMemorization,
-      });
-    } catch (error) {
-      console.error("Create memorization error:", error);
-      return c.json(
-        { success: false, message: "Failed to add memorization" },
-        500
-      );
-    }
+  if (!startSurah || !startAyat || !endSurah || !endAyat) {
+    return c.json(
+      {
+        success: false,
+        message: "startSurah, startAyat, endSurah, endAyat required",
+      },
+      400
+    );
   }
-);
 
-// Update memorization
-quranRoute.put(
-  "/memorizations/:id",
-  requireRole("admin", "teacher", "staff"),
-  zValidator("json", updateMemorizationSchema),
-  async (c) => {
-    try {
-      const id = parseInt(c.req.param("id"));
-      const data = c.req.valid("json");
+  try {
+    // Get start ayat info
+    const startInfo = quranDb
+      .query(
+        `
+      SELECT id, jozz, page, line_start, line_end, sora_name_en, sora_name_ar
+      FROM quran 
+      WHERE sora = ? AND aya_no = ?
+    `
+      )
+      .get(startSurah, startAyat) as any;
 
-      const existing = await db.query.quranMemorizations.findFirst({
-        where: eq(quranMemorizations.id, id),
-      });
+    // Get end ayat info
+    const endInfo = quranDb
+      .query(
+        `
+      SELECT id, jozz, page, line_start, line_end, sora_name_en, sora_name_ar
+      FROM quran 
+      WHERE sora = ? AND aya_no = ?
+    `
+      )
+      .get(endSurah, endAyat) as any;
 
-      if (!existing) {
-        return c.json(
-          { success: false, message: "Memorization not found" },
-          404
-        );
-      }
-
-      await db
-        .update(quranMemorizations)
-        .set({
-          ...data,
-          memorizedAt: data.memorizedAt
-            ? new Date(data.memorizedAt)
-            : undefined,
-        })
-        .where(eq(quranMemorizations.id, id));
-
-      const updated = await db.query.quranMemorizations.findFirst({
-        where: eq(quranMemorizations.id, id),
-      });
-
-      return c.json({
-        success: true,
-        message: "Memorization updated successfully",
-        data: updated,
-      });
-    } catch (error) {
-      console.error("Update memorization error:", error);
-      return c.json(
-        { success: false, message: "Failed to update memorization" },
-        500
-      );
+    if (!startInfo || !endInfo) {
+      return c.json({ success: false, message: "Invalid ayat position" }, 400);
     }
-  }
-);
 
-// Delete memorization
-quranRoute.delete(
-  "/memorizations/:id",
-  requireRole("admin", "teacher"),
-  async (c) => {
-    try {
-      const id = parseInt(c.req.param("id"));
+    // Calculate pages more accurately:
+    // Formula: (end_page - start_page) + (lines used on start page / 15) + (lines used on end page / 15)
+    // But simpler: (end_page - start_page) + fractional based on line positions
 
-      const existing = await db.query.quranMemorizations.findFirst({
-        where: eq(quranMemorizations.id, id),
-      });
+    // Get count of ayat
+    const countResult = quranDb
+      .query(
+        `SELECT COUNT(*) as ayat_count FROM quran WHERE id >= ? AND id <= ?`
+      )
+      .get(startInfo.id, endInfo.id) as any;
 
-      if (!existing) {
-        return c.json(
-          { success: false, message: "Memorization not found" },
-          404
-        );
-      }
+    const ayatCount = countResult?.ayat_count || 0;
 
-      await db.delete(quranMemorizations).where(eq(quranMemorizations.id, id));
+    // Calculate total pages:
+    // If same page: (end_line - start_line + 1) / 15
+    // If different pages: full pages between + fraction on first page + fraction on last page
+    let totalPages: number;
 
-      return c.json({
-        success: true,
-        message: "Memorization deleted successfully",
-      });
-    } catch (error) {
-      console.error("Delete memorization error:", error);
-      return c.json(
-        { success: false, message: "Failed to delete memorization" },
-        500
-      );
+    if (startInfo.page === endInfo.page) {
+      // Same page: just count lines from start to end
+      const linesUsed = endInfo.line_end - startInfo.line_start + 1;
+      totalPages = Math.round((linesUsed / 15) * 100) / 100;
+    } else {
+      // Different pages
+      // Lines remaining on first page: 15 - start_line + 1
+      const linesOnFirstPage = 15 - startInfo.line_start + 1;
+      // Lines used on last page: end_line
+      const linesOnLastPage = endInfo.line_end;
+      // Full pages in between
+      const fullPagesBetween = endInfo.page - startInfo.page - 1;
+
+      totalPages =
+        Math.round(
+          (linesOnFirstPage / 15 + fullPagesBetween + linesOnLastPage / 15) *
+            100
+        ) / 100;
     }
-  }
-);
 
-export default quranRoute;
+    // Also calculate total lines for reference
+    const totalLines = Math.round(totalPages * 15);
+
+    // Get juz info (could span multiple juz)
+    const juzResult = quranDb
+      .query(
+        `
+      SELECT DISTINCT jozz FROM quran 
+      WHERE id >= ? AND id <= ?
+      ORDER BY jozz
+    `
+      )
+      .all(startInfo.id, endInfo.id) as any[];
+
+    const juzList = juzResult.map((r: any) => r.jozz);
+
+    return c.json({
+      success: true,
+      data: {
+        start: {
+          surah: startSurah,
+          surahNameEn: startInfo.sora_name_en,
+          surahNameAr: startInfo.sora_name_ar,
+          ayat: startAyat,
+          page: startInfo.page,
+          juz: startInfo.jozz,
+        },
+        end: {
+          surah: endSurah,
+          surahNameEn: endInfo.sora_name_en,
+          surahNameAr: endInfo.sora_name_ar,
+          ayat: endAyat,
+          page: endInfo.page,
+          juz: endInfo.jozz,
+        },
+        totalLines,
+        totalPages,
+        ayatCount,
+        juzList,
+      },
+    });
+  } catch (e: any) {
+    console.error("Calculate error:", e);
+    return c.json({ success: false, message: e.message }, 500);
+  }
+});
+
+export default app;

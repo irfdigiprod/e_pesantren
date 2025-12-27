@@ -3,10 +3,12 @@ import { db } from "../db";
 import {
   tahfidzDeposits,
   tahfidzExams,
+  tahfidzTargets,
   students,
   teachers,
   halaqahMembers,
   halaqahGroups,
+  halaqahMentors,
 } from "../db/schema";
 import { eq, desc, and, gte, lte, sql, inArray, like, or } from "drizzle-orm";
 import { z } from "zod";
@@ -18,15 +20,28 @@ const app = new Hono();
 const depositSchema = z.object({
   studentId: z.number(),
   teacherId: z.number(),
-  type: z.enum(["ziyadah", "murajaah", "izin", "alpha"]), // Added 'alpha'
+  type: z.enum(["ziyadah", "murajaah", "izin", "alpha", "sakit"]),
+  isLate: z.boolean().optional(),
+  // New line-based position fields
+  startSurah: z.number().nullable().optional(),
+  startAyat: z.number().nullable().optional(),
+  startPage: z.number().nullable().optional(),
+  endSurah: z.number().nullable().optional(),
+  endAyat: z.number().nullable().optional(),
+  endPage: z.number().nullable().optional(),
+  totalLines: z.number().nullable().optional(),
+  totalPages: z.number().nullable().optional(),
+  // Legacy fields (kept for backward compatibility)
   juz: z.number().optional(),
   surahNumber: z.number().optional(),
   surahName: z.string().optional(),
   ayatStart: z.number().optional(),
   ayatEnd: z.number().optional(),
-  fluency: z.enum(["lancar", "kurang_lancar", "mengulang"]).optional(), // Made optional
+  pageNumber: z.number().optional(),
+  // Other
+  fluency: z.enum(["lancar", "kurang_lancar", "mengulang"]).optional(),
   notes: z.string().optional(),
-  depositDate: z.string().optional(), // ISO string from frontend
+  depositDate: z.string().optional(),
 });
 
 const examSchema = z.object({
@@ -151,6 +166,14 @@ app.get("/deposits", async (c) => {
         surah: tahfidzDeposits.surahName,
         ayatStart: tahfidzDeposits.ayatStart,
         ayatEnd: tahfidzDeposits.ayatEnd,
+        // New line-based fields
+        startSurah: tahfidzDeposits.startSurah,
+        startAyat: tahfidzDeposits.startAyat,
+        endSurah: tahfidzDeposits.endSurah,
+        endAyat: tahfidzDeposits.endAyat,
+        totalLines: tahfidzDeposits.totalLines,
+        totalPages: tahfidzDeposits.totalPages,
+        // Legacy
         juz: tahfidzDeposits.juz,
         fluency: tahfidzDeposits.fluency,
         notes: tahfidzDeposits.notes,
@@ -259,11 +282,24 @@ app.post("/deposits", zValidator("json", depositSchema), async (c) => {
       studentId: body.studentId,
       teacherId: body.teacherId,
       type: body.type,
+      isLate: body.isLate || false,
+      // New line-based fields
+      startSurah: body.startSurah,
+      startAyat: body.startAyat,
+      startPage: body.startPage,
+      endSurah: body.endSurah,
+      endAyat: body.endAyat,
+      endPage: body.endPage,
+      totalLines: body.totalLines,
+      totalPages: body.totalPages ? String(body.totalPages) : undefined,
+      // Legacy fields
       juz: body.juz,
       surahNumber: body.surahNumber,
       surahName: body.surahName,
       ayatStart: body.ayatStart,
       ayatEnd: body.ayatEnd,
+      pageNumber: body.pageNumber,
+      // Other
       fluency: body.fluency,
       notes: body.notes,
       depositDate: body.depositDate ? new Date(body.depositDate) : new Date(),
@@ -288,11 +324,24 @@ app.put("/deposits/:id", zValidator("json", depositSchema), async (c) => {
         studentId: body.studentId,
         teacherId: body.teacherId,
         type: body.type,
+        isLate: body.isLate || false,
+        // New line-based fields
+        startSurah: body.startSurah,
+        startAyat: body.startAyat,
+        startPage: body.startPage,
+        endSurah: body.endSurah,
+        endAyat: body.endAyat,
+        endPage: body.endPage,
+        totalLines: body.totalLines,
+        totalPages: body.totalPages ? String(body.totalPages) : undefined,
+        // Legacy fields
         juz: body.juz,
         surahNumber: body.surahNumber,
         surahName: body.surahName,
         ayatStart: body.ayatStart,
         ayatEnd: body.ayatEnd,
+        pageNumber: body.pageNumber,
+        // Other
         fluency: body.fluency,
         notes: body.notes,
         depositDate: body.depositDate ? new Date(body.depositDate) : new Date(),
@@ -301,6 +350,20 @@ app.put("/deposits/:id", zValidator("json", depositSchema), async (c) => {
       .where(eq(tahfidzDeposits.id, id));
 
     return c.json({ success: true, message: "Setoran berhasil diperbarui" });
+  } catch (e: any) {
+    return c.json(
+      { success: false, message: e.message || "Internal Error" },
+      500
+    );
+  }
+});
+
+// DELETE /deposits/:id - Delete
+app.delete("/deposits/:id", async (c) => {
+  const id = parseInt(c.req.param("id"));
+  try {
+    await db.delete(tahfidzDeposits).where(eq(tahfidzDeposits.id, id));
+    return c.json({ success: true, message: "Data setoran berhasil dihapus" });
   } catch (e: any) {
     return c.json(
       { success: false, message: e.message || "Internal Error" },
@@ -514,6 +577,8 @@ app.get("/halaqah/:groupId/daily-summary", async (c) => {
             ? "izin"
             : studentDeposit.type === "alpha"
             ? "alpha"
+            : studentDeposit.type === "sakit"
+            ? "sakit"
             : "done"
           : "none",
         deposit: studentDeposit || null,
@@ -572,8 +637,9 @@ app.get("/halaqah/:groupId/monthly-summary", async (c) => {
     // Let's use a join approach for efficiency.
 
     // Query deposits for this halaqah's students in the date range
+    const lastDay = new Date(year, month, 0).getDate();
     const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
-    const endDate = `${year}-${String(month).padStart(2, "0")}-31`;
+    const endDate = `${year}-${String(month).padStart(2, "0")}-${lastDay}`;
 
     const deposits = await db
       .select({
@@ -597,10 +663,10 @@ app.get("/halaqah/:groupId/monthly-summary", async (c) => {
       )
       .groupBy(sql`DATE(${tahfidzDeposits.depositDate})`, tahfidzDeposits.type);
 
-    // { "2024-12-01": { done: 5, permission: 1, alpha: 0 } }
+    // { "2024-12-01": { done: 5, permission: 1, alpha: 0, sick: 0 } }
     const stats: Record<
       string,
-      { done: number; permission: number; alpha: number }
+      { done: number; permission: number; alpha: number; sick: number }
     > = {};
 
     deposits.forEach((d) => {
@@ -610,13 +676,15 @@ app.get("/halaqah/:groupId/monthly-summary", async (c) => {
       }
 
       if (!stats[dateKey]) {
-        stats[dateKey] = { done: 0, permission: 0, alpha: 0 };
+        stats[dateKey] = { done: 0, permission: 0, alpha: 0, sick: 0 };
       }
 
       if (d.type === "izin") {
         stats[dateKey]!.permission += d.count;
       } else if (d.type === "alpha") {
         stats[dateKey]!.alpha += d.count;
+      } else if (d.type === "sakit") {
+        stats[dateKey]!.sick += d.count;
       } else {
         stats[dateKey]!.done += d.count;
       }
@@ -632,6 +700,238 @@ app.get("/halaqah/:groupId/monthly-summary", async (c) => {
       { success: false, message: e.message || "Internal Error" },
       500
     );
+  }
+});
+
+// --- HALAQAH REPORT ---
+app.get("/halaqah-report", async (c) => {
+  const halaqahId = c.req.query("halaqahId");
+  const startDate = c.req.query("startDate");
+  const endDate = c.req.query("endDate");
+  const gender = c.req.query("gender");
+
+  if (!halaqahId || !startDate || !endDate) {
+    return c.json(
+      { success: false, message: "halaqahId, startDate, endDate required" },
+      400
+    );
+  }
+
+  try {
+    // 1. Get halaqah info
+    const halaqah = await db.query.halaqahGroups.findFirst({
+      where: eq(halaqahGroups.id, Number(halaqahId)),
+      with: {
+        targetLevel: true,
+      },
+    });
+
+    if (!halaqah) {
+      return c.json({ success: false, message: "Halaqah not found" }, 404);
+    }
+
+    // 2. Get first mentor
+    const mentorRecord = await db
+      .select({
+        teacherId: halaqahMentors.teacherId,
+        fullName: teachers.fullName,
+      })
+      .from(halaqahMentors)
+      .leftJoin(teachers, eq(halaqahMentors.teacherId, teachers.id))
+      .where(eq(halaqahMentors.halaqahId, Number(halaqahId)))
+      .orderBy(sql`${halaqahMentors.id} ASC`)
+      .limit(1);
+
+    // 3. Get members of this halaqah
+    let membersQuery = db
+      .select({
+        studentId: halaqahMembers.studentId,
+        fullName: students.fullName,
+        nis: students.nis,
+        gender: students.gender,
+        classId: students.classId,
+      })
+      .from(halaqahMembers)
+      .leftJoin(students, eq(halaqahMembers.studentId, students.id))
+      .where(
+        and(
+          eq(halaqahMembers.halaqahId, Number(halaqahId)),
+          eq(halaqahMembers.status, "active")
+        )
+      );
+
+    const members = await membersQuery;
+
+    // Filter by gender if provided
+    const filteredMembers = gender
+      ? members.filter((m) => m.gender === gender)
+      : members;
+
+    // 4. For each member, get deposits in date range
+    const memberData = await Promise.all(
+      filteredMembers.map(async (member) => {
+        const deposits = await db
+          .select()
+          .from(tahfidzDeposits)
+          .where(
+            and(
+              eq(tahfidzDeposits.studentId, member.studentId),
+              gte(tahfidzDeposits.depositDate, new Date(startDate)),
+              lte(tahfidzDeposits.depositDate, new Date(endDate))
+            )
+          );
+
+        // Count attendance
+        const attendance = {
+          izin: deposits.filter((d) => d.type === "izin").length,
+          alpha: deposits.filter((d) => d.type === "alpha").length,
+          sakit: deposits.filter((d) => d.type === "sakit").length,
+          terlambat: deposits.filter((d) => d.isLate).length,
+        };
+
+        // Get page numbers
+        const actualDeposits = deposits.filter((d) => d.type === "ziyadah");
+
+        // Calculate pages (Hybrid: New Fields + Legacy)
+        let totalPagesSum = 0;
+        const depositRanges: { start: number; end: number }[] = [];
+
+        actualDeposits.forEach((d) => {
+          // Amount
+          if (d.totalPages) {
+            totalPagesSum += Number(d.totalPages);
+          } else if (d.pageNumber) {
+            totalPagesSum += 1; // Assume 1 page for legacy
+          }
+
+          // Range Collection
+          const start = d.startPage || d.pageNumber;
+          const end = d.endPage || d.pageNumber;
+          if (start && end) {
+            depositRanges.push({ start, end });
+          }
+        });
+
+        // Merge Ranges
+        depositRanges.sort((a, b) => a.start - b.start);
+        const mergedRanges: { start: number; end: number }[] = [];
+
+        depositRanges.forEach((r) => {
+          const last = mergedRanges[mergedRanges.length - 1];
+          if (last && r.start <= last.end + 1) {
+            // Contiguous or Overlap
+            if (r.end > last.end) last.end = r.end;
+          } else {
+            mergedRanges.push({ ...r });
+          }
+        });
+
+        const hafalanRanges =
+          mergedRanges.length > 0
+            ? mergedRanges
+                .map((r) =>
+                  r.start === r.end
+                    ? `Hal. ${r.start}`
+                    : `Hal. ${r.start}-${r.end}`
+                )
+                .join(", ")
+            : "-";
+
+        const awalHalaman =
+          mergedRanges.length > 0 ? mergedRanges[0]!.start : null;
+        const akhirHalaman =
+          mergedRanges.length > 0
+            ? mergedRanges[mergedRanges.length - 1]!.end
+            : null;
+        const jumlahHalaman = Number(totalPagesSum.toFixed(2));
+
+        return {
+          studentId: member.studentId,
+          fullName: member.fullName,
+          nis: member.nis,
+          classId: member.classId,
+          attendance,
+          awalHalaman,
+          akhirHalaman,
+          jumlahHalaman,
+          hafalanRanges,
+          totalDeposits: actualDeposits.length,
+        };
+      })
+    );
+
+    return c.json({
+      success: true,
+      data: {
+        halaqah: halaqah, // Pass full object including targetLevel
+        mentor: mentorRecord[0] || null,
+        dateRange: { start: startDate, end: endDate },
+        members: memberData,
+      },
+    });
+  } catch (e: any) {
+    console.error("Halaqah report error:", e);
+    return c.json(
+      { success: false, message: e.message || "Internal Error" },
+      500
+    );
+  }
+});
+
+// --- TARGET SETTINGS CRUD ---
+const targetSchema = z.object({
+  level: z.string().min(1),
+  targetPages: z.number().min(1),
+  description: z.string().optional(),
+});
+
+// GET /targets - List all
+app.get("/targets", async (c) => {
+  try {
+    const targets = await db
+      .select()
+      .from(tahfidzTargets)
+      .orderBy(tahfidzTargets.level);
+    return c.json({ success: true, data: targets });
+  } catch (e: any) {
+    return c.json({ success: false, message: e.message }, 500);
+  }
+});
+
+// POST /targets - Create
+app.post("/targets", zValidator("json", targetSchema), async (c) => {
+  const body = c.req.valid("json");
+  try {
+    await db.insert(tahfidzTargets).values(body);
+    return c.json({ success: true, message: "Target created" });
+  } catch (e: any) {
+    if (e.code === "ER_DUP_ENTRY") {
+      return c.json({ success: false, message: "Level already exists" }, 400);
+    }
+    return c.json({ success: false, message: e.message }, 500);
+  }
+});
+
+// PUT /targets/:id - Update
+app.put("/targets/:id", zValidator("json", targetSchema), async (c) => {
+  const id = parseInt(c.req.param("id"));
+  const body = c.req.valid("json");
+  try {
+    await db.update(tahfidzTargets).set(body).where(eq(tahfidzTargets.id, id));
+    return c.json({ success: true, message: "Target updated" });
+  } catch (e: any) {
+    return c.json({ success: false, message: e.message }, 500);
+  }
+});
+
+// DELETE /targets/:id - Delete
+app.delete("/targets/:id", async (c) => {
+  const id = parseInt(c.req.param("id"));
+  try {
+    await db.delete(tahfidzTargets).where(eq(tahfidzTargets.id, id));
+    return c.json({ success: true, message: "Target deleted" });
+  } catch (e: any) {
+    return c.json({ success: false, message: e.message }, 500);
   }
 });
 

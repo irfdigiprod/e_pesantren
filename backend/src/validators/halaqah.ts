@@ -6,6 +6,7 @@ export const createHalaqahSchema = z.object({
   description: z.string().optional(),
   schedule: z.string().optional(),
   location: z.string().optional(),
+  targetLevelId: z.number().int().optional(),
   status: z.enum(["active", "inactive"]).optional(),
 });
 

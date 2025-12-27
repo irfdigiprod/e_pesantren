@@ -142,6 +142,16 @@ const router = createRouter({
           component: () => import("@/views/apps/tahfidz/TahfidzHalaqah.vue"),
         },
         {
+          path: "apps/tahfidz/mading",
+          name: "MadingHalaqah",
+          component: () => import("@/views/apps/tahfidz/MadingHalaqah.vue"),
+        },
+        {
+          path: "apps/tahfidz/settings",
+          name: "TahfidzSettings",
+          component: () => import("@/views/apps/tahfidz/TahfidzSettings.vue"),
+        },
+        {
           path: "apps/attendance",
           name: "Attendance",
           component: () => import("@/views/apps/Attendance.vue"),

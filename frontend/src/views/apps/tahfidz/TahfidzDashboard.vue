@@ -94,18 +94,68 @@
               item.type === 'ziyadah',
             'bg-slate-50 text-slate-700 border border-slate-200':
               item.type === 'murajaah',
+            'bg-sky-50 text-sky-700 border border-sky-100':
+              item.type === 'sakit',
+            'bg-yellow-50 text-yellow-700 border border-yellow-100':
+              item.type === 'izin',
+            'bg-rose-50 text-rose-700 border border-rose-100':
+              item.type === 'alpha',
           }"
         >
-          {{ item.type === "ziyadah" ? "Ziyadah" : "Muraja'ah" }}
+          {{
+            item.type === "ziyadah"
+              ? "Ziyadah"
+              : item.type === "murajaah"
+              ? "Muraja'ah"
+              : item.type === "sakit"
+              ? "Sakit"
+              : item.type === "izin"
+              ? "Izin"
+              : "Alpha"
+          }}
         </span>
       </template>
 
       <template #cell-location="{ item }">
         <span class="text-slate-700 font-medium whitespace-nowrap">
-          <span v-if="item.surah">{{ item.surah }}</span>
-          <span v-else>Juz {{ item.juz }}</span>
-          <span v-if="item.ayatStart" class="text-slate-500 text-xs ml-1">
-            (Ayat {{ item.ayatStart }}-{{ item.ayatEnd }})
+          <span v-if="item.type === 'sakit'" class="text-sky-600 font-bold"
+            >Sakit</span
+          >
+          <span
+            v-else-if="item.type === 'alpha'"
+            class="text-rose-600 font-bold"
+            >Alpha</span
+          >
+          <span
+            v-else-if="item.type === 'izin'"
+            class="text-yellow-600 font-bold"
+            >Izin</span
+          >
+          <span v-else>
+            <div v-if="item.startSurah">
+              <div class="font-bold text-slate-800">
+                <span v-if="item.startSurah === item.endSurah">
+                  QS. {{ getSurahName(item.startSurah) }}:
+                  {{ item.startAyat }} -
+                  {{ item.endAyat }}
+                </span>
+                <span v-else>
+                  QS. {{ getSurahName(item.startSurah) }}:
+                  {{ item.startAyat }} - QS. {{ getSurahName(item.endSurah) }}:
+                  {{ item.endAyat }}
+                </span>
+              </div>
+              <div class="text-xs text-slate-500">
+                {{ item.totalPages }} Hal, {{ item.totalLines }} Baris
+              </div>
+            </div>
+            <div v-else>
+              <span v-if="item.surah">{{ item.surah }}</span>
+              <span v-else>Juz {{ item.juz }}</span>
+              <span v-if="item.ayatStart" class="text-slate-500 text-xs ml-1">
+                (Ayat {{ item.ayatStart }}-{{ item.ayatEnd }})
+              </span>
+            </div>
           </span>
         </span>
       </template>
@@ -141,9 +191,25 @@
                   item.type === 'ziyadah',
                 'bg-slate-50 text-slate-700 border border-slate-200':
                   item.type === 'murajaah',
+                'bg-sky-50 text-sky-700 border border-sky-100':
+                  item.type === 'sakit',
+                'bg-yellow-50 text-yellow-700 border border-yellow-100':
+                  item.type === 'izin',
+                'bg-rose-50 text-rose-700 border border-rose-100':
+                  item.type === 'alpha',
               }"
             >
-              {{ item.type === "ziyadah" ? "Ziyadah" : "Muraja'ah" }}
+              {{
+                item.type === "ziyadah"
+                  ? "Ziyadah"
+                  : item.type === "murajaah"
+                  ? "Muraja'ah"
+                  : item.type === "sakit"
+                  ? "Sakit"
+                  : item.type === "izin"
+                  ? "Izin"
+                  : "Alpha"
+              }}
             </span>
             <span
               class="px-2 py-1 rounded-full text-xs font-medium"
@@ -164,10 +230,47 @@
               class="flex items-center gap-2 text-sm text-slate-700 font-medium"
             >
               <Icon icon="solar:book-2-bold-duotone" class="text-amber-600" />
-              <span v-if="item.surah">{{ item.surah }}</span>
-              <span v-else>Juz {{ item.juz }}</span>
+
+              <span v-if="item.type === 'sakit'" class="text-sky-600 font-bold"
+                >Sakit</span
+              >
+              <span
+                v-else-if="item.type === 'alpha'"
+                class="text-rose-600 font-bold"
+                >Alpha</span
+              >
+              <span
+                v-else-if="item.type === 'izin'"
+                class="text-yellow-600 font-bold"
+                >Izin</span
+              >
+              <span v-else>
+                <div v-if="item.startSurah">
+                  <div class="font-bold text-slate-800 text-sm">
+                    <span v-if="item.startSurah === item.endSurah">
+                      QS. {{ getSurahName(item.startSurah) }}:
+                      {{ item.startAyat }} - {{ item.endAyat }}
+                    </span>
+                    <span v-else>
+                      QS. {{ getSurahName(item.startSurah) }}:
+                      {{ item.startAyat }} - QS.
+                      {{ getSurahName(item.endSurah) }}: {{ item.endAyat }}
+                    </span>
+                  </div>
+                  <div class="text-xs text-slate-500 mt-1">
+                    {{ item.totalPages }} Hal, {{ item.totalLines }} Baris
+                  </div>
+                </div>
+                <div v-else>
+                  <span v-if="item.surah">{{ item.surah }}</span>
+                  <span v-else>Juz {{ item.juz }}</span>
+                </div>
+              </span>
             </div>
-            <div v-if="item.ayatStart" class="text-xs text-slate-500 mt-1 ml-6">
+            <div
+              v-if="item.ayatStart && !item.startSurah"
+              class="text-xs text-slate-500 mt-1 ml-6"
+            >
               Ayat {{ item.ayatStart }} - {{ item.ayatEnd }}
             </div>
           </div>
@@ -266,10 +369,10 @@
         class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
       >
         <div
-          class="bg-white rounded-2xl w-full max-w-lg shadow-xl overflow-hidden"
+          class="bg-white rounded-2xl w-full max-w-lg shadow-xl overflow-hidden max-h-[90vh] flex flex-col"
         >
           <div
-            class="px-6 py-4 border-b flex justify-between items-center bg-slate-50"
+            class="px-6 py-4 border-b flex justify-between items-center bg-slate-50 flex-shrink-0"
           >
             <h3 class="font-bold text-slate-800">Input Setoran Hafalan</h3>
             <button
@@ -280,7 +383,7 @@
             </button>
           </div>
 
-          <div class="p-6">
+          <div class="p-6 overflow-y-auto flex-1">
             <form @submit.prevent="submitDeposit" class="space-y-4">
               <!-- Student Selection via Search (Simplified using select for now, ideally async select) -->
               <div class="relative">
@@ -348,6 +451,9 @@
                   >
                     <option value="ziyadah">Ziyadah (Baru)</option>
                     <option value="murajaah">Muraja'ah (Ulang)</option>
+                    <option value="izin">Izin</option>
+                    <option value="alpha">Alpha</option>
+                    <option value="sakit">Sakit</option>
                   </select>
                 </div>
                 <div>
@@ -365,51 +471,161 @@
                 </div>
               </div>
 
-              <!-- Location -->
-              <div class="grid grid-cols-2 gap-4">
-                <div>
-                  <label class="block text-sm font-medium text-slate-700 mb-1"
-                    >Juz</label
-                  >
-                  <input
-                    type="number"
-                    v-model="form.juz"
-                    class="w-full px-3 py-2 border rounded-lg focus:ring-2 ring-[#602515]/20 outline-none"
-                    placeholder="1-30"
-                  />
+              <!-- Posisi Mulai (Dari) -->
+              <div class="p-3 bg-slate-50 rounded-lg">
+                <h4 class="text-sm font-semibold text-slate-700 mb-3">
+                  📖 Posisi Mulai (Dari)
+                </h4>
+                <div class="grid grid-cols-2 gap-3">
+                  <div class="relative">
+                    <label class="block text-xs font-medium text-slate-600 mb-1"
+                      >Surah</label
+                    >
+                    <input
+                      type="text"
+                      v-model="startSurahSearch"
+                      @focus="showStartSurahDropdown = true"
+                      @input="filterStartSurahs"
+                      class="w-full px-3 py-2 border rounded-lg focus:ring-2 ring-[#602515]/20 outline-none text-sm"
+                      placeholder="Cari surah..."
+                    />
+                    <div
+                      v-if="
+                        showStartSurahDropdown && filteredStartSurahs.length > 0
+                      "
+                      class="absolute z-20 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-48 overflow-y-auto"
+                    >
+                      <div
+                        v-for="s in filteredStartSurahs"
+                        :key="s.sora"
+                        @click="selectStartSurah(s)"
+                        class="px-3 py-2 hover:bg-slate-50 cursor-pointer text-xs border-b last:border-0"
+                      >
+                        <span class="font-medium"
+                          >{{ s.sora }}. {{ s.sora_name_ar }}</span
+                        >
+                        <span class="text-slate-500 ml-1"
+                          >({{ s.sora_name_en }}) -
+                          {{ s.ayat_count }} ayat</span
+                        >
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1"
+                      >Ayat
+                      <span v-if="startSurahInfo" class="text-slate-400"
+                        >(max: {{ startSurahInfo.ayat_count }})</span
+                      ></label
+                    >
+                    <input
+                      type="number"
+                      v-model.number="form.startAyat"
+                      @change="onAyatChange('start')"
+                      min="1"
+                      :max="startSurahInfo?.ayat_count || 286"
+                      class="w-full px-3 py-2 border rounded-lg focus:ring-2 ring-[#602515]/20 outline-none text-sm"
+                      placeholder="Ayat"
+                      :disabled="!form.startSurah"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label class="block text-sm font-medium text-slate-700 mb-1"
-                    >Nama Surah</label
-                  >
-                  <input
-                    type="text"
-                    v-model="form.surahName"
-                    class="w-full px-3 py-2 border rounded-lg focus:ring-2 ring-[#602515]/20 outline-none"
-                    placeholder="Contoh: Al-Baqarah"
-                  />
+                <div v-if="form.startPage" class="mt-2 text-xs text-slate-500">
+                  Halaman: <span class="font-medium">{{ form.startPage }}</span>
                 </div>
               </div>
-              <div class="grid grid-cols-2 gap-4">
-                <div>
-                  <label class="block text-sm font-medium text-slate-700 mb-1"
-                    >Ayat Awal</label
-                  >
-                  <input
-                    type="number"
-                    v-model="form.ayatStart"
-                    class="w-full px-3 py-2 border rounded-lg focus:ring-2 ring-[#602515]/20 outline-none"
-                  />
+
+              <!-- Posisi Akhir (Sampai) -->
+              <div class="p-3 bg-slate-50 rounded-lg">
+                <h4 class="text-sm font-semibold text-slate-700 mb-3">
+                  📖 Posisi Akhir (Sampai)
+                </h4>
+                <div class="grid grid-cols-2 gap-3">
+                  <div class="relative">
+                    <label class="block text-xs font-medium text-slate-600 mb-1"
+                      >Surah</label
+                    >
+                    <input
+                      type="text"
+                      v-model="endSurahSearch"
+                      @focus="showEndSurahDropdown = true"
+                      @input="filterEndSurahs"
+                      class="w-full px-3 py-2 border rounded-lg focus:ring-2 ring-[#602515]/20 outline-none text-sm"
+                      placeholder="Cari surah..."
+                    />
+                    <div
+                      v-if="
+                        showEndSurahDropdown && filteredEndSurahs.length > 0
+                      "
+                      class="absolute z-20 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-48 overflow-y-auto"
+                    >
+                      <div
+                        v-for="s in filteredEndSurahs"
+                        :key="s.sora"
+                        @click="selectEndSurah(s)"
+                        class="px-3 py-2 hover:bg-slate-50 cursor-pointer text-xs border-b last:border-0"
+                      >
+                        <span class="font-medium"
+                          >{{ s.sora }}. {{ s.sora_name_ar }}</span
+                        >
+                        <span class="text-slate-500 ml-1"
+                          >({{ s.sora_name_en }}) -
+                          {{ s.ayat_count }} ayat</span
+                        >
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1"
+                      >Ayat
+                      <span v-if="endSurahInfo" class="text-slate-400"
+                        >(max: {{ endSurahInfo.ayat_count }})</span
+                      ></label
+                    >
+                    <input
+                      type="number"
+                      v-model.number="form.endAyat"
+                      @change="onAyatChange('end')"
+                      min="1"
+                      :max="endSurahInfo?.ayat_count || 286"
+                      class="w-full px-3 py-2 border rounded-lg focus:ring-2 ring-[#602515]/20 outline-none text-sm"
+                      placeholder="Ayat"
+                      :disabled="!form.endSurah"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label class="block text-sm font-medium text-slate-700 mb-1"
-                    >Ayat Akhir</label
-                  >
-                  <input
-                    type="number"
-                    v-model="form.ayatEnd"
-                    class="w-full px-3 py-2 border rounded-lg focus:ring-2 ring-[#602515]/20 outline-none"
-                  />
+                <div v-if="form.endPage" class="mt-2 text-xs text-slate-500">
+                  Halaman: <span class="font-medium">{{ form.endPage }}</span>
+                </div>
+              </div>
+
+              <!-- Ringkasan Kalkulasi -->
+              <div
+                v-if="calculatedResult"
+                class="p-3 bg-amber-50 border border-amber-200 rounded-lg"
+              >
+                <h4 class="text-sm font-semibold text-amber-800 mb-2">
+                  📊 Ringkasan
+                </h4>
+                <div class="grid grid-cols-3 gap-2 text-center">
+                  <div>
+                    <p class="text-xs text-amber-600">Ayat</p>
+                    <p class="text-lg font-bold text-amber-800">
+                      {{ calculatedResult.ayatCount }}
+                    </p>
+                  </div>
+                  <div>
+                    <p class="text-xs text-amber-600">Halaman</p>
+                    <p class="text-lg font-bold text-amber-800">
+                      {{ calculatedResult.totalPages }}
+                    </p>
+                  </div>
+                  <div>
+                    <p class="text-xs text-amber-600">Juz</p>
+                    <p class="text-lg font-bold text-amber-800">
+                      {{ calculatedResult.juzList?.join(", ") || "-" }}
+                    </p>
+                  </div>
                 </div>
               </div>
 
@@ -423,6 +639,21 @@
                   class="w-full px-3 py-2 border rounded-lg focus:ring-2 ring-[#602515]/20 outline-none"
                   placeholder="Catatan ustadz..."
                 ></textarea>
+              </div>
+
+              <!-- Late Checkbox -->
+              <div class="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  v-model="form.isLate"
+                  id="isLate"
+                  class="w-5 h-5 rounded border-slate-300 text-[#602515] focus:ring-[#602515]"
+                />
+                <label
+                  for="isLate"
+                  class="text-sm font-medium text-slate-700 cursor-pointer"
+                  >Terlambat</label
+                >
               </div>
 
               <div class="pt-4 flex justify-end gap-2">
@@ -446,14 +677,37 @@
         </div>
       </div>
     </Teleport>
+
+    <!-- Backward Surah Warning Modal -->
+    <ConfirmModal
+      :isOpen="showBackwardWarning"
+      type="danger"
+      title="Urutan Surah Tidak Valid"
+      confirmText=""
+      cancelText="Tutup"
+      @cancel="showBackwardWarning = false"
+    >
+      <span>
+        Surah akhir ({{ endSurahInfo?.sora_name_ar }}) tidak boleh lebih awal
+        dari surah mulai ({{ startSurahInfo?.sora_name_ar }}). <br /><br />
+        Mohon perbaiki urutan surah atau ayat.
+      </span>
+    </ConfirmModal>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from "vue";
+import { ref, reactive, onMounted, computed } from "vue";
 import { Icon } from "@iconify/vue";
 import DataTable from "@/components/ui/DataTable.vue";
-import { tahfidzApi, studentsApi, authApi, halaqahApi } from "@/services/api";
+import ConfirmModal from "@/components/ui/ConfirmModal.vue";
+import {
+  tahfidzApi,
+  studentsApi,
+  authApi,
+  halaqahApi,
+  quranApi,
+} from "@/services/api";
 
 const loading = ref(false);
 const saving = ref(false);
@@ -472,6 +726,20 @@ const studentSearch = ref("");
 const showStudentDropdown = ref(false);
 const currentUser = ref(null);
 
+// Quran data
+const surahList = ref([]);
+const calculatedResult = ref(null);
+const showBackwardWarning = ref(false);
+const backwardConfirmed = ref(false);
+
+// Searchable surah dropdowns
+const startSurahSearch = ref("");
+const endSurahSearch = ref("");
+const showStartSurahDropdown = ref(false);
+const showEndSurahDropdown = ref(false);
+const filteredStartSurahs = ref([]);
+const filteredEndSurahs = ref([]);
+
 const columns = [
   { field: "date", label: "TANGGAL", sortable: true },
   { field: "studentName", label: "NAMA SANTRI", sortable: true },
@@ -485,11 +753,18 @@ const form = reactive({
   studentId: "",
   type: "ziyadah",
   fluency: "lancar",
-  juz: "",
-  surahName: "",
-  ayatStart: "",
-  ayatEnd: "",
+  // New line-based fields
+  startSurah: "",
+  startAyat: "",
+  startPage: "",
+  endSurah: "",
+  endAyat: "",
+  endPage: "",
+  totalLines: "",
+  totalPages: "",
+  // Other
   notes: "",
+  isLate: false,
 });
 
 const filters = reactive({
@@ -501,6 +776,15 @@ const filters = reactive({
 
 const halaqahList = ref([]);
 
+// Computed for surah info
+const startSurahInfo = computed(() => {
+  return surahList.value.find((s) => s.sora === form.startSurah);
+});
+
+const endSurahInfo = computed(() => {
+  return surahList.value.find((s) => s.sora === form.endSurah);
+});
+
 function formatFluency(val) {
   const map = {
     lancar: "Lancar",
@@ -508,6 +792,11 @@ function formatFluency(val) {
     mengulang: "Mengulang",
   };
   return map[val] || val;
+}
+
+function getSurahName(number) {
+  const surah = surahList.value.find((s) => s.sora === Number(number));
+  return surah ? surah.sora_name_en : `Surah ${number}`;
 }
 
 async function loadHalaqah() {
@@ -603,11 +892,153 @@ function handleSearch(val) {
   }, 300);
 }
 
+async function loadSurahs() {
+  if (surahList.value.length > 0) return;
+  try {
+    const res = await quranApi.getSurahs();
+    if (res.success) {
+      surahList.value = res.data;
+      filteredStartSurahs.value = res.data;
+      filteredEndSurahs.value = res.data;
+    }
+  } catch (e) {
+    console.error("Failed to load surahs:", e);
+  }
+}
+
+// Helper for search normalization
+function normalizeSurahName(name) {
+  if (!name) return "";
+  return name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // Remove diacritics
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, ""); // Remove non-alphanumeric
+}
+
+// Filter functions for searchable surah
+function filterStartSurahs() {
+  const rawQ = startSurahSearch.value;
+  if (!rawQ) {
+    filteredStartSurahs.value = surahList.value;
+    return;
+  }
+
+  const q = normalizeSurahName(rawQ);
+
+  filteredStartSurahs.value = surahList.value.filter((s) => {
+    const normAr = normalizeSurahName(s.sora_name_ar);
+    const normEn = normalizeSurahName(s.sora_name_en);
+    const normId = String(s.sora);
+
+    // Check if query matches number or normalized name
+    return normId.includes(q) || normAr.includes(q) || normEn.includes(q);
+  });
+}
+
+function filterEndSurahs() {
+  const rawQ = endSurahSearch.value;
+  if (!rawQ) {
+    filteredEndSurahs.value = surahList.value;
+    return;
+  }
+
+  const q = normalizeSurahName(rawQ);
+
+  filteredEndSurahs.value = surahList.value.filter((s) => {
+    const normAr = normalizeSurahName(s.sora_name_ar);
+    const normEn = normalizeSurahName(s.sora_name_en);
+    const normId = String(s.sora);
+
+    return normId.includes(q) || normAr.includes(q) || normEn.includes(q);
+  });
+}
+
+function selectStartSurah(surah) {
+  form.startSurah = surah.sora;
+  startSurahSearch.value = `${surah.sora}. ${surah.sora_name_ar}`;
+  showStartSurahDropdown.value = false;
+  form.startAyat = "";
+  form.startPage = "";
+  calculatedResult.value = null;
+  // Clear error warning if any
+  showBackwardWarning.value = false;
+}
+
+function selectEndSurah(surah) {
+  form.endSurah = surah.sora;
+  endSurahSearch.value = `${surah.sora}. ${surah.sora_name_ar}`;
+  showEndSurahDropdown.value = false;
+  form.endAyat = "";
+  form.endPage = "";
+  calculatedResult.value = null;
+  // Clear error warning if any
+  showBackwardWarning.value = false;
+}
+
+function onAyatChange(type) {
+  // Validate ayat doesn't exceed max
+  const surahInfo =
+    type === "start" ? startSurahInfo.value : endSurahInfo.value;
+  const ayatField = type === "start" ? "startAyat" : "endAyat";
+
+  if (surahInfo && form[ayatField] > surahInfo.ayat_count) {
+    form[ayatField] = surahInfo.ayat_count;
+  }
+  if (form[ayatField] < 1) {
+    form[ayatField] = 1;
+  }
+
+  calculateDeposit();
+}
+
+async function calculateDeposit() {
+  if (!form.startSurah || !form.startAyat || !form.endSurah || !form.endAyat) {
+    calculatedResult.value = null;
+    return;
+  }
+
+  // Check for backward surah (end surah < start surah)
+  const startS = Number(form.startSurah);
+  const endS = Number(form.endSurah);
+  const startA = Number(form.startAyat);
+  const endA = Number(form.endAyat);
+
+  // Backward if end surah is before start surah
+  // Or same surah but end ayat is before start ayat
+  const isBackward = endS < startS || (endS === startS && endA < startA);
+
+  if (isBackward) {
+    // STRICT BLOCK: Do not allow calculation for backward sequence
+    // Show error modal and stop
+    showBackwardWarning.value = true;
+    calculatedResult.value = null;
+    return;
+  } else {
+    // Ensure warning is hidden if valid
+    showBackwardWarning.value = false;
+  }
+
+  try {
+    const res = await quranApi.calculate(startS, startA, endS, endA);
+
+    if (res.success) {
+      calculatedResult.value = res.data;
+      form.startPage = res.data.start.page;
+      form.endPage = res.data.end.page;
+      form.totalLines = res.data.totalLines;
+      form.totalPages = res.data.totalPages;
+    }
+  } catch (e) {
+    console.error("Calculate error:", e);
+  }
+}
+
 async function openInputModal() {
   // Load students if empty
   if (studentsList.value.length === 0) {
     try {
-      const res = await studentsApi.getAll({ limit: 1000 }); // simplified
+      const res = await studentsApi.getAll({ limit: 1000 });
       if (res.data) {
         studentsList.value = res.data;
         filteredStudents.value = res.data;
@@ -619,16 +1050,12 @@ async function openInputModal() {
     filteredStudents.value = studentsList.value;
   }
 
+  // Load surahs
+  await loadSurahs();
+
   // Get current user (teacher) id
   if (!currentUser.value) {
     const userRes = await authApi.getCurrentUser();
-    // Assuming user has teacherId or is linked to teacher
-    // For now we might need to rely on backend handling or user selection from list if admin
-    // Let's assume the user IS the teacher for simplicity or fetch mapping
-    // This part depends on auth implementation depth.
-    // Fallback: If admin, they might need to select teacher.
-    // If teacher, auto-select.
-    // Logic placeholder:
     currentUser.value = userRes.data;
   }
 
@@ -637,13 +1064,27 @@ async function openInputModal() {
     studentId: "",
     type: "ziyadah",
     fluency: "lancar",
-    juz: "",
-    surahName: "",
-    ayatStart: "",
-    ayatEnd: "",
+    startSurah: "",
+    startAyat: "",
+    startPage: "",
+    endSurah: "",
+    endAyat: "",
+    endPage: "",
+    totalLines: "",
+    totalPages: "",
     notes: "",
+    isLate: false,
   });
-  studentSearch.value = ""; // Reset search input
+  studentSearch.value = "";
+  calculatedResult.value = null;
+  backwardConfirmed.value = false;
+  // Reset surah search
+  startSurahSearch.value = "";
+  endSurahSearch.value = "";
+  showStartSurahDropdown.value = false;
+  showEndSurahDropdown.value = false;
+  filteredStartSurahs.value = surahList.value;
+  filteredEndSurahs.value = surahList.value;
 
   showModal.value = true;
 }
@@ -653,21 +1094,43 @@ async function submitDeposit() {
     alert("Mohon pilih santri terlebih dahulu");
     return;
   }
+  if (!form.startSurah || !form.startAyat || !form.endSurah || !form.endAyat) {
+    alert("Mohon isi posisi mulai dan akhir hafalan");
+    return;
+  }
+
   saving.value = true;
   try {
+    const isDepositType =
+      form.type !== "izin" && form.type !== "alpha" && form.type !== "sakit";
+
     const payload = {
-      ...form,
       studentId: Number(form.studentId),
-      teacherId: currentUser.value?.teacher?.id || 1, // Fallback to ID 1 if not linked/admin
-      juz: form.juz ? Number(form.juz) : undefined,
-      surahNumber: undefined, // lookup needed if strict
-      ayatStart: form.ayatStart ? Number(form.ayatStart) : undefined,
-      ayatEnd: form.ayatEnd ? Number(form.ayatEnd) : undefined,
+      teacherId: currentUser.value?.teacher?.id || 1,
+      type: form.type,
+      fluency: isDepositType ? form.fluency : undefined,
+      isLate: isDepositType ? form.isLate || false : false,
+      depositDate: new Date(),
+      notes: form.notes || undefined,
+      // New line-based fields
+      startSurah:
+        isDepositType && form.startSurah ? Number(form.startSurah) : null,
+      startAyat:
+        isDepositType && form.startAyat ? Number(form.startAyat) : null,
+      startPage:
+        isDepositType && form.startPage ? Number(form.startPage) : null,
+      endSurah: isDepositType && form.endSurah ? Number(form.endSurah) : null,
+      endAyat: isDepositType && form.endAyat ? Number(form.endAyat) : null,
+      endPage: isDepositType && form.endPage ? Number(form.endPage) : null,
+      totalLines:
+        isDepositType && form.totalLines ? Number(form.totalLines) : null,
+      totalPages:
+        isDepositType && form.totalPages ? Number(form.totalPages) : null,
     };
 
     await tahfidzApi.createDeposit(payload);
     showModal.value = false;
-    loadData(); // Refresh
+    loadData();
   } catch (e) {
     alert("Gagal menyimpan: " + e.message);
   } finally {
@@ -702,6 +1165,7 @@ function clearStudentSelection() {
 
 onMounted(() => {
   loadHalaqah();
+  loadSurahs();
   loadData();
 });
 </script>

@@ -9,6 +9,7 @@ import {
 } from "../db/schema/halaqah";
 import { students } from "../db/schema/students";
 import { teachers } from "../db/schema/teachers";
+import { tahfidzTargets } from "../db/schema/tahfidz";
 import { authMiddleware, requireRole } from "../middleware/auth";
 import {
   createHalaqahSchema,
@@ -66,8 +67,14 @@ halaqahRoute.get("/", async (c) => {
         location: halaqahGroups.location,
         createdAt: halaqahGroups.createdAt,
         updatedAt: halaqahGroups.updatedAt,
+        targetLevelId: halaqahGroups.targetLevelId,
+        targetLevelName: tahfidzTargets.level,
       })
       .from(halaqahGroups)
+      .leftJoin(
+        tahfidzTargets,
+        eq(halaqahGroups.targetLevelId, tahfidzTargets.id)
+      )
       .$dynamic(); // Enable dynamic query building
 
     // Joins for filtering

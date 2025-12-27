@@ -7,6 +7,7 @@ import {
   timestamp,
   mysqlEnum,
   boolean,
+  decimal,
 } from "drizzle-orm/mysql-core";
 import { students } from "./students";
 import { teachers } from "./teachers";
@@ -22,19 +23,40 @@ export const tahfidzDeposits = mysqlTable("tahfidz_deposits", {
     .notNull(), // Musyrif/Penerima setoran
 
   depositDate: timestamp("deposit_date").defaultNow().notNull(),
-  type: mysqlEnum("type", ["ziyadah", "murajaah", "izin", "alpha"]).notNull(), // Added 'alpha'
+  type: mysqlEnum("type", [
+    "ziyadah",
+    "murajaah",
+    "izin",
+    "alpha",
+    "sakit",
+  ]).notNull(),
+  isLate: boolean("is_late").default(false), // Terlambat flag
 
-  // Deposit Details
+  // Start Position (Dari)
+  startSurah: int("start_surah"),
+  startAyat: int("start_ayat"),
+  startPage: int("start_page"),
+
+  // End Position (Sampai)
+  endSurah: int("end_surah"),
+  endAyat: int("end_ayat"),
+  endPage: int("end_page"),
+
+  // Calculated Values
+  totalLines: int("total_lines"),
+  totalPages: decimal("total_pages", { precision: 5, scale: 2 }),
+
+  // Legacy fields (kept for backward compatibility)
   juz: int("juz"),
   surahNumber: int("surah_number"),
   surahName: varchar("surah_name", { length: 100 }),
   ayatStart: int("ayat_start"),
   ayatEnd: int("ayat_end"),
+  pageNumber: int("page_number"),
 
   // Quality Assessment
-  // Made nullable for 'izin' type
   fluency: mysqlEnum("fluency", ["lancar", "kurang_lancar", "mengulang"]),
-  notes: text("notes"), // Catatan ustadz (misal: "banyak yang lupa di ayat akhir")
+  notes: text("notes"),
 
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
@@ -67,6 +89,17 @@ export const tahfidzExams = mysqlTable("tahfidz_exams", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
 });
+
+// --- Tahfidz Targets (Target per Level) ---
+export const tahfidzTargets = mysqlTable("tahfidz_targets", {
+  id: int("id").primaryKey().autoincrement(),
+  level: varchar("level", { length: 50 }).notNull().unique(), // e.g., "SD", "SMP", "SMA", "Tahfidz"
+  targetPages: int("target_pages").notNull(), // Target halaman per bulan
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
+});
+
 // Relations
 import { relations } from "drizzle-orm";
 

@@ -99,6 +99,8 @@ const submenuByMain = {
           { label: "Input per Halaqah", route: "/apps/tahfidz/halaqah" },
           { label: "Ujian Tahfidz", route: "/apps/tahfidz/exams" },
           { label: "Laporan & Sertifikat", route: "/apps/tahfidz/reports" },
+          { label: "Mading Halaqah", route: "/apps/tahfidz/mading" },
+          { label: "Pengaturan Target", route: "/apps/tahfidz/settings" },
         ],
       },
       {

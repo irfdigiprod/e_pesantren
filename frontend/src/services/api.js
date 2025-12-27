@@ -484,6 +484,23 @@ export const quranApi = {
   async delete(id) {
     return request(`/api/quran/memorizations/${id}`, { method: "DELETE" });
   },
+
+  // Quran Database Lookup
+  async getSurahs() {
+    return request("/api/quran/surahs");
+  },
+  async getSurah(surahId) {
+    return request(`/api/quran/surah/${surahId}`);
+  },
+  async getAyat(surahId, ayatNo) {
+    return request(`/api/quran/ayat/${surahId}/${ayatNo}`);
+  },
+  async calculate(startSurah, startAyat, endSurah, endAyat) {
+    return request("/api/quran/calculate", {
+      method: "POST",
+      body: { startSurah, startAyat, endSurah, endAyat },
+    });
+  },
 };
 
 // ============================================
@@ -1333,6 +1350,11 @@ export const tahfidzApi = {
       body: data,
     });
   },
+  async deleteDeposit(id) {
+    return request(`/api/tahfidz/deposits/${id}`, {
+      method: "DELETE",
+    });
+  },
   async getExams(params = {}) {
     const cleanParams = Object.fromEntries(
       Object.entries(params).filter(
@@ -1368,5 +1390,23 @@ export const tahfidzApi = {
     return request(
       `/api/tahfidz/halaqah/${groupId}/monthly-summary?month=${month}&year=${year}`
     );
+  },
+  // Halaqah Report (Mading)
+  async getHalaqahReport(params) {
+    const query = new URLSearchParams(params).toString();
+    return request(`/api/tahfidz/halaqah-report?${query}`);
+  },
+  // Target Settings
+  async getTargets() {
+    return request("/api/tahfidz/targets");
+  },
+  async createTarget(data) {
+    return request("/api/tahfidz/targets", { method: "POST", body: data });
+  },
+  async updateTarget(id, data) {
+    return request(`/api/tahfidz/targets/${id}`, { method: "PUT", body: data });
+  },
+  async deleteTarget(id) {
+    return request(`/api/tahfidz/targets/${id}`, { method: "DELETE" });
   },
 };

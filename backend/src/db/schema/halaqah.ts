@@ -11,6 +11,7 @@ import {
 import { relations } from "drizzle-orm";
 import { students } from "./students";
 import { teachers } from "./teachers";
+import { tahfidzTargets } from "./tahfidz";
 
 // Halaqah Groups - Main halaqah group table
 export const halaqahGroups = mysqlTable("halaqah_groups", {
@@ -19,6 +20,11 @@ export const halaqahGroups = mysqlTable("halaqah_groups", {
   description: text("description"),
   schedule: varchar("schedule", { length: 255 }), // e.g., "Senin-Jumat 06:00-07:00"
   location: varchar("location", { length: 255 }),
+  // Link to Target Level
+  targetLevelId: int("target_level_id"),
+  // .references(() => tahfidzTargets.id) // Need to import tahfidzTargets.
+  // Circular dependency risk? halaqah -> tahfidz -> students -> halaqah.
+  // tahfidz.ts imports students/teachers. relationships are separate.
   status: mysqlEnum("status", ["active", "inactive"]).default("active"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
@@ -70,10 +76,17 @@ export const halaqahMentors = mysqlTable(
 );
 
 // Relations
-export const halaqahGroupsRelations = relations(halaqahGroups, ({ many }) => ({
-  members: many(halaqahMembers),
-  mentors: many(halaqahMentors),
-}));
+export const halaqahGroupsRelations = relations(
+  halaqahGroups,
+  ({ many, one }) => ({
+    members: many(halaqahMembers),
+    mentors: many(halaqahMentors),
+    targetLevel: one(tahfidzTargets, {
+      fields: [halaqahGroups.targetLevelId],
+      references: [tahfidzTargets.id],
+    }),
+  })
+);
 
 export const halaqahMembersRelations = relations(halaqahMembers, ({ one }) => ({
   halaqah: one(halaqahGroups, {

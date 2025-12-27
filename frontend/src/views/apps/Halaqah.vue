@@ -151,6 +151,14 @@
           </div>
 
           <div class="flex flex-wrap gap-2 mb-3">
+            <!-- Target Badge -->
+            <div
+              v-if="item.targetLevelName"
+              class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700"
+            >
+              <Icon icon="solar:target-bold-duotone" class="text-sm" />
+              {{ item.targetLevelName }}
+            </div>
             <button
               @click="openMembers(item)"
               class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700"
@@ -266,6 +274,25 @@
                 placeholder="Deskripsi grup (opsional)"
               ></textarea>
             </div>
+
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">
+                Target Hafalan (Level)
+              </label>
+              <select
+                v-model="form.targetLevelId"
+                class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#602515]"
+              >
+                <option value="">-- Pilih Target --</option>
+                <option
+                  v-for="target in allTargets"
+                  :key="target.id"
+                  :value="target.id"
+                >
+                  {{ target.level }} ({{ target.targetPages }} Hal/Bulan)
+                </option>
+              </select>
+            </div>
           </div>
 
           <!-- Footer -->
@@ -374,7 +401,12 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from "vue";
-import { halaqahApi, studentsApi, teachersApi } from "@/services/api.js";
+import {
+  halaqahApi,
+  studentsApi,
+  teachersApi,
+  tahfidzApi,
+} from "@/services/api.js";
 import { Icon } from "@iconify/vue";
 import DataTable from "@/components/ui/DataTable.vue";
 import SideBySidePicker from "@/components/ui/SideBySidePicker.vue";
@@ -393,6 +425,11 @@ const columns = [
     field: "description",
     label: "Deskripsi",
     width: "min-w-[200px]",
+  },
+  {
+    field: "targetLevelName", // Changed from targetLevel
+    label: "Target Level",
+    width: "min-w-[120px]",
   },
   {
     field: "members",
@@ -416,6 +453,7 @@ const columns = [
 const groups = ref([]);
 const allStudents = ref([]);
 const allTeachers = ref([]);
+const allTargets = ref([]); // New state
 const loading = ref(true);
 const loadingStudents = ref(false);
 const loadingTeachers = ref(false);
@@ -432,7 +470,12 @@ const pagination = reactive({
 });
 
 const modal = reactive({ show: false, mode: "create", error: "" });
-const form = reactive({ id: null, name: "", description: "" });
+const form = reactive({
+  id: null,
+  name: "",
+  description: "",
+  targetLevelId: "",
+}); // Add targetLevelId
 const confirm = reactive({ show: false, item: null });
 
 const membersModal = reactive({
@@ -626,6 +669,7 @@ async function submitForm() {
     const payload = {
       name: form.name.trim(),
       description: form.description?.trim() || undefined,
+      targetLevelId: form.targetLevelId ? Number(form.targetLevelId) : null,
     };
 
     if (modal.mode === "edit" && form.id) {
@@ -823,14 +867,22 @@ function openCreate() {
   modal.show = true;
   modal.mode = "create";
   modal.error = "";
-  Object.assign(form, { id: null, name: "", description: "" });
+  Object.assign(form, {
+    id: null,
+    name: "",
+    description: "",
+    targetLevelId: "",
+  });
 }
 
 function openEdit(item) {
   modal.show = true;
   modal.mode = "edit";
   modal.error = "";
-  Object.assign(form, { ...item });
+  Object.assign(form, {
+    ...item,
+    targetLevelId: item.targetLevelId || "",
+  });
 }
 
 function closeModal() {
@@ -847,9 +899,19 @@ function confirmCancel() {
   confirm.item = null;
 }
 
+async function fetchTargets() {
+  try {
+    const res = await tahfidzApi.getTargets();
+    allTargets.value = Array.isArray(res?.data) ? res.data : [];
+  } catch (e) {
+    console.error("Failed to load targets", e);
+  }
+}
+
 onMounted(() => {
   fetchData();
-  fetchTeachers();
+  fetchTargets();
+  fetchTeachers(); // Was in original
 });
 </script>
 
