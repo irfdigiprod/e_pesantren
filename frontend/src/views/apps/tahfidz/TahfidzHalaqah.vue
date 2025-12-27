@@ -653,7 +653,6 @@ async function loadMonthlyStats() {
     );
     if (res.success) {
       monthlyStats.value = res;
-      console.log("[TahfidzHalaqah] Monthly Stats:", res);
     }
   } catch (e) {
     console.error("Load Monthly Stats Error:", e);
@@ -684,17 +683,14 @@ async function loadInitial() {
   loadingHalaqah.value = true;
   errorMessage.value = "";
   try {
-    console.log("[TahfidzHalaqah] Loading initial data...");
     // 1. Get My Halaqahs
     // Ideally: halaqahApi.getMyGroups()
     // const user = await authApi.getCurrentUser(); // Not used currently for filtering
 
     const res = await halaqahApi.getAll();
-    console.log("[TahfidzHalaqah] getAll response:", res);
 
     if (res.success) {
       myHalaqahs.value = res.data;
-      console.log("[TahfidzHalaqah] myHalaqahs set to:", myHalaqahs.value);
 
       if (myHalaqahs.value.length > 0) {
         // Keeps selection if valid, else selects first

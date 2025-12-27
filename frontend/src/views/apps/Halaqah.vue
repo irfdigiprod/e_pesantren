@@ -14,6 +14,51 @@
       @update:limit="changeLimit"
       @page-change="changePage"
     >
+      <template #filters>
+        <div class="flex flex-wrap items-center gap-3">
+          <!-- Gender Filter -->
+          <div class="w-40">
+            <select
+              v-model="filters.gender"
+              class="w-full h-10 px-3 rounded-lg border border-slate-200 bg-white text-sm focus:outline-none focus:border-[#602515]"
+            >
+              <option value="">Semua Ikhwan/Akhwat</option>
+              <option value="male">Ikhwan</option>
+              <option value="female">Akhwat</option>
+            </select>
+          </div>
+
+          <!-- Musyrif Filter -->
+          <div class="w-48">
+            <select
+              v-model="filters.mentorId"
+              class="w-full h-10 px-3 rounded-lg border border-slate-200 bg-white text-sm focus:outline-none focus:border-[#602515]"
+            >
+              <option value="">Semua Musyrif</option>
+              <option v-for="t in allTeachers" :key="t.id" :value="t.id">
+                {{ t.fullName }}
+              </option>
+            </select>
+          </div>
+
+          <!-- Apply Button -->
+          <button
+            @click="applyFilters"
+            class="h-10 px-4 rounded-lg bg-[#602515] text-white text-sm font-medium hover:bg-[#4a1c10] transition-colors"
+          >
+            Terapkan
+          </button>
+
+          <button
+            v-if="filters.gender || filters.mentorId"
+            @click="resetFilters"
+            class="h-10 px-4 rounded-lg bg-orange-100 text-[#602515] text-sm font-medium hover:bg-orange-200 transition-colors"
+          >
+            Reset
+          </button>
+        </div>
+      </template>
+
       <!-- Header Actions -->
       <template #header-actions>
         <button
@@ -376,6 +421,7 @@ const loadingStudents = ref(false);
 const loadingTeachers = ref(false);
 const saving = ref(false);
 const viewMode = ref("table");
+
 const searchQuery = ref("");
 
 const pagination = reactive({
@@ -468,20 +514,39 @@ function changePage(page) {
   pagination.page = page;
   fetchData();
 }
+const filters = reactive({
+  mentorId: "",
+  gender: "",
+});
+
+function applyFilters() {
+  pagination.page = 1;
+  fetchData();
+}
+
+function resetFilters() {
+  filters.mentorId = "";
+  filters.gender = "";
+  applyFilters();
+}
 
 // Data fetching
 async function fetchData() {
   loading.value = true;
   try {
-    const res = await halaqahApi.getAll();
+    const params = {
+      page: pagination.page,
+      limit: pagination.limit,
+      search: searchQuery.value,
+      mentorId: filters.mentorId || undefined,
+      gender: filters.gender || undefined,
+    };
+
+    const res = await halaqahApi.getAll(params);
     const list = Array.isArray(res?.data) ? res.data : [];
 
-    // Filter by search if needed
+    // Search is handled by backend now, but for safety/fallback if api doesn't support search yet (it does)
     let filtered = list;
-    if (searchQuery.value) {
-      const q = searchQuery.value.toLowerCase();
-      filtered = list.filter((h) => h.name?.toLowerCase().includes(q));
-    }
 
     // Enrich with member/mentor counts
     const enriched = await Promise.all(
@@ -782,7 +847,10 @@ function confirmCancel() {
   confirm.item = null;
 }
 
-onMounted(fetchData);
+onMounted(() => {
+  fetchData();
+  fetchTeachers();
+});
 </script>
 
 <style scoped>
@@ -794,4 +862,3 @@ onMounted(fetchData);
   overflow: hidden;
 }
 </style>
-```

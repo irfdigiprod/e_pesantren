@@ -771,12 +771,22 @@ export const academicApi = {
 
 export const halaqahApi = {
   async getAll(params = {}) {
-    const query = new URLSearchParams(params).toString();
+    // Filter undefined/null/empty params
+    const cleanParams = Object.fromEntries(
+      Object.entries(params).filter(
+        ([_, v]) => v != null && v !== "" && v !== "undefined"
+      )
+    );
+    const query = new URLSearchParams(cleanParams).toString();
     return request(query ? `/api/halaqah?${query}` : "/api/halaqah");
   },
 
   async getById(id) {
     return request(`/api/halaqah/${id}`);
+  },
+
+  async getByStudent(studentId) {
+    return request(`/api/halaqah/by-student/${studentId}`);
   },
 
   async create(data) {
@@ -1290,11 +1300,25 @@ export const uploadsApi = {
 // ============================================
 
 export const tahfidzApi = {
-  async getStats() {
-    return request("/api/tahfidz/stats");
+  async getStats(params = {}) {
+    const cleanParams = Object.fromEntries(
+      Object.entries(params).filter(
+        ([_, v]) => v != null && v !== "" && v !== "undefined"
+      )
+    );
+    const query = new URLSearchParams(cleanParams).toString();
+    const endpoint = query
+      ? `/api/tahfidz/stats?${query}`
+      : "/api/tahfidz/stats";
+    return request(endpoint);
   },
   async getDeposits(params = {}) {
-    const query = new URLSearchParams(params).toString();
+    const cleanParams = Object.fromEntries(
+      Object.entries(params).filter(
+        ([_, v]) => v != null && v !== "" && v !== "undefined"
+      )
+    );
+    const query = new URLSearchParams(cleanParams).toString();
     const endpoint = query
       ? `/api/tahfidz/deposits?${query}`
       : "/api/tahfidz/deposits";
@@ -1310,7 +1334,12 @@ export const tahfidzApi = {
     });
   },
   async getExams(params = {}) {
-    const query = new URLSearchParams(params).toString();
+    const cleanParams = Object.fromEntries(
+      Object.entries(params).filter(
+        ([_, v]) => v != null && v !== "" && v !== "undefined"
+      )
+    );
+    const query = new URLSearchParams(cleanParams).toString();
     const endpoint = query
       ? `/api/tahfidz/exams?${query}`
       : "/api/tahfidz/exams";
@@ -1318,6 +1347,17 @@ export const tahfidzApi = {
   },
   async createExam(data) {
     return request("/api/tahfidz/exams", { method: "POST", body: data });
+  },
+  async updateExam(id, data) {
+    return request(`/api/tahfidz/exams/${id}`, {
+      method: "PUT",
+      body: data,
+    });
+  },
+  async deleteExam(id) {
+    return request(`/api/tahfidz/exams/${id}`, {
+      method: "DELETE",
+    });
   },
   async getHalaqahDailySummary(groupId, date) {
     return request(

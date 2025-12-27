@@ -1,10 +1,11 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import { eq } from "drizzle-orm";
+import { eq, desc, getTableColumns } from "drizzle-orm";
 import { db } from "../db";
 import { teachers } from "../db/schema/teachers";
 import { divisions, teacherDivisions } from "../db/schema/divisions";
 import { users } from "../db/schema/users";
+import { salaryGrades, positionAllowances } from "../db/schema/salary";
 import { authMiddleware, requireRole } from "../middleware/auth";
 import { hashPassword } from "../utils/password";
 import {
@@ -27,23 +28,36 @@ teachersRoute.get("/", async (c) => {
       conditions.push(eq(teachers.userId, parseInt(userId)));
     }
 
-    const allTeachers =
-      conditions.length > 0
-        ? await db.query.teachers.findMany({
-            where: conditions[0],
-            orderBy: (teachers, { desc }) => [desc(teachers.createdAt)],
-            with: {
-              salaryGrade: true,
-              positionAllowance: true,
-            },
-          })
-        : await db.query.teachers.findMany({
-            orderBy: (teachers, { desc }) => [desc(teachers.createdAt)],
-            with: {
-              salaryGrade: true,
-              positionAllowance: true,
-            },
-          });
+    const query = db
+      .select({
+        ...getTableColumns(teachers),
+        // Salary Grade columns
+        sg_id: salaryGrades.id,
+        sg_name: salaryGrades.name,
+        sg_dailyAttendanceRate: salaryGrades.dailyAttendanceRate,
+        sg_baseSalary: salaryGrades.baseSalary,
+        sg_healthAllowance: salaryGrades.healthAllowance,
+        sg_teachingHourRate: salaryGrades.teachingHourRate,
+        sg_housingAllowance: salaryGrades.housingAllowance,
+        sg_transportAllowance: salaryGrades.transportAllowance,
+        // Position Allowance columns
+        pa_id: positionAllowances.id,
+        pa_position: positionAllowances.position,
+        pa_amount: positionAllowances.amount,
+      })
+      .from(teachers)
+      .leftJoin(salaryGrades, eq(teachers.salaryGradeId, salaryGrades.id))
+      .leftJoin(
+        positionAllowances,
+        eq(teachers.positionAllowanceId, positionAllowances.id)
+      )
+      .orderBy(desc(teachers.createdAt));
+
+    if (conditions.length > 0) {
+      query.where(conditions[0]);
+    }
+
+    const allTeachers = await query;
 
     // Fetch related divisions manually to be safe
     const allRelations = await db
@@ -54,13 +68,53 @@ teachersRoute.get("/", async (c) => {
       .from(teacherDivisions)
       .innerJoin(divisions, eq(teacherDivisions.divisionId, divisions.id));
 
-    const data = allTeachers.map((t) => {
+    const data = allTeachers.map((row) => {
+      // Reconstruct nested objects
+      const salaryGrade = row.sg_id
+        ? {
+            id: row.sg_id,
+            name: row.sg_name,
+            dailyAttendanceRate: row.sg_dailyAttendanceRate,
+            baseSalary: row.sg_baseSalary,
+            healthAllowance: row.sg_healthAllowance,
+            teachingHourRate: row.sg_teachingHourRate,
+            housingAllowance: row.sg_housingAllowance,
+            transportAllowance: row.sg_transportAllowance,
+          }
+        : null;
+
+      const positionAllowance = row.pa_id
+        ? {
+            id: row.pa_id,
+            position: row.pa_position,
+            amount: row.pa_amount,
+          }
+        : null;
+
+      // Extract teacher data (remove aliased columns)
+      const {
+        sg_id,
+        sg_name,
+        sg_dailyAttendanceRate,
+        sg_baseSalary,
+        sg_healthAllowance,
+        sg_teachingHourRate,
+        sg_housingAllowance,
+        sg_transportAllowance,
+        pa_id,
+        pa_position,
+        pa_amount,
+        ...teacherData
+      } = row;
+
       const myDivs = allRelations
-        .filter((r) => r.teacherId === t.id)
+        .filter((r) => r.teacherId === teacherData.id)
         .map((r) => r.division);
       return {
-        ...t,
+        ...teacherData,
         divisions: myDivs,
+        salaryGrade,
+        positionAllowance,
       };
     });
 
@@ -68,9 +122,24 @@ teachersRoute.get("/", async (c) => {
       success: true,
       data: data,
     });
-  } catch (error) {
-    console.error("Get teachers error:", error);
-    return c.json({ success: false, message: "Failed to get teachers" }, 500);
+  } catch (error: any) {
+    console.error("Get teachers error details:", {
+      message: error.message,
+      code: error.code,
+      errno: error.errno,
+      sql: error.sql,
+      sqlMessage: error.sqlMessage,
+    });
+    return c.json(
+      {
+        success: false,
+        message:
+          "Failed to get teachers: " +
+          (error.sqlMessage || error.message || String(error)) +
+          (error.sql ? ` \nSQL: ${error.sql}` : ""),
+      },
+      500
+    );
   }
 });
 

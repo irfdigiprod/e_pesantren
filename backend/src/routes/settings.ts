@@ -34,7 +34,17 @@ settingsRoute.get("/public", async (c) => {
     });
   } catch (error) {
     console.error("Get public settings error:", error);
-    return c.json({ success: false, message: "Failed to fetch settings" }, 500);
+    return c.json(
+      {
+        success: false,
+        message:
+          "Failed to fetch settings: " +
+          ((error as any).sqlMessage ||
+            (error as any).message ||
+            String(error)),
+      },
+      500
+    );
   }
 });
 
@@ -68,7 +78,17 @@ settingsRoute.get("/", async (c) => {
     });
   } catch (error) {
     console.error("Get settings error:", error);
-    return c.json({ success: false, message: "Failed to fetch settings" }, 500);
+    return c.json(
+      {
+        success: false,
+        message:
+          "Failed to fetch settings: " +
+          ((error as any).sqlMessage ||
+            (error as any).message ||
+            String(error)),
+      },
+      500
+    );
   }
 });
 

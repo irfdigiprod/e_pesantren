@@ -8,7 +8,7 @@ import {
   halaqahMembers,
   halaqahGroups,
 } from "../db/schema";
-import { eq, desc, and, gte, lte, sql, inArray } from "drizzle-orm";
+import { eq, desc, and, gte, lte, sql, inArray, like, or } from "drizzle-orm";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 
@@ -47,20 +47,77 @@ const examSchema = z.object({
 
 // GET /stats - Dashboard Stats
 app.get("/stats", async (c) => {
+  const startDate = c.req.query("startDate");
+  const endDate = c.req.query("endDate");
+  const halaqahId = c.req.query("halaqahId");
+  const gender = c.req.query("gender");
+
   try {
-    const today = new Date().toISOString().split("T")[0];
+    const conditions: any[] = [];
+
+    if (startDate) {
+      conditions.push(gte(tahfidzDeposits.depositDate, new Date(startDate)));
+    }
+
+    if (endDate) {
+      conditions.push(sql`DATE(${tahfidzDeposits.depositDate}) <= ${endDate}`);
+    }
+
+    if (gender) {
+      conditions.push(eq(students.gender, gender as "male" | "female"));
+    }
+
+    if (halaqahId) {
+      conditions.push(eq(halaqahMembers.halaqahId, Number(halaqahId)));
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    // Helper to build base query with joins if needed
+    // We strictly need joins only if filtering by gender or halaqah
+    // But for simplicity/consistency, let's always join if no perf hit
+    const buildQuery = () => {
+      const query = db
+        .select({ count: sql<number>`count(*)` })
+        .from(tahfidzDeposits)
+        .leftJoin(students, eq(tahfidzDeposits.studentId, students.id))
+        .leftJoin(
+          halaqahMembers,
+          and(
+            eq(tahfidzDeposits.studentId, halaqahMembers.studentId),
+            eq(halaqahMembers.status, "active")
+          )
+        );
+
+      if (whereClause) {
+        query.where(whereClause);
+      }
+      return query;
+    };
 
     // Total deposits count
-    const [totalDepositsResult] = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(tahfidzDeposits);
+    const [totalDepositsResult] = await buildQuery();
 
-    // Total students with at least 1 deposit
-    const [activeStudentsResult] = await db
+    // Total students with at least 1 deposit (in the filtered range)
+    const activeStudentsQuery = db
       .select({
         count: sql<number>`count(distinct ${tahfidzDeposits.studentId})`,
       })
-      .from(tahfidzDeposits);
+      .from(tahfidzDeposits)
+      .leftJoin(students, eq(tahfidzDeposits.studentId, students.id))
+      .leftJoin(
+        halaqahMembers,
+        and(
+          eq(tahfidzDeposits.studentId, halaqahMembers.studentId),
+          eq(halaqahMembers.status, "active")
+        )
+      );
+
+    if (whereClause) {
+      activeStudentsQuery.where(whereClause);
+    }
+
+    const [activeStudentsResult] = await activeStudentsQuery;
 
     return c.json({
       success: true,
@@ -80,6 +137,10 @@ app.get("/stats", async (c) => {
 // GET /deposits - History
 app.get("/deposits", async (c) => {
   const studentId = c.req.query("studentId");
+  const startDate = c.req.query("startDate");
+  const endDate = c.req.query("endDate");
+  const halaqahId = c.req.query("halaqahId");
+  const gender = c.req.query("gender"); // male | female
 
   try {
     let query = db
@@ -90,6 +151,7 @@ app.get("/deposits", async (c) => {
         surah: tahfidzDeposits.surahName,
         ayatStart: tahfidzDeposits.ayatStart,
         ayatEnd: tahfidzDeposits.ayatEnd,
+        juz: tahfidzDeposits.juz,
         fluency: tahfidzDeposits.fluency,
         notes: tahfidzDeposits.notes,
         studentName: students.fullName,
@@ -98,15 +160,89 @@ app.get("/deposits", async (c) => {
       .from(tahfidzDeposits)
       .leftJoin(students, eq(tahfidzDeposits.studentId, students.id))
       .leftJoin(teachers, eq(tahfidzDeposits.teacherId, teachers.id))
+      // Join with halaqahMembers if filtering by halaqah
+      .leftJoin(
+        halaqahMembers,
+        and(
+          eq(tahfidzDeposits.studentId, halaqahMembers.studentId),
+          eq(halaqahMembers.status, "active") // Only active members? Maybe not strictly needed if we want history
+        )
+      )
       .orderBy(desc(tahfidzDeposits.depositDate));
 
-    if (studentId) {
-      query.where(eq(tahfidzDeposits.studentId, Number(studentId)));
+    const page = Number(c.req.query("page") || 1);
+    const limit = Number(c.req.query("limit") || 10);
+    const offset = (page - 1) * limit;
+    const search = c.req.query("search");
+
+    const conditions: any[] = [];
+
+    if (search) {
+      conditions.push(
+        or(
+          like(students.fullName, `%${search}%`),
+          like(students.nis, `%${search}%`)
+        )
+      );
     }
 
-    const data = await query.limit(100); // Limit for performance
+    if (studentId) {
+      conditions.push(eq(tahfidzDeposits.studentId, Number(studentId)));
+    }
 
-    return c.json({ success: true, data });
+    if (startDate) {
+      conditions.push(gte(tahfidzDeposits.depositDate, new Date(startDate)));
+    }
+
+    if (endDate) {
+      conditions.push(sql`DATE(${tahfidzDeposits.depositDate}) <= ${endDate}`);
+    }
+
+    if (gender) {
+      conditions.push(eq(students.gender, gender as "male" | "female"));
+    }
+
+    if (halaqahId) {
+      conditions.push(eq(halaqahMembers.halaqahId, Number(halaqahId)));
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    // 1. Get Total Count
+    const totalResult = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(tahfidzDeposits)
+      .leftJoin(students, eq(tahfidzDeposits.studentId, students.id))
+      .leftJoin(teachers, eq(tahfidzDeposits.teacherId, teachers.id))
+      .leftJoin(
+        halaqahMembers,
+        and(
+          eq(tahfidzDeposits.studentId, halaqahMembers.studentId),
+          eq(halaqahMembers.status, "active")
+        )
+      )
+      .where(whereClause);
+
+    const total = totalResult[0]?.count || 0;
+    const totalPages = Math.ceil(total / limit);
+
+    // 2. Get Data
+    if (whereClause) {
+      query.where(whereClause);
+    }
+
+    const data = await query.limit(limit).offset(offset);
+
+    return c.json({
+      success: true,
+      data,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+      },
+    });
   } catch (e: any) {
     return c.json(
       { success: false, message: e.message || "Internal Error" },
@@ -175,9 +311,57 @@ app.put("/deposits/:id", zValidator("json", depositSchema), async (c) => {
 
 // GET /exams
 app.get("/exams", async (c) => {
+  const page = Number(c.req.query("page") || 1);
+  const limit = Number(c.req.query("limit") || 10);
+  const offset = (page - 1) * limit;
+
   const studentId = c.req.query("studentId");
+  const search = c.req.query("search");
+  const startDate = c.req.query("startDate");
+  const endDate = c.req.query("endDate");
+  const verdict = c.req.query("verdict");
+  const gender = c.req.query("gender");
+  const examinerId = c.req.query("examinerId");
+
   try {
-    let query = db
+    const conditions: any[] = [];
+
+    if (studentId)
+      conditions.push(eq(tahfidzExams.studentId, Number(studentId)));
+    if (search) {
+      conditions.push(
+        or(
+          like(students.fullName, `%${search}%`),
+          like(students.nis, `%${search}%`)
+        )
+      );
+    }
+    if (startDate)
+      conditions.push(gte(tahfidzExams.examDate, new Date(startDate)));
+    if (endDate)
+      conditions.push(sql`DATE(${tahfidzExams.examDate}) <= ${endDate}`);
+    if (verdict) conditions.push(eq(tahfidzExams.verdict, verdict as any));
+    if (gender) conditions.push(eq(students.gender, gender as any));
+    if (examinerId)
+      conditions.push(eq(tahfidzExams.examinerId, Number(examinerId)));
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    // 1. Get Total Count
+    const countQuery = db
+      .select({ count: sql<number>`count(*)` })
+      .from(tahfidzExams)
+      .leftJoin(students, eq(tahfidzExams.studentId, students.id));
+
+    if (whereClause) {
+      countQuery.where(whereClause);
+    }
+
+    const [countResult] = await countQuery;
+    const total = Number(countResult?.count || 0);
+
+    // 2. Get Data
+    const dataQuery = db
       .select({
         id: tahfidzExams.id,
         date: tahfidzExams.examDate,
@@ -186,18 +370,38 @@ app.get("/exams", async (c) => {
         verdict: tahfidzExams.verdict,
         studentName: students.fullName,
         examinerName: teachers.fullName,
+        // Detailed fields for Edit
+        studentId: tahfidzExams.studentId,
+        examinerId: tahfidzExams.examinerId,
+        scoreFluency: tahfidzExams.scoreFluency,
+        scoreTajwid: tahfidzExams.scoreTajwid,
+        scoreMakhraj: tahfidzExams.scoreMakhraj,
+        scoreAdab: tahfidzExams.scoreAdab,
+        notes: tahfidzExams.notes,
       })
       .from(tahfidzExams)
       .leftJoin(students, eq(tahfidzExams.studentId, students.id))
       .leftJoin(teachers, eq(tahfidzExams.examinerId, teachers.id))
-      .orderBy(desc(tahfidzExams.examDate));
+      .orderBy(desc(tahfidzExams.examDate))
+      .limit(limit)
+      .offset(offset);
 
-    if (studentId) {
-      query.where(eq(tahfidzExams.studentId, Number(studentId)));
+    if (whereClause) {
+      dataQuery.where(whereClause);
     }
 
-    const data = await query;
-    return c.json({ success: true, data });
+    const data = await dataQuery;
+
+    return c.json({
+      success: true,
+      data,
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
   } catch (e: any) {
     return c.json(
       { success: false, message: e.message || "Internal Error" },
@@ -215,6 +419,46 @@ app.post("/exams", zValidator("json", examSchema), async (c) => {
       examDate: new Date(body.examDate),
     });
     return c.json({ success: true, message: "Nilai ujian berhasil disimpan" });
+  } catch (e: any) {
+    return c.json(
+      { success: false, message: e.message || "Internal Error" },
+      500
+    );
+  }
+});
+
+// PUT /exams/:id - Update
+app.put("/exams/:id", zValidator("json", examSchema), async (c) => {
+  const id = parseInt(c.req.param("id"));
+  const body = c.req.valid("json");
+  try {
+    await db
+      .update(tahfidzExams)
+      .set({
+        ...body,
+        examDate: new Date(body.examDate),
+        updatedAt: new Date(),
+      })
+      .where(eq(tahfidzExams.id, id));
+
+    return c.json({
+      success: true,
+      message: "Nilai ujian berhasil diperbarui",
+    });
+  } catch (e: any) {
+    return c.json(
+      { success: false, message: e.message || "Internal Error" },
+      500
+    );
+  }
+});
+
+// DELETE /exams/:id - Delete
+app.delete("/exams/:id", async (c) => {
+  const id = parseInt(c.req.param("id"));
+  try {
+    await db.delete(tahfidzExams).where(eq(tahfidzExams.id, id));
+    return c.json({ success: true, message: "Data ujian berhasil dihapus" });
   } catch (e: any) {
     return c.json(
       { success: false, message: e.message || "Internal Error" },
@@ -361,8 +605,8 @@ app.get("/halaqah/:groupId/monthly-summary", async (c) => {
 
     deposits.forEach((d) => {
       let dateKey = String(d.date);
-      if (d.date instanceof Date) {
-        dateKey = d.date.toISOString().split("T")[0];
+      if ((d.date as any) instanceof Date) {
+        dateKey = (d.date as any).toISOString().split("T")[0];
       }
 
       if (!stats[dateKey]) {
@@ -370,11 +614,11 @@ app.get("/halaqah/:groupId/monthly-summary", async (c) => {
       }
 
       if (d.type === "izin") {
-        stats[dateKey].permission += d.count;
+        stats[dateKey]!.permission += d.count;
       } else if (d.type === "alpha") {
-        stats[dateKey].alpha += d.count;
+        stats[dateKey]!.alpha += d.count;
       } else {
-        stats[dateKey].done += d.count;
+        stats[dateKey]!.done += d.count;
       }
     });
 

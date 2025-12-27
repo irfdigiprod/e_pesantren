@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import { eq, and } from "drizzle-orm";
+import { eq, and, like, or, sql, desc, inArray } from "drizzle-orm";
 import { db } from "../db";
 import {
   halaqahGroups,
@@ -27,75 +27,122 @@ halaqahRoute.use("*", authMiddleware);
 // ============ HALAQAH GROUPS ============
 
 // Get all halaqah groups
+// Get all halaqah groups
 halaqahRoute.get("/", async (c) => {
   try {
     const status = c.req.query("status");
+    const name = c.req.query("name");
+    const mentorId = c.req.query("mentorId");
+    const gender = c.req.query("gender"); // male | female
 
-    let groups;
+    const conditions: any[] = [];
+
     if (status) {
-      groups = await db.query.halaqahGroups.findMany({
-        where: eq(halaqahGroups.status, status as any),
-        with: {
-          mentors: {
-            with: {
-              teacher: true,
-            },
-          },
-        },
-      });
-    } else {
-      groups = await db.query.halaqahGroups.findMany({
-        with: {
-          mentors: {
-            with: {
-              teacher: true,
-            },
-          },
-        },
+      conditions.push(eq(halaqahGroups.status, status as any));
+    }
+
+    if (name) {
+      conditions.push(like(halaqahGroups.name, `%${name}%`));
+    }
+
+    if (mentorId) {
+      // Filter groups that have this mentor
+      // We can use exists subquery or just join.
+      // Since we are selecting distinct groups, join is fine but we need to match the mentor.
+      // Actually, we want groups WHERE at least one mentor is X.
+      // Subquery exists is cleaner to avoid duplicating rows before distinct.
+      // limit 1
+    }
+
+    // Build the query
+    // We start with selecting distinct groups
+    let query = db
+      .selectDistinct({
+        id: halaqahGroups.id,
+        name: halaqahGroups.name,
+        description: halaqahGroups.description,
+        status: halaqahGroups.status,
+        schedule: halaqahGroups.schedule,
+        location: halaqahGroups.location,
+        createdAt: halaqahGroups.createdAt,
+        updatedAt: halaqahGroups.updatedAt,
+      })
+      .from(halaqahGroups)
+      .$dynamic(); // Enable dynamic query building
+
+    // Joins for filtering
+    if (gender) {
+      query = query
+        .leftJoin(
+          halaqahMembers,
+          eq(halaqahGroups.id, halaqahMembers.halaqahId)
+        )
+        .leftJoin(students, eq(halaqahMembers.studentId, students.id));
+      conditions.push(eq(students.gender, gender as "male" | "female"));
+    }
+
+    if (mentorId) {
+      query = query.leftJoin(
+        halaqahMentors,
+        eq(halaqahGroups.id, halaqahMentors.halaqahId)
+      );
+      conditions.push(eq(halaqahMentors.teacherId, Number(mentorId)));
+    }
+
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions));
+    }
+
+    const groups = await query.orderBy(desc(halaqahGroups.createdAt));
+
+    // Now we need to fetch mentors
+    const groupIds = groups.map((g) => g.id);
+    let mentorsMap: Record<number, any[]> = {};
+
+    if (groupIds.length > 0) {
+      const mentors = await db
+        .select({
+          halaqahId: halaqahMentors.halaqahId,
+          teacherId: halaqahMentors.teacherId,
+          teacherName: teachers.fullName,
+        })
+        .from(halaqahMentors)
+        .leftJoin(teachers, eq(halaqahMentors.teacherId, teachers.id))
+        .where(inArray(halaqahMentors.halaqahId, groupIds));
+
+      mentors.forEach((m) => {
+        if (!mentorsMap[m.halaqahId]) {
+          mentorsMap[m.halaqahId] = [];
+        }
+        mentorsMap[m.halaqahId].push(m);
       });
     }
 
-    // Map to include mentorName using the new relations
-    const groupsWithMentor = groups.map((g: any) => {
-      // Prioritize active mentors, then by role (lead first)
-      const activeMentors = g.mentors.filter((m: any) => m.status === "active");
-
-      const leadMentor = activeMentors.find((m: any) => m.role === "lead");
-      const assistantMentors = activeMentors.filter(
-        (m: any) => m.role !== "lead"
-      );
-
-      // Construct mentor string: "Lead (Asst)" or just "Lead"
-      let mentorName = "-";
-      if (leadMentor) {
-        mentorName = leadMentor.teacher.fullName;
-        if (assistantMentors.length > 0) {
-          // efficient mapping
-          const asstNames = assistantMentors
-            .map((m: any) => m.teacher.fullName)
-            .join(", ");
-          mentorName += ` & ${asstNames}`;
-        }
-      } else if (assistantMentors.length > 0) {
-        mentorName = assistantMentors
-          .map((m: any) => m.teacher.fullName)
-          .join(", ");
-      }
+    const data = groups.map((g) => {
+      const mentors = mentorsMap[g.id] || [];
+      const mentorName =
+        mentors.length > 0 ? mentors.map((m) => m.teacherName).join(", ") : "-";
 
       return {
         ...g,
+        mentors,
         mentorName,
       };
     });
 
     return c.json({
       success: true,
-      data: groupsWithMentor,
+      data,
     });
   } catch (error) {
     console.error("Get halaqah groups error:", error);
     return c.json(
-      { success: false, message: "Failed to get halaqah groups" },
+      {
+        success: false,
+        message:
+          "Failed to get halaqah groups: " +
+          ((error as any)?.message || String(error)),
+      },
       500
     );
   }
@@ -135,6 +182,60 @@ halaqahRoute.get("/:id", async (c) => {
   } catch (error) {
     console.error("Get halaqah error:", error);
     return c.json({ success: false, message: "Failed to get halaqah" }, 500);
+  }
+});
+
+// Get halaqah group by student ID (for reports)
+halaqahRoute.get("/by-student/:studentId", async (c) => {
+  try {
+    const studentId = parseInt(c.req.param("studentId"));
+
+    // Find student's halaqah membership
+    const membership = await db.query.halaqahMembers.findFirst({
+      where: and(
+        eq(halaqahMembers.studentId, studentId),
+        eq(halaqahMembers.status, "active")
+      ),
+    });
+
+    if (!membership) {
+      return c.json({
+        success: true,
+        data: { halaqahId: null, halaqahName: null, mentorName: null },
+      });
+    }
+
+    // Get halaqah group
+    const halaqah = await db.query.halaqahGroups.findFirst({
+      where: eq(halaqahGroups.id, membership.halaqahId),
+    });
+
+    // Get first mentor of this group
+    const mentorRecord = await db
+      .select({
+        teacherId: halaqahMentors.teacherId,
+        fullName: teachers.fullName,
+      })
+      .from(halaqahMentors)
+      .leftJoin(teachers, eq(halaqahMentors.teacherId, teachers.id))
+      .where(eq(halaqahMentors.halaqahId, membership.halaqahId))
+      .orderBy(sql`${halaqahMentors.id} ASC`) // First mentor by lowest ID (earliest added)
+      .limit(1);
+
+    return c.json({
+      success: true,
+      data: {
+        halaqahId: membership.halaqahId,
+        halaqahName: halaqah?.name || null,
+        mentorName: mentorRecord[0]?.fullName || null,
+      },
+    });
+  } catch (error) {
+    console.error("Get halaqah by student error:", error);
+    return c.json(
+      { success: false, message: "Failed to get student halaqah" },
+      500
+    );
   }
 });
 

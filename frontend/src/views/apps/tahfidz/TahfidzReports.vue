@@ -241,7 +241,7 @@
                 <p
                   class="font-bold border-b border-slate-800 inline-block min-w-[150px]"
                 >
-                  Ustadz Fulan
+                  {{ mentorName || "Ustadz" }}
                 </p>
               </div>
             </div>
@@ -301,7 +301,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from "vue";
 import { Icon } from "@iconify/vue";
-import { studentsApi, tahfidzApi } from "@/services/api";
+import { studentsApi, tahfidzApi, halaqahApi } from "@/services/api";
 
 const loading = ref(false);
 const studentsList = ref([]);
@@ -314,6 +314,7 @@ const reportType = ref("rapor"); // rapor | sertifikat
 const period = ref("Ganjil 2024/2025");
 
 const student = ref(null);
+const mentorName = ref("");
 const summary = reactive({
   totalDeposits: 0,
   totalJuz: 0,
@@ -395,6 +396,19 @@ async function loadStudentData() {
 
     if (examRes.success) {
       summary.exams = examRes.data;
+    }
+
+    // Fetch halaqah mentor name
+    try {
+      const halaqahRes = await halaqahApi.getByStudent(selectedStudentId.value);
+      if (halaqahRes.success && halaqahRes.data?.mentorName) {
+        mentorName.value = halaqahRes.data.mentorName;
+      } else {
+        mentorName.value = "";
+      }
+    } catch (e) {
+      console.error("Failed to fetch halaqah mentor:", e);
+      mentorName.value = "";
     }
   } catch (e) {
     console.error(e);

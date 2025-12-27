@@ -120,7 +120,17 @@ usersRoute.get("/current", async (c) => {
     });
   } catch (error) {
     console.error("Get current user error:", error);
-    return c.json({ success: false, message: "Failed to get profile" }, 500);
+    return c.json(
+      {
+        success: false,
+        message:
+          "Failed to get profile: " +
+          ((error as any).sqlMessage ||
+            (error as any).message ||
+            String(error)),
+      },
+      500
+    );
   }
 });
 

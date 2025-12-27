@@ -209,7 +209,14 @@ chat.get("/conversations", authMiddleware, async (c) => {
   } catch (error) {
     console.error("Get conversations error:", error);
     return c.json(
-      { success: false, message: "Failed to get conversations" },
+      {
+        success: false,
+        message:
+          "Failed to get conversations: " +
+          ((error as any).sqlMessage ||
+            (error as any).message ||
+            String(error)),
+      },
       500
     );
   }

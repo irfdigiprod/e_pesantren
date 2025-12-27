@@ -1,24 +1,5 @@
 <template>
   <div class="max-w-7xl mx-auto pb-12">
-    <!-- Header -->
-    <div
-      class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4"
-    >
-      <div>
-        <h1 class="text-2xl font-bold text-slate-800">Ujian Tahfidz</h1>
-        <p class="text-slate-500">
-          Kelola jadwal dan penilaian ujian tahfidz santri
-        </p>
-      </div>
-      <button
-        @click="openModal"
-        class="bg-[#602515] text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2 hover:bg-[#4a1c10] transition-colors"
-      >
-        <Icon icon="solar:diploma-add-bold-duotone" />
-        Input Nilai Ujian
-      </button>
-    </div>
-
     <!-- Exam History Table -->
     <DataTable
       title="Riwayat Ujian"
@@ -29,7 +10,121 @@
       :loading="loading"
       :viewMode="viewMode"
       @update:viewMode="viewMode = $event"
+      :search="filters.search"
+      @update:search="onSearchInput"
+      :pagination="pagination"
+      @page-change="
+        (p) => {
+          pagination.page = p;
+          loadData();
+        }
+      "
+      @update:limit="
+        (l) => {
+          pagination.limit = l;
+        }
+      "
     >
+      <template #header-actions>
+        <button
+          @click="openModal"
+          class="bg-[#602515] text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2 hover:bg-[#4a1c10] transition-colors"
+        >
+          <Icon icon="solar:pen-new-square-line-duotone" />
+          Input Nilai Ujian
+        </button>
+      </template>
+
+      <template #filters="{ close }">
+        <div class="flex flex-col gap-4">
+          <div class="flex justify-between items-center mb-2">
+            <h3 class="font-semibold text-slate-800">Filter Data</h3>
+            <button
+              @click="resetFilters"
+              class="text-xs text-red-500 hover:text-red-700 font-medium"
+            >
+              Reset
+            </button>
+          </div>
+
+          <!-- Date Range -->
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1"
+                >Mulai</label
+              >
+              <input
+                v-model="filters.startDate"
+                @change="loadData"
+                type="date"
+                class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-[#602515]"
+              />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1"
+                >Sampai</label
+              >
+              <input
+                v-model="filters.endDate"
+                @change="loadData"
+                type="date"
+                class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-[#602515]"
+              />
+            </div>
+          </div>
+
+          <!-- Verdict -->
+          <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1"
+              >Hasil</label
+            >
+            <select
+              v-model="filters.verdict"
+              @change="loadData"
+              class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-[#602515]"
+            >
+              <option value="">Semua Hasil</option>
+              <option value="pass">Lulus</option>
+              <option value="conditional">Bersyarat</option>
+              <option value="fail">Tidak Lulus</option>
+            </select>
+          </div>
+
+          <!-- Gender -->
+          <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1"
+              >Gender</label
+            >
+            <select
+              v-model="filters.gender"
+              @change="loadData"
+              class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-[#602515]"
+            >
+              <option value="">Semua Gender</option>
+              <option value="male">Laki-laki</option>
+              <option value="female">Perempuan</option>
+            </select>
+          </div>
+
+          <!-- Examiner -->
+          <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1"
+              >Penguji</label
+            >
+            <select
+              v-model="filters.examinerId"
+              @change="loadData"
+              class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-[#602515]"
+            >
+              <option value="">Semua Penguji</option>
+              <option v-for="t in teachersList" :key="t.id" :value="t.id">
+                {{ t.fullName }}
+              </option>
+            </select>
+          </div>
+        </div>
+      </template>
+
       <template #cell-finalScore="{ item }">
         <span class="font-bold" :class="getScoreColor(item.finalScore)">
           {{ item.finalScore }}
@@ -48,6 +143,133 @@
           {{ formatVerdict(item.verdict) }}
         </span>
       </template>
+
+      <!-- Card View Template -->
+
+      <template #card-actions="{ item }">
+        <div class="flex gap-2">
+          <button
+            @click="editExam(item)"
+            class="p-2 bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-100 transition-colors"
+            title="Edit"
+          >
+            <Icon icon="solar:pen-bold-duotone" />
+          </button>
+          <button
+            @click="deleteExam(item)"
+            class="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
+            title="Hapus"
+          >
+            <Icon icon="solar:trash-bin-trash-bold-duotone" />
+          </button>
+        </div>
+      </template>
+
+      <template #card-item="{ item }">
+        <div
+          class="bg-white rounded-xl shadow-sm border border-slate-100 p-4 hover:shadow-md transition-shadow relative group"
+        >
+          <!-- Absolute Actions for Card -->
+          <div
+            class="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 rounded-lg shadow-sm backdrop-blur-sm"
+          >
+            <button
+              @click="editExam(item)"
+              class="p-1.5 text-amber-600 hover:bg-amber-50 rounded-md"
+              title="Edit"
+            >
+              <Icon icon="solar:pen-bold-duotone" />
+            </button>
+            <button
+              @click="deleteExam(item)"
+              class="p-1.5 text-red-600 hover:bg-red-50 rounded-md"
+              title="Hapus"
+            >
+              <Icon icon="solar:trash-bin-trash-bold-duotone" />
+            </button>
+          </div>
+
+          <!-- Header: Name, Type, Verdict -->
+          <div class="flex justify-between items-start gap-4 mb-3">
+            <div class="flex-1 min-w-0 pr-16">
+              <h3 class="font-bold text-slate-800 text-base truncate">
+                {{ item.studentName }}
+              </h3>
+              <p class="text-sm text-slate-500 truncate">{{ item.type }}</p>
+            </div>
+            <span
+              class="shrink-0 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider"
+              :class="{
+                'bg-green-100 text-green-700': item.verdict === 'pass',
+                'bg-red-100 text-red-700': item.verdict === 'fail',
+                'bg-orange-100 text-orange-700': item.verdict === 'conditional',
+              }"
+            >
+              {{ formatVerdict(item.verdict) }}
+            </span>
+          </div>
+
+          <!-- Divider -->
+          <div class="h-px bg-slate-50 my-3"></div>
+
+          <!-- Bottom: Meta & Score -->
+          <div class="flex items-end justify-between gap-3">
+            <div class="flex flex-col gap-2 flex-1 min-w-0">
+              <div class="flex items-center gap-2 text-xs text-slate-500">
+                <Icon
+                  icon="solar:calendar-date-bold-duotone"
+                  class="text-slate-400 text-sm shrink-0"
+                />
+                <span class="truncate">{{ item.date }}</span>
+              </div>
+              <div class="flex items-center gap-2 text-xs text-slate-500">
+                <Icon
+                  icon="solar:user-check-bold-duotone"
+                  class="text-slate-400 text-sm shrink-0"
+                />
+                <span class="truncate">{{ item.examinerName }}</span>
+              </div>
+            </div>
+
+            <!-- Score Box -->
+            <div
+              class="text-right shrink-0 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100"
+            >
+              <div
+                class="text-[10px] font-medium text-slate-400 uppercase tracking-wide mb-px"
+              >
+                Nilai
+              </div>
+              <div
+                class="text-2xl font-bold leading-none"
+                :class="getScoreColor(item.finalScore)"
+              >
+                {{ item.finalScore }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <!-- Table Actions -->
+      <template #cell-actions="{ item }">
+        <div class="flex items-center gap-2">
+          <button
+            @click="editExam(item)"
+            class="text-slate-400 hover:text-amber-600 transition-colors"
+            title="Edit"
+          >
+            <Icon icon="solar:pen-bold-duotone" class="text-lg" />
+          </button>
+          <button
+            @click="deleteExam(item)"
+            class="text-slate-400 hover:text-red-600 transition-colors"
+            title="Hapus"
+          >
+            <Icon icon="solar:trash-bin-trash-bold-duotone" class="text-lg" />
+          </button>
+        </div>
+      </template>
     </DataTable>
 
     <!-- Input Modal -->
@@ -57,12 +279,14 @@
         class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
       >
         <div
-          class="bg-white rounded-2xl w-full max-w-2xl shadow-xl overflow-hidden max-h-[90vh] overflow-y-auto"
+          class="bg-white rounded-2xl w-full max-w-2xl shadow-xl max-h-[90vh] flex flex-col"
         >
           <div
-            class="px-6 py-4 border-b flex justify-between items-center bg-slate-50"
+            class="px-6 py-4 border-b flex justify-between items-center bg-slate-50 shrink-0"
           >
-            <h3 class="font-bold text-slate-800">Input Nilai Ujian</h3>
+            <h3 class="font-bold text-slate-800">
+              {{ form.id ? "Edit Nilai Ujian" : "Input Nilai Ujian" }}
+            </h3>
             <button
               @click="closeModal"
               class="text-slate-400 hover:text-slate-600"
@@ -71,7 +295,7 @@
             </button>
           </div>
 
-          <div class="p-6">
+          <div class="p-6 overflow-y-auto">
             <form @submit.prevent="submitExam" class="space-y-6">
               <!-- Info Dasar -->
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -300,6 +524,28 @@
         </div>
       </div>
     </Teleport>
+
+    <!-- Confirm Modal -->
+    <ConfirmModal
+      :isOpen="showConfirmModal"
+      title="Hapus Data Ujian"
+      confirmText="Ya, Hapus"
+      cancelText="Batal"
+      :loading="deleteLoading"
+      @confirm="onConfirmDelete"
+      @cancel="showConfirmModal = false"
+    >
+      <span v-html="confirmMessage"></span>
+    </ConfirmModal>
+
+    <!-- Status Modal -->
+    <StatusModal
+      :isOpen="showStatusModal"
+      :title="statusTitle"
+      :message="statusMessage"
+      :type="statusType"
+      @close="showStatusModal = false"
+    />
   </div>
 </template>
 
@@ -307,12 +553,20 @@
 import { ref, reactive, computed, onMounted } from "vue";
 import { Icon } from "@iconify/vue";
 import DataTable from "@/components/ui/DataTable.vue";
+import ConfirmModal from "@/components/ui/ConfirmModal.vue";
+import StatusModal from "@/components/ui/StatusModal.vue";
 import { tahfidzApi, studentsApi, teachersApi, authApi } from "@/services/api";
 
 const loading = ref(false);
 const saving = ref(false);
 const showModal = ref(false);
 const viewMode = ref("table");
+const pagination = ref({
+  page: 1,
+  limit: 10,
+  total: 0,
+  totalPages: 0,
+});
 
 const exams = ref([]);
 const studentsList = ref([]);
@@ -325,6 +579,45 @@ const filteredExaminers = ref([]);
 const examinerSearch = ref("");
 const showExaminerDropdown = ref(false);
 
+// Modal States
+const showConfirmModal = ref(false);
+const confirmMessage = ref("");
+const deleteLoading = ref(false);
+const itemToDelete = ref(null);
+
+const showStatusModal = ref(false);
+const statusTitle = ref("");
+const statusMessage = ref("");
+const statusType = ref("success"); // 'success' | 'error'
+
+const filters = reactive({
+  search: "",
+  startDate: "",
+  endDate: "",
+  verdict: "",
+  gender: "",
+  examinerId: "",
+});
+
+let searchTimeout = null;
+function onSearchInput(val) {
+  filters.search = val;
+  if (searchTimeout) clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => {
+    loadData();
+  }, 500);
+}
+
+function resetFilters() {
+  filters.search = "";
+  filters.startDate = "";
+  filters.endDate = "";
+  filters.verdict = "";
+  filters.gender = "";
+  filters.examinerId = "";
+  loadData();
+}
+
 const columns = [
   { field: "date", label: "TANGGAL", sortable: true },
   { field: "type", label: "UJIAN" },
@@ -332,9 +625,11 @@ const columns = [
   { field: "finalScore", label: "NILAI" },
   { field: "verdict", label: "HASIL" },
   { field: "examinerName", label: "PENGUJI" },
+  { field: "actions", label: "AKSI", align: "center" },
 ];
 
 const form = reactive({
+  id: null,
   studentId: "",
   examinerId: "",
   examDate: new Date().toISOString().split("T")[0],
@@ -376,16 +671,47 @@ function formatVerdict(val) {
 async function loadData() {
   loading.value = true;
   try {
-    const res = await tahfidzApi.getExams();
+    // Clean filters (remove undefined/empty) - manually or rely on API util if strict
+    // Assuming backend handles empty strings gracefully or we clean them here
+    const params = {
+      ...filters,
+      page: pagination.value.page,
+      limit: pagination.value.limit,
+    };
+    // Remove empty keys to be safe
+    Object.keys(params).forEach(
+      (key) => (params[key] === "" || params[key] == null) && delete params[key]
+    );
+
+    const res = await tahfidzApi.getExams(params);
     if (res.success) {
       exams.value = res.data.map((d) => ({
         ...d,
+        rawDate: d.date, // Keep raw date for editing
         date: new Date(d.date).toLocaleDateString("id-ID", {
           day: "numeric",
           month: "long",
           year: "numeric",
         }),
       }));
+      // Update pagination meta
+      if (res.meta) {
+        pagination.value = {
+          page: res.meta.page,
+          limit: res.meta.limit,
+          total: res.meta.total,
+          totalPages: res.meta.totalPages,
+        };
+      }
+    }
+
+    // Load teachers for filter if empty
+    if (teachersList.value.length === 0) {
+      const tRes = await teachersApi.getAll({ limit: 1000 });
+      if (tRes.data) {
+        teachersList.value = tRes.data;
+        filteredExaminers.value = tRes.data; // Also for modal
+      }
     }
   } catch (e) {
     console.error(e);
@@ -474,6 +800,7 @@ async function openModal() {
     console.error(e);
   }
 
+  form.id = null;
   form.studentId = "";
   form.examType = "";
   form.scoreFluency = 80;
@@ -482,26 +809,83 @@ async function openModal() {
   form.scoreAdab = 90;
   form.verdict = "pass";
   form.notes = "";
-  form.notes = "";
   studentSearch.value = ""; // Reset search input
   examinerSearch.value = ""; // Reset examiner search
 
   showModal.value = true;
 }
 
+async function editExam(item) {
+  form.id = item.id;
+  form.studentId = item.studentId;
+  form.examinerId = item.examinerId;
+  // Format date to YYYY-MM-DD for input[type=date]
+  form.examDate = item.rawDate
+    ? new Date(item.rawDate).toISOString().split("T")[0]
+    : "";
+  form.examType = item.type;
+  form.scoreFluency = item.scoreFluency;
+  form.scoreTajwid = item.scoreTajwid;
+  form.scoreMakhraj = item.scoreMakhraj;
+  form.scoreAdab = item.scoreAdab;
+  form.verdict = item.verdict;
+  form.notes = item.notes || ""; // Handle null notes
+
+  // Set search inputs for display
+  studentSearch.value = item.studentName;
+  examinerSearch.value = item.examinerName;
+
+  showModal.value = true;
+}
+
 function closeModal() {
   showModal.value = false;
+  form.id = null; // Clear ID on close
+}
+
+async function deleteExam(item) {
+  itemToDelete.value = item;
+  confirmMessage.value = `Apakah Anda yakin ingin menghapus data ujian santri <b>${item.studentName}</b>?`;
+  showConfirmModal.value = true;
+}
+
+async function onConfirmDelete() {
+  if (!itemToDelete.value) return;
+  deleteLoading.value = true;
+  try {
+    const res = await tahfidzApi.deleteExam(itemToDelete.value.id);
+    if (res.success) {
+      showConfirmModal.value = false;
+      showStatus("Berhasil", "Data ujian berhasil dihapus", "success");
+      loadData();
+    } else {
+      showStatus("Gagal", res.message || "Gagal menghapus data", "error");
+    }
+  } catch (e) {
+    showStatus("Error", e.message || "Terjadi kesalahan sistem", "error");
+  } finally {
+    deleteLoading.value = false;
+    itemToDelete.value = null;
+  }
+}
+
+function showStatus(title, message, type = "success") {
+  statusTitle.value = title;
+  statusMessage.value = message;
+  statusType.value = type;
+  showStatusModal.value = true;
 }
 
 async function submitExam() {
   if (!form.studentId) {
-    alert("Mohon pilih santri terlebih dahulu");
+    showStatus("Peringatan", "Mohon pilih santri terlebih dahulu", "error");
     return;
   }
   if (!form.examinerId) {
-    alert("Mohon pilih penguji terlebih dahulu");
+    showStatus("Peringatan", "Mohon pilih penguji terlebih dahulu", "error");
     return;
   }
+
   saving.value = true;
   try {
     const payload = {
@@ -511,11 +895,26 @@ async function submitExam() {
       finalScore: calculatedFinalScore.value,
     };
 
-    await tahfidzApi.createExam(payload);
-    showModal.value = false;
-    loadData();
+    let res;
+    if (form.id) {
+      res = await tahfidzApi.updateExam(form.id, payload);
+    } else {
+      res = await tahfidzApi.createExam(payload);
+    }
+
+    if (res.success) {
+      showModal.value = false;
+      showStatus(
+        "Berhasil",
+        res.message || "Data ujian berhasil disimpan",
+        "success"
+      );
+      loadData();
+    } else {
+      showStatus("Gagal", res.message || "Gagal menyimpan data", "error");
+    }
   } catch (e) {
-    alert("Gagal menyimpan: " + e.message);
+    showStatus("Error", e.message || "Terjadi kesalahan sistem", "error");
   } finally {
     saving.value = false;
   }

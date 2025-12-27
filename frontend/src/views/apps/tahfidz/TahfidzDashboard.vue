@@ -10,13 +10,7 @@
           Pantau perkembangan hafalan santri secara realtime
         </p>
       </div>
-      <button
-        @click="openInputModal"
-        class="bg-[#602515] text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2 hover:bg-[#4a1c10] transition-colors"
-      >
-        <Icon icon="solar:add-circle-bold-duotone" />
-        Input Setoran
-      </button>
+      <div class="hidden md:block"></div>
     </div>
 
     <!-- Stats Cards -->
@@ -63,8 +57,22 @@
       :items="deposits"
       :loading="loading"
       :viewMode="viewMode"
+      :pagination="pagination"
+      :search="search"
       @update:viewMode="viewMode = $event"
+      @page-change="handlePageChange"
+      @update:limit="handleLimitChange"
+      @update:search="handleSearch"
     >
+      <template #header-actions>
+        <button
+          @click="openInputModal"
+          class="bg-[#602515] text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2 hover:bg-[#4a1c10] transition-colors text-sm"
+        >
+          <Icon icon="solar:add-circle-bold-duotone" class="text-lg" />
+          Input Setoran
+        </button>
+      </template>
       <template #cell-fluency="{ item }">
         <span
           class="px-2 py-1 rounded-full text-xs font-medium"
@@ -171,6 +179,81 @@
           >
             <Icon icon="solar:user-id-bold-duotone" />
             <span>Musyrif: {{ item.teacherName }}</span>
+          </div>
+        </div>
+      </template>
+      <!-- Filter Slot -->
+      <template #filters="{ close }">
+        <div class="space-y-4">
+          <!-- Date Range -->
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1"
+              >Tanggal</label
+            >
+            <div class="grid grid-cols-2 gap-2">
+              <input
+                type="date"
+                v-model="filters.startDate"
+                class="w-full border border-slate-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:border-[#602515]"
+                placeholder="Mulai"
+              />
+              <input
+                type="date"
+                v-model="filters.endDate"
+                class="w-full border border-slate-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:border-[#602515]"
+                placeholder="Akhir"
+              />
+            </div>
+          </div>
+
+          <!-- Halaqah -->
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1"
+              >Halaqah</label
+            >
+            <select
+              v-model="filters.halaqahId"
+              class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#602515]"
+            >
+              <option value="">Semua Halaqah</option>
+              <option v-for="h in halaqahList" :key="h.id" :value="h.id">
+                {{ h.name }}
+              </option>
+            </select>
+          </div>
+
+          <!-- Gender -->
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1"
+              >Jenis Kelamin</label
+            >
+            <select
+              v-model="filters.gender"
+              class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#602515]"
+            >
+              <option value="">Semua</option>
+              <option value="male">Laki-laki</option>
+              <option value="female">Perempuan</option>
+            </select>
+          </div>
+
+          <!-- Actions -->
+          <div class="pt-2 flex justify-end gap-2">
+            <button
+              @click="close"
+              class="px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 rounded-lg"
+            >
+              Tutup
+            </button>
+            <button
+              @click="
+                applyFilters();
+                close();
+              "
+              class="px-3 py-1.5 text-xs font-medium text-white bg-[#602515] hover:bg-[#4a1c10] rounded-lg"
+            >
+              Terapkan
+            </button>
           </div>
         </div>
       </template>
@@ -370,7 +453,7 @@
 import { ref, reactive, onMounted } from "vue";
 import { Icon } from "@iconify/vue";
 import DataTable from "@/components/ui/DataTable.vue";
-import { tahfidzApi, studentsApi, authApi } from "@/services/api";
+import { tahfidzApi, studentsApi, authApi, halaqahApi } from "@/services/api";
 
 const loading = ref(false);
 const saving = ref(false);
@@ -409,6 +492,15 @@ const form = reactive({
   notes: "",
 });
 
+const filters = reactive({
+  startDate: "",
+  endDate: "",
+  halaqahId: "",
+  gender: "",
+});
+
+const halaqahList = ref([]);
+
 function formatFluency(val) {
   const map = {
     lancar: "Lancar",
@@ -418,12 +510,45 @@ function formatFluency(val) {
   return map[val] || val;
 }
 
+async function loadHalaqah() {
+  try {
+    const res = await halaqahApi.getAll();
+    if (res.data) halaqahList.value = res.data;
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+const pagination = reactive({
+  page: 1,
+  limit: 10,
+  total: 0,
+  totalPages: 0,
+});
+
+const search = ref("");
+
 async function loadData() {
   loading.value = true;
   try {
+    const params = {
+      startDate: filters.startDate || undefined,
+      endDate: filters.endDate || undefined,
+      halaqahId: filters.halaqahId || undefined,
+      gender: filters.gender || undefined,
+      page: pagination.page,
+      limit: pagination.limit,
+      search: search.value || undefined,
+    };
+
+    // Remove undefined keys so they don't become "undefined" string
+    Object.keys(params).forEach(
+      (key) => params[key] === undefined && delete params[key]
+    );
+
     const [statsRes, depositsRes] = await Promise.all([
-      tahfidzApi.getStats(),
-      tahfidzApi.getDeposits(),
+      tahfidzApi.getStats(params),
+      tahfidzApi.getDeposits(params),
     ]);
 
     if (statsRes.success) {
@@ -439,12 +564,43 @@ async function loadData() {
           minute: "2-digit",
         }),
       }));
+      // Update pagination
+      if (depositsRes.pagination) {
+        Object.assign(pagination, depositsRes.pagination);
+      }
     }
   } catch (e) {
     console.error(e);
   } finally {
     loading.value = false;
   }
+}
+
+function applyFilters() {
+  pagination.page = 1; // Reset to page 1 on filter trigger
+  loadData();
+}
+
+function handlePageChange(newPage) {
+  pagination.page = newPage;
+  loadData();
+}
+
+function handleLimitChange(newLimit) {
+  pagination.limit = newLimit;
+  pagination.page = 1;
+  loadData();
+}
+
+// Debounce for search
+let searchTimeout;
+function handleSearch(val) {
+  search.value = val;
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => {
+    pagination.page = 1;
+    loadData();
+  }, 300);
 }
 
 async function openInputModal() {
@@ -545,6 +701,7 @@ function clearStudentSelection() {
 }
 
 onMounted(() => {
+  loadHalaqah();
   loadData();
 });
 </script>
