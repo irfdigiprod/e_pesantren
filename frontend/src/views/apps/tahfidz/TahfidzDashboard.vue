@@ -101,6 +101,79 @@
           </span>
         </span>
       </template>
+
+      <!-- Card View Template -->
+      <template #card-item="{ item }">
+        <div
+          class="bg-white rounded-xl shadow-sm border border-slate-100 p-4 hover:shadow-md transition-shadow h-full flex flex-col"
+        >
+          <!-- Header: Student & Date -->
+          <div class="flex items-start justify-between mb-3">
+            <div class="flex items-center gap-3">
+              <div
+                class="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center text-[#602515] font-bold text-sm"
+              >
+                {{ item.studentName?.charAt(0) }}
+              </div>
+              <div class="overflow-hidden">
+                <h3 class="font-semibold text-slate-800 truncate">
+                  {{ item.studentName }}
+                </h3>
+                <p class="text-xs text-slate-500">{{ item.date }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Badges: Type & Fluency -->
+          <div class="flex flex-wrap gap-2 mb-3">
+            <span
+              class="px-2 py-1 rounded-full text-xs font-medium"
+              :class="{
+                'bg-blue-50 text-blue-700 border border-blue-100':
+                  item.type === 'ziyadah',
+                'bg-slate-50 text-slate-700 border border-slate-200':
+                  item.type === 'murajaah',
+              }"
+            >
+              {{ item.type === "ziyadah" ? "Ziyadah" : "Muraja'ah" }}
+            </span>
+            <span
+              class="px-2 py-1 rounded-full text-xs font-medium"
+              :class="{
+                'bg-green-100 text-green-700': item.fluency === 'lancar',
+                'bg-yellow-100 text-yellow-700':
+                  item.fluency === 'kurang_lancar',
+                'bg-red-100 text-red-700': item.fluency === 'mengulang',
+              }"
+            >
+              {{ formatFluency(item.fluency) }}
+            </span>
+          </div>
+
+          <!-- Location -->
+          <div class="p-3 bg-slate-50 rounded-lg mb-3 mt-auto">
+            <div
+              class="flex items-center gap-2 text-sm text-slate-700 font-medium"
+            >
+              <Icon icon="solar:book-2-bold-duotone" class="text-amber-600" />
+              <span v-if="item.surah">{{ item.surah }}</span>
+              <span v-else>Juz {{ item.juz }}</span>
+            </div>
+            <div v-if="item.ayatStart" class="text-xs text-slate-500 mt-1 ml-6">
+              Ayat {{ item.ayatStart }} - {{ item.ayatEnd }}
+            </div>
+          </div>
+
+          <!-- Footer: Musyrif -->
+          <div
+            v-if="item.teacherName"
+            class="pt-3 border-t border-slate-100 flex items-center gap-2 text-xs text-slate-500"
+          >
+            <Icon icon="solar:user-id-bold-duotone" />
+            <span>Musyrif: {{ item.teacherName }}</span>
+          </div>
+        </div>
+      </template>
     </DataTable>
 
     <!-- Input Modal -->

@@ -333,8 +333,15 @@ attendanceRoute.post(
   async (c) => {
     try {
       const data = c.req.valid("json");
-      const today = new Date().toISOString().split("T")[0];
-      const currentTime = new Date().toTimeString().split(" ")[0];
+
+      // FIX: Use Asia/Jakarta timezone
+      const now = new Date();
+      const today = now.toLocaleDateString("en-CA", {
+        timeZone: "Asia/Jakarta",
+      }); // YYYY-MM-DD
+      const currentTime = now.toLocaleTimeString("en-GB", {
+        timeZone: "Asia/Jakarta",
+      }); // HH:MM:SS
 
       // Validate Location
       if (data.latitude && data.longitude) {
@@ -426,8 +433,15 @@ attendanceRoute.post(
   async (c) => {
     try {
       const data = c.req.valid("json");
-      const today = new Date().toISOString().split("T")[0];
-      const currentTime = new Date().toTimeString().split(" ")[0];
+
+      // FIX: Use Asia/Jakarta timezone
+      const now = new Date();
+      const today = now.toLocaleDateString("en-CA", {
+        timeZone: "Asia/Jakarta",
+      }); // YYYY-MM-DD
+      const currentTime = now.toLocaleTimeString("en-GB", {
+        timeZone: "Asia/Jakarta",
+      }); // HH:MM:SS
 
       // Validate Location
       if (data.latitude && data.longitude) {
@@ -523,8 +537,14 @@ attendanceRoute.get("/teachers/recap", requireRole("admin"), async (c) => {
       endDate: customEnd,
       divisionId,
     } = c.req.query();
-    const targetMonth = parseInt(month || String(new Date().getMonth() + 1));
-    const targetYear = parseInt(year || String(new Date().getFullYear()));
+    // FIX: Use Asia/Jakarta for default period
+    const now = new Date();
+    const jakartaDate = new Date(
+      now.toLocaleString("en-US", { timeZone: "Asia/Jakarta" })
+    );
+
+    const targetMonth = parseInt(month || String(jakartaDate.getMonth() + 1));
+    const targetYear = parseInt(year || String(jakartaDate.getFullYear()));
 
     // 1. Fetch Settings
     const allSettings = await db.query.settings.findMany({
