@@ -9,13 +9,11 @@ import {
   notificationsApi,
   usersApi,
   settingsApi,
+  authApi,
 } from "@/services/api.js";
 
 const emit = defineEmits(["toggle-sidebar"]);
 const router = useRouter();
-
-const BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost/backend";
 
 // Institution name from settings
 const institutionName = ref("Minhajul Haq"); // default fallback
@@ -461,19 +459,7 @@ async function logout() {
   }
 
   try {
-    const res = await fetch(`${BASE_URL}/api/users/logout`, {
-      method: "DELETE",
-      headers: {
-        Accept: "application/json",
-        Authorization: token, // sesuai backend Anda
-      },
-    });
-
-    // Jika backend mengembalikan error Unauthorized,
-    // kita tetap logout di frontend tanpa menghentikan proses.
-    if (!res.ok) {
-      console.warn("Logout API returned error, forcing local logout.");
-    }
+    await authApi.logout();
   } catch (err) {
     console.error("Logout request failed:", err);
   }
