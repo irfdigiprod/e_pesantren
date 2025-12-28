@@ -26,8 +26,17 @@ class WebSocketClient {
    * @param {string} token - JWT token for authentication
    */
   connect(token) {
-    if (this.ws && this.isConnected) {
+    if (
+      this.ws &&
+      (this.isConnected || this.ws.readyState === WebSocket.CONNECTING)
+    ) {
       return;
+    }
+
+    // Cleanup existing closed/closing socket just in case
+    if (this.ws) {
+      this.ws.close();
+      this.ws = null;
     }
 
     const url = `${WS_URL}?token=${encodeURIComponent(token)}`;

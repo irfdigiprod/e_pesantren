@@ -227,6 +227,7 @@
                 'message-content',
                 { edited: message.isEdited && !message.isDeleted },
               ]"
+              @click.stop="handleMessageTap($event, message.id)"
             >
               <!-- Sender name for group chats (only for other's messages) -->
               <div
@@ -2034,8 +2035,15 @@ onMounted(() => {
   onUnmounted(() => {
     if (unsubProfileUpdate) unsubProfileUpdate();
     if (unsubConvUpdate) unsubConvUpdate();
+    window.removeEventListener("resize", updateIsMobile);
   });
+
+  window.addEventListener("resize", updateIsMobile);
 });
+
+function updateIsMobile() {
+  isMobile.value = window.innerWidth < 1024;
+}
 
 // Tiptap Editor
 import { useEditor, EditorContent } from "@tiptap/vue-3";
@@ -2135,6 +2143,7 @@ const route = useRoute();
 
 // State
 const conversations = ref([]);
+const isMobile = ref(window.innerWidth < 1024);
 const activeConversation = ref(null);
 const messages = ref([]);
 const messageText = ref("");
@@ -2869,16 +2878,43 @@ function getConversationName(conv) {
   return "Pengguna";
 }
 
+// Helper to sanitize avatar URLs (fixes localhost/mixed content issues)
+function getSanitizedAvatarUrl(url) {
+  if (!url) return "";
+  let processedUrl = url;
+
+  // Fix: Handle legacy localhost URLs stored in DB
+  if (processedUrl.includes("localhost:") && !import.meta.env.DEV) {
+    try {
+      const urlObj = new URL(processedUrl);
+      processedUrl = urlObj.pathname; // e.g. /uploads/avatar.jpg
+    } catch (e) {
+      // invalid url, keep as is
+    }
+  }
+
+  // Ensure relative paths work with proxy
+  if (
+    processedUrl.startsWith("/uploads/") ||
+    processedUrl.startsWith("uploads/")
+  ) {
+    // Remove leading slash for consistency in check
+    if (processedUrl.startsWith("/")) processedUrl = processedUrl.substring(1);
+    return `${API_URL}/api/${processedUrl}`;
+  }
+
+  // Absolute URLs (external)
+  if (processedUrl.startsWith("http")) {
+    return processedUrl;
+  }
+
+  // Relative URLs (other than uploads?)
+  return `${API_URL}${processedUrl.startsWith("/") ? "" : "/"}${processedUrl}`;
+}
+
 function getConversationAvatar(conv) {
   if (conv.avatarUrl) {
-    if (conv.avatarUrl.startsWith("uploads/")) {
-      return `${API_URL}/api/${conv.avatarUrl}`;
-    }
-    return conv.avatarUrl.startsWith("http")
-      ? conv.avatarUrl
-      : `${API_URL}${conv.avatarUrl.startsWith("/") ? "" : "/"}${
-          conv.avatarUrl
-        }`;
+    return getSanitizedAvatarUrl(conv.avatarUrl);
   }
 
   // Personal chat: try to get other participant's photo
@@ -2889,15 +2925,11 @@ function getConversationAvatar(conv) {
       return String(participantId) !== String(currentUserId);
     });
     if (other?.photo) {
-      if (other.photo.startsWith("uploads/")) {
-        return `${API_URL}/api/${other.photo}`;
-      }
-      return other.photo.startsWith("http")
-        ? other.photo
-        : `${API_URL}${other.photo.startsWith("/") ? "" : "/"}${other.photo}`;
+      return getSanitizedAvatarUrl(other.photo);
     }
   }
 
+  // Fallback: Initials
   const name = getConversationName(conv);
   // Get first 2 characters like Sidebar does
   const parts = name.split(/[@\s._-]/).filter(Boolean);
@@ -3378,9 +3410,10 @@ function handleMessageTap(event, messageId) {
     };
   } else {
     // Check if we are on mobile (window width < 1024)
-    const isMobile = window.innerWidth < 1024;
+    // Check if we are on mobile (window width < 1024)
+    // const isMobile = window.innerWidth < 1024; // Use reactive state instead
 
-    if (isMobile) {
+    if (isMobile.value) {
       activeMessageActions.value = {
         messageId,
         topOffset: fixedTop,
@@ -5456,7 +5489,8 @@ onUnmounted(() => {
   align-items: center;
 }
 
-.message:hover .message-actions {
+.message:hover .message-actions,
+.message.actions-visible .message-actions {
   opacity: 1;
 }
 
@@ -8319,6 +8353,66 @@ Image Grid (WhatsApp style) */
   .attach-menu-popup {
     bottom: 70px; /* Above footer */
     left: 10px;
+  }
+}
+
+/* ============================================
+   FLOATING ACTION MENU (MOBILE)
+   ============================================ */
+.floating-mobile-actions {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  background: white;
+  padding: 8px;
+  border-radius: 50px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: floatUp 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.floating-actions-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.action-btn-float {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: #f1f5f9;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.action-btn-float:active {
+  transform: scale(0.95);
+  background: #e2e8f0;
+}
+
+.action-btn-float.delete-btn {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+@keyframes floatUp {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
   }
 }
 
