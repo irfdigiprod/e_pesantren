@@ -4,8 +4,14 @@
 const getWsUrl = () => {
   if (import.meta.env.VITE_WS_URL) return import.meta.env.VITE_WS_URL;
   const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-  // Use current hostname but always port 3000 for backend
-  return `${protocol}//${window.location.hostname}:3000/ws`;
+
+  // In development, usage of port 3000 is hardcoded
+  if (import.meta.env.DEV) {
+    return `${protocol}//${window.location.hostname}:3000/ws`;
+  }
+
+  // In production, use the same host (Nginx handles the proxy at /ws)
+  return `${protocol}//${window.location.host}/ws`;
 };
 
 const WS_URL = getWsUrl();
