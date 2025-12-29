@@ -2010,6 +2010,22 @@ import { Icon } from "@iconify/vue";
 import { chatApi, uploadApi, usersApi, utilsApi } from "../../services/api.js";
 import wsClient from "../../services/websocket.js";
 
+// Import extracted components
+import {
+  ChatSidebar,
+  ChatHeader,
+  NewChatModal,
+  NewGroupModal,
+  AddMemberModal,
+  GroupInfoPanel,
+  AlertModal,
+  ConfirmModal,
+} from "@/components/chat";
+
+// Note: Helper functions (getMemberPhotoUrl, getMemberName, etc.) are defined locally
+// because they use the local API_URL constant. They can be found in useChatHelpers.js
+// for reference but are not imported here to avoid duplication.
+
 // Listen for profile updates
 onMounted(() => {
   const unsubProfileUpdate = wsClient.on("user_profile_updated", (userData) => {
