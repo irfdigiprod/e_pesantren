@@ -393,22 +393,23 @@
 
             <!-- Field: Address (Full Width) -->
             <div class="md:col-span-2 group">
-              <label
-                class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2"
-                >Alamat Lengkap</label
-              >
-              <div
-                v-if="!editing"
-                class="text-slate-800 font-medium text-lg border-b border-transparent py-1"
-              >
-                {{ user.address || "-" }}
+              <template v-if="!editing">
+                <label
+                  class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2"
+                  >Alamat Lengkap</label
+                >
+                <div
+                  class="text-slate-800 font-medium text-lg border-b border-transparent py-1"
+                >
+                  {{ user.address || "-" }}
+                </div>
+              </template>
+              <div v-else>
+                <AddressSelector
+                  v-model="draft.addressData"
+                  label="Alamat Domisili"
+                />
               </div>
-              <textarea
-                v-else
-                v-model="draft.address"
-                rows="2"
-                class="w-full bg-slate-50 border-b-2 border-slate-200 focus:border-[#602515] px-3 py-2 rounded-t-lg transition-colors outline-none font-medium text-slate-800 resize-none"
-              ></textarea>
             </div>
           </div>
         </div>
@@ -598,10 +599,22 @@ import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { Icon } from "@iconify/vue";
 import StatusModal from "@/components/ui/StatusModal.vue";
+import AddressSelector from "@/components/ui/AddressSelector.vue";
 
 // static import datepicker (already installed)
 import { VueDatePicker } from "@vuepic/vue-datepicker";
 import "@vuepic/vue-datepicker/dist/main.css";
+
+// Helper to safely parse JSON or return value
+function safeParse(val) {
+  if (!val) return null;
+  if (typeof val === "object") return val; // Already parsed
+  try {
+    return JSON.parse(val);
+  } catch (e) {
+    return null;
+  }
+}
 
 const router = useRouter();
 const user = ref({});
@@ -839,6 +852,17 @@ async function fetchCurrent() {
 
     // prepare draft and convert birthDate string -> Date object for datepicker
     draft.value = { ...data.data };
+
+    // Parse address structure
+    draft.value.addressData = {
+      province: safeParse(data.data.province),
+      regency: safeParse(data.data.regency),
+      district: safeParse(data.data.district),
+      village: safeParse(data.data.village),
+      addressDetail: data.data.addressDetail || "",
+      postalCode: data.data.postalCode || "",
+    };
+
     if (data.data.birthDate) {
       draft.value.birthDateObj = new Date(data.data.birthDate);
     }
@@ -855,18 +879,21 @@ async function fetchCurrent() {
 
 function toggleEdit() {
   editing.value = !editing.value;
-  if (!editing.value) {
-    // cancelling edit -> revert draft to user state
-    draft.value = { ...user.value };
-    if (user.value?.birthDate) {
-      draft.value.birthDateObj = new Date(user.value.birthDate);
-    }
-  } else {
-    // entering edit -> ensure draft is fresh
-    draft.value = { ...user.value };
-    if (user.value?.birthDate) {
-      draft.value.birthDateObj = new Date(user.value.birthDate);
-    }
+  // Always reset draft from user value when toggling
+  draft.value = { ...user.value };
+
+  // Re-parse address structure
+  draft.value.addressData = {
+    province: safeParse(user.value.province),
+    regency: safeParse(user.value.regency),
+    district: safeParse(user.value.district),
+    village: safeParse(user.value.village),
+    addressDetail: user.value.addressDetail || "",
+    postalCode: user.value.postalCode || "",
+  };
+
+  if (user.value?.birthDate) {
+    draft.value.birthDateObj = new Date(user.value.birthDate);
   }
 }
 
@@ -879,8 +906,39 @@ async function saveLocal() {
 
     const base = import.meta.env.VITE_API_BASE_URL || "";
 
-    // prepare payload from draft
     const payloadObj = { ...draft.value };
+
+    // Handle Address Data
+    const addr = draft.value.addressData || {};
+    // Construct full address string
+    const parts = [];
+    if (addr.addressDetail) parts.push(addr.addressDetail);
+    if (addr.village?.name) parts.push(addr.village.name);
+    if (addr.district?.name) parts.push("Kec. " + addr.district.name);
+    if (addr.regency?.name) parts.push(addr.regency.name);
+    if (addr.province?.name) parts.push(addr.province.name);
+    if (addr.postalCode) parts.push(addr.postalCode);
+
+    payloadObj.address = parts.join(", ");
+
+    // Address components
+    payloadObj.province = addr.province
+      ? JSON.stringify(addr.province)
+      : undefined;
+    payloadObj.regency = addr.regency
+      ? JSON.stringify(addr.regency)
+      : undefined;
+    payloadObj.district = addr.district
+      ? JSON.stringify(addr.district)
+      : undefined;
+    payloadObj.village = addr.village
+      ? JSON.stringify(addr.village)
+      : undefined;
+    payloadObj.addressDetail = addr.addressDetail || undefined;
+    payloadObj.postalCode = addr.postalCode || undefined;
+
+    // remove helper object
+    delete payloadObj.addressData;
 
     // convert Date -> YYYY-MM-DD string for backend
     if (payloadObj.birthDateObj instanceof Date) {
@@ -930,6 +988,17 @@ async function saveLocal() {
 
     // sync draft
     draft.value = { ...data.data };
+
+    // Re-parse address
+    draft.value.addressData = {
+      province: safeParse(data.data.province),
+      regency: safeParse(data.data.regency),
+      district: safeParse(data.data.district),
+      village: safeParse(data.data.village),
+      addressDetail: data.data.addressDetail || "",
+      postalCode: data.data.postalCode || "",
+    };
+
     if (data.data.birthDate) {
       draft.value.birthDateObj = new Date(data.data.birthDate);
     }

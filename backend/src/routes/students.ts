@@ -194,10 +194,17 @@ studentsRoute.post(
         Gender: "gender",
         "Tanggal Lahir": "birthDate",
         "Tempat Lahir": "birthPlace",
-        Alamat: "address",
+        // Alamat removed
         Telepon: "phone",
         Phone: "phone",
         Status: "status",
+        // New Address Fields
+        Provinsi: "province",
+        "Kabupaten/Kota": "regency",
+        Kecamatan: "district",
+        "Desa/Kelurahan": "village",
+        "Detail Alamat": "addressDetail",
+        "Kode Pos": "postalCode",
       };
 
       // Parent column mappings
@@ -437,10 +444,17 @@ studentsRoute.post("/import", requireRole("admin", "staff"), async (c) => {
       Gender: "gender",
       "Tanggal Lahir": "birthDate",
       "Tempat Lahir": "birthPlace",
-      Alamat: "address",
+      // Alamat removed
       Telepon: "phone",
       Phone: "phone",
       Status: "status",
+      // New Address Fields
+      Provinsi: "province",
+      "Kabupaten/Kota": "regency",
+      Kecamatan: "district",
+      "Desa/Kelurahan": "village",
+      "Detail Alamat": "addressDetail",
+      "Kode Pos": "postalCode",
     };
 
     // Parent column mappings
@@ -639,6 +653,22 @@ studentsRoute.post("/import", requireRole("admin", "staff"), async (c) => {
           }
         }
 
+        // Format Address Fields to JSON structure
+        const formatRegion = (name: any) =>
+          name ? JSON.stringify({ code: null, name: String(name) }) : undefined;
+
+        // Auto-generate plain text address
+        const generatedAddress = [
+          studentData.addressDetail,
+          studentData.village,
+          studentData.district,
+          studentData.regency,
+          studentData.province,
+          studentData.postalCode,
+        ]
+          .filter(Boolean)
+          .join(", ");
+
         // Insert student
         const studentResult = await db.insert(students).values({
           nis: String(studentData.nis),
@@ -646,7 +676,17 @@ studentsRoute.post("/import", requireRole("admin", "staff"), async (c) => {
           gender: studentData.gender,
           birthDate: studentData.birthDate || undefined,
           birthPlace: studentData.birthPlace || undefined,
-          address: studentData.address || undefined,
+          address: studentData.address || generatedAddress || undefined,
+          // Detailed address fields
+          province: formatRegion(studentData.province),
+          regency: formatRegion(studentData.regency),
+          district: formatRegion(studentData.district),
+          village: formatRegion(studentData.village),
+          addressDetail: studentData.addressDetail,
+          postalCode: studentData.postalCode
+            ? String(studentData.postalCode)
+            : undefined,
+
           phone: studentData.phone ? String(studentData.phone) : undefined,
           status: studentData.status,
         });

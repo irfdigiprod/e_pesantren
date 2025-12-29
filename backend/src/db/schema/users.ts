@@ -34,6 +34,13 @@ export const users = mysqlTable("users", {
   birthDate: date("birth_date"),
   phone: varchar("phone", { length: 20 }),
   address: text("address"),
+  // Detailed address fields
+  province: text("province"), // JSON: { code, name }
+  regency: text("regency"), // JSON: { code, name }
+  district: text("district"), // JSON: { code, name }
+  village: text("village"), // JSON: { code, name }
+  addressDetail: text("address_detail"),
+  postalCode: varchar("postal_code", { length: 10 }),
   photo: varchar("photo", { length: 500 }),
 
   createdAt: timestamp("created_at").defaultNow(),

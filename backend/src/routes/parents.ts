@@ -114,6 +114,13 @@ parentsRoute.post(
         motherOccupation: data.motherOccupation,
         phone: data.phone,
         address: data.address,
+        // Detailed Address
+        province: data.province,
+        regency: data.regency,
+        district: data.district,
+        village: data.village,
+        addressDetail: data.addressDetail,
+        postalCode: data.postalCode,
       });
 
       const newParent = await db.query.parents.findFirst({

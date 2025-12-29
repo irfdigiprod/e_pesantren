@@ -18,6 +18,13 @@ export const parents = mysqlTable("parents", {
   motherOccupation: varchar("mother_occupation", { length: 255 }),
   phone: varchar("phone", { length: 20 }),
   address: text("address"),
+  // Separate address fields for structured address data
+  province: text("province"), // JSON: { code, name }
+  regency: text("regency"), // JSON: { code, name }
+  district: text("district"), // JSON: { code, name }
+  village: text("village"), // JSON: { code, name }
+  addressDetail: text("address_detail"),
+  postalCode: varchar("postal_code", { length: 10 }),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
 });

@@ -546,44 +546,95 @@ async function initFromProps() {
     postalCode.value = props.modelValue.postalCode;
   }
 
+  // Load Provinces
+  await fetchProvinces();
+
   if (props.modelValue?.province) {
-    await fetchProvinces();
-    const prov = provinces.value.find(
+    // Try to find by code first, then by name (fuzzy), or just use the provided object
+    let prov = provinces.value.find(
       (p) => p.code === props.modelValue.province.code
     );
-    if (prov) {
-      selectedProvince.value = prov;
-      await fetchRegencies(prov.code);
 
-      if (props.modelValue.regency) {
-        const reg = regencies.value.find(
+    // Fallback: If imported with name but no code, try to find matching name in our list
+    if (!prov && props.modelValue.province.name) {
+      prov = provinces.value.find(
+        (p) =>
+          p.name.toLowerCase() === props.modelValue.province.name.toLowerCase()
+      );
+    }
+
+    // Use found province or fallback to the provided value (display only)
+    selectedProvince.value = prov || props.modelValue.province;
+
+    // --- REGENCY ---
+    // Only proceed to fetch regencies if we have a valid code
+    if (selectedProvince.value?.code) {
+      await fetchRegencies(selectedProvince.value.code);
+    }
+
+    // Set Regency from props regardless of fetch success
+    if (props.modelValue.regency) {
+      let reg = null;
+      if (regencies.value.length > 0) {
+        reg = regencies.value.find(
           (r) => r.code === props.modelValue.regency.code
         );
-        if (reg) {
-          selectedRegency.value = reg;
-          await fetchDistricts(reg.code);
-
-          if (props.modelValue.district) {
-            const dist = districts.value.find(
-              (d) => d.code === props.modelValue.district.code
-            );
-            if (dist) {
-              selectedDistrict.value = dist;
-              await fetchVillages(dist.code);
-
-              if (props.modelValue.village) {
-                const vil = villages.value.find(
-                  (v) => v.code === props.modelValue.village.code
-                );
-                if (vil) selectedVillage.value = vil;
-              }
-            }
-          }
+        if (!reg && props.modelValue.regency.name) {
+          reg = regencies.value.find(
+            (r) =>
+              r.name.toLowerCase() ===
+              props.modelValue.regency.name.toLowerCase()
+          );
         }
       }
+      selectedRegency.value = reg || props.modelValue.regency;
     }
-  } else {
-    await fetchProvinces();
+
+    // --- DISTRICT ---
+    if (selectedRegency.value?.code) {
+      await fetchDistricts(selectedRegency.value.code);
+    }
+
+    // Set District from props
+    if (props.modelValue.district) {
+      let dist = null;
+      if (districts.value.length > 0) {
+        dist = districts.value.find(
+          (d) => d.code === props.modelValue.district.code
+        );
+        if (!dist && props.modelValue.district.name) {
+          dist = districts.value.find(
+            (d) =>
+              d.name.toLowerCase() ===
+              props.modelValue.district.name.toLowerCase()
+          );
+        }
+      }
+      selectedDistrict.value = dist || props.modelValue.district;
+    }
+
+    // --- VILLAGE ---
+    if (selectedDistrict.value?.code) {
+      await fetchVillages(selectedDistrict.value.code);
+    }
+
+    // Set Village from props
+    if (props.modelValue.village) {
+      let vil = null;
+      if (villages.value.length > 0) {
+        vil = villages.value.find(
+          (v) => v.code === props.modelValue.village.code
+        );
+        if (!vil && props.modelValue.village.name) {
+          vil = villages.value.find(
+            (v) =>
+              v.name.toLowerCase() ===
+              props.modelValue.village.name.toLowerCase()
+          );
+        }
+      }
+      selectedVillage.value = vil || props.modelValue.village;
+    }
   }
 }
 
@@ -595,7 +646,9 @@ onMounted(() => {
 watch(
   () => props.modelValue,
   (newVal) => {
-    if (newVal?.province?.code !== selectedProvince.value?.code) {
+    const codeChanged = newVal?.province?.code !== selectedProvince.value?.code;
+    const nameChanged = newVal?.province?.name !== selectedProvince.value?.name;
+    if (codeChanged || nameChanged) {
       initFromProps();
     }
   },

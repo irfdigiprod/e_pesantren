@@ -104,6 +104,13 @@ usersRoute.get("/current", async (c) => {
         birthDate: true,
         phone: true,
         address: true,
+        // Detailed address
+        province: true,
+        regency: true,
+        district: true,
+        village: true,
+        addressDetail: true,
+        postalCode: true,
         photo: true,
         createdAt: true,
         updatedAt: true,
@@ -150,6 +157,13 @@ usersRoute.patch("/current", async (c) => {
       "birthDate",
       "phone",
       "address",
+      // Detailed address
+      "province",
+      "regency",
+      "district",
+      "village",
+      "addressDetail",
+      "postalCode",
       "photo",
     ];
 
@@ -225,6 +239,13 @@ usersRoute.patch("/current", async (c) => {
         birthDate: true,
         phone: true,
         address: true,
+        // Detailed address
+        province: true,
+        regency: true,
+        district: true,
+        village: true,
+        addressDetail: true,
+        postalCode: true,
         photo: true,
         createdAt: true,
         updatedAt: true,

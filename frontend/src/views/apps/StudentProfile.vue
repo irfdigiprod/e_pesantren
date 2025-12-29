@@ -645,15 +645,12 @@
             </div>
 
             <!-- Address -->
+            <!-- Address -->
             <div>
-              <label class="block text-sm font-medium text-slate-700 mb-1"
-                >Alamat</label
-              >
-              <textarea
-                v-model="editForm.address"
-                rows="3"
-                class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#602515] resize-none"
-              ></textarea>
+              <AddressSelector
+                v-model="editForm.addressData"
+                label="Alamat Domisili"
+              />
             </div>
           </div>
 
@@ -819,12 +816,9 @@
                   />
                 </div>
                 <div>
-                  <label class="block text-xs font-medium text-slate-600 mb-1"
-                    >Alamat</label
-                  >
-                  <input
-                    v-model="parentForm.address"
-                    class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-green-500 bg-white"
+                  <AddressSelector
+                    v-model="parentForm.addressData"
+                    label="Alamat Domisili"
                   />
                 </div>
               </div>
@@ -867,6 +861,7 @@ import { useRoute, useRouter } from "vue-router";
 import { Icon } from "@iconify/vue";
 import { studentsApi, parentsApi } from "@/services/api";
 import StatusModal from "@/components/ui/StatusModal.vue";
+import AddressSelector from "@/components/ui/AddressSelector.vue"; // Imported
 
 const route = useRoute();
 const router = useRouter();
@@ -890,7 +885,15 @@ const editForm = reactive({
   birthPlace: "",
   gender: "male",
   phone: "",
-  address: "",
+  // Address structure matching AddressSelector v-model
+  addressData: {
+    province: null,
+    regency: null,
+    district: null,
+    village: null,
+    addressDetail: "",
+    postalCode: "",
+  },
   status: "active",
 });
 
@@ -908,7 +911,14 @@ const parentForm = reactive({
   fatherOccupation: "",
   motherOccupation: "",
   phone: "",
-  address: "",
+  addressData: {
+    province: null,
+    regency: null,
+    district: null,
+    village: null,
+    addressDetail: "",
+    postalCode: "",
+  },
 });
 
 // Status Modal
@@ -982,6 +992,17 @@ function formatDateForInput(dateStr) {
   return date.toISOString().split("T")[0];
 }
 
+// Helper to safely parse JSON or return value
+function safeParse(val) {
+  if (!val) return null;
+  if (typeof val === "object") return val; // Already parsed
+  try {
+    return JSON.parse(val);
+  } catch (e) {
+    return null;
+  }
+}
+
 function openEditModal() {
   if (!student.value) return;
 
@@ -992,7 +1013,28 @@ function openEditModal() {
   editForm.birthPlace = student.value.birthPlace || "";
   editForm.gender = student.value.gender || "male";
   editForm.phone = student.value.phone || "";
-  editForm.address = student.value.address || "";
+
+  // Parse address fields
+  editForm.addressData = {
+    province: safeParse(student.value.province),
+    regency: safeParse(student.value.regency),
+    district: safeParse(student.value.district),
+    village: safeParse(student.value.village),
+    addressDetail: student.value.addressDetail || "",
+    postalCode: student.value.postalCode || "",
+  };
+
+  // Fallback: If no detailed address but plain address exists, put it in addressDetail?
+  // User can then refine it using the selector.
+  if (
+    !editForm.addressData.addressDetail &&
+    student.value.address &&
+    !editForm.addressData.province
+  ) {
+    // editForm.addressData.addressDetail = student.value.address;
+    // Not forcing this as it might duplicate if not careful.
+  }
+
   editForm.status = student.value.status || "active";
 
   editModal.show = true;
@@ -1019,6 +1061,17 @@ async function saveStudent() {
   editModal.error = "";
 
   try {
+    // Construct full address string for legacy compatibility
+    const addr = editForm.addressData;
+    const parts = [];
+    if (addr.addressDetail) parts.push(addr.addressDetail);
+    if (addr.village?.name) parts.push(addr.village.name);
+    if (addr.district?.name) parts.push("Kec. " + addr.district.name);
+    if (addr.regency?.name) parts.push(addr.regency.name);
+    if (addr.province?.name) parts.push(addr.province.name);
+    if (addr.postalCode) parts.push(addr.postalCode);
+    const fullAddressString = parts.join(", ");
+
     const updateData = {
       nis: editForm.nis.trim(),
       fullName: editForm.fullName.trim(),
@@ -1026,8 +1079,16 @@ async function saveStudent() {
       birthPlace: editForm.birthPlace?.trim() || undefined,
       gender: editForm.gender,
       phone: editForm.phone?.trim() || undefined,
-      address: editForm.address?.trim() || undefined,
       status: editForm.status,
+
+      // Address Fields
+      address: fullAddressString || undefined,
+      province: addr.province ? JSON.stringify(addr.province) : undefined,
+      regency: addr.regency ? JSON.stringify(addr.regency) : undefined,
+      district: addr.district ? JSON.stringify(addr.district) : undefined,
+      village: addr.village ? JSON.stringify(addr.village) : undefined,
+      addressDetail: addr.addressDetail || undefined,
+      postalCode: addr.postalCode || undefined,
     };
 
     const response = await studentsApi.update(student.value.id, updateData);
@@ -1090,7 +1151,15 @@ function openParentEditModal(parent) {
   parentForm.fatherOccupation = parent.fatherOccupation || "";
   parentForm.motherOccupation = parent.motherOccupation || "";
   parentForm.phone = parent.phone || "";
-  parentForm.address = parent.address || "";
+
+  parentForm.addressData = {
+    province: safeParse(parent.province),
+    regency: safeParse(parent.regency),
+    district: safeParse(parent.district),
+    village: safeParse(parent.village),
+    addressDetail: parent.addressDetail || "",
+    postalCode: parent.postalCode || "",
+  };
   parentEditModal.show = true;
   parentEditModal.error = "";
 }
@@ -1112,7 +1181,33 @@ async function saveParent() {
       fatherOccupation: parentForm.fatherOccupation?.trim() || undefined,
       motherOccupation: parentForm.motherOccupation?.trim() || undefined,
       phone: parentForm.phone?.trim() || undefined,
-      address: parentForm.address?.trim() || undefined,
+
+      // Address Fields
+      address: (() => {
+        const addr = parentForm.addressData;
+        const parts = [];
+        if (addr.addressDetail) parts.push(addr.addressDetail);
+        if (addr.village?.name) parts.push(addr.village.name);
+        if (addr.district?.name) parts.push("Kec. " + addr.district.name);
+        if (addr.regency?.name) parts.push(addr.regency.name);
+        if (addr.province?.name) parts.push(addr.province.name);
+        if (addr.postalCode) parts.push(addr.postalCode);
+        return parts.join(", ") || undefined;
+      })(),
+      province: parentForm.addressData.province
+        ? JSON.stringify(parentForm.addressData.province)
+        : undefined,
+      regency: parentForm.addressData.regency
+        ? JSON.stringify(parentForm.addressData.regency)
+        : undefined,
+      district: parentForm.addressData.district
+        ? JSON.stringify(parentForm.addressData.district)
+        : undefined,
+      village: parentForm.addressData.village
+        ? JSON.stringify(parentForm.addressData.village)
+        : undefined,
+      addressDetail: parentForm.addressData.addressDetail || undefined,
+      postalCode: parentForm.addressData.postalCode || undefined,
     };
 
     const response = await parentsApi.update(

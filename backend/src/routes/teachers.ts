@@ -404,13 +404,20 @@ teachersRoute.post(
         Gender: "gender",
         "Tanggal Lahir": "birthDate",
         "Tempat Lahir": "birthPlace",
-        Alamat: "address",
+        // Alamat removed, using detailed fields
         Telepon: "phone",
         Phone: "phone",
         Email: "email",
         Password: "password",
         Status: "status",
         "Tipe Karyawan": "employeeType",
+        // New Address Fields
+        Provinsi: "province",
+        "Kabupaten/Kota": "regency",
+        Kecamatan: "district",
+        "Desa/Kelurahan": "village",
+        "Detail Alamat": "addressDetail",
+        "Kode Pos": "postalCode",
       };
 
       const genderMapping: { [key: string]: string } = {
@@ -564,13 +571,20 @@ teachersRoute.post("/import", requireRole("admin", "staff"), async (c) => {
       Gender: "gender",
       "Tanggal Lahir": "birthDate",
       "Tempat Lahir": "birthPlace",
-      Alamat: "address",
+      // Alamat removed
       Telepon: "phone",
       Phone: "phone",
       Email: "email",
       Password: "password",
       Status: "status",
       "Tipe Karyawan": "employeeType",
+      // New Address Fields
+      Provinsi: "province",
+      "Kabupaten/Kota": "regency",
+      Kecamatan: "district",
+      "Desa/Kelurahan": "village",
+      "Detail Alamat": "addressDetail",
+      "Kode Pos": "postalCode",
     };
     const genderMapping: any = {
       "Laki-laki": "male",
@@ -652,6 +666,22 @@ teachersRoute.post("/import", requireRole("admin", "staff"), async (c) => {
           // If user exists, we skip creating logic for simplicity/safety
         }
 
+        // Format Address Fields to JSON structure
+        const formatRegion = (name: any) =>
+          name ? JSON.stringify({ code: null, name: String(name) }) : undefined;
+
+        // Auto-generate plain text address from components
+        const generatedAddress = [
+          rawData.addressDetail,
+          rawData.village,
+          rawData.district,
+          rawData.regency,
+          rawData.province,
+          rawData.postalCode,
+        ]
+          .filter(Boolean)
+          .join(", ");
+
         // Insert Teacher
         const res = await db.insert(teachers).values({
           userId,
@@ -660,7 +690,17 @@ teachersRoute.post("/import", requireRole("admin", "staff"), async (c) => {
           gender: rawData.gender,
           birthDate: rawData.birthDate,
           birthPlace: rawData.birthPlace,
-          address: rawData.address,
+          address: rawData.address || generatedAddress || undefined,
+          // Detailed address fields
+          province: formatRegion(rawData.province),
+          regency: formatRegion(rawData.regency),
+          district: formatRegion(rawData.district),
+          village: formatRegion(rawData.village),
+          addressDetail: rawData.addressDetail,
+          postalCode: rawData.postalCode
+            ? String(rawData.postalCode)
+            : undefined,
+
           phone: rawData.phone ? String(rawData.phone) : undefined,
           email: rawData.email,
           position: rawData.position,

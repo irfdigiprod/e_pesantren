@@ -57,6 +57,13 @@ export const createParentSchema = z.object({
   motherOccupation: z.string().optional(),
   phone: z.string().optional(),
   address: z.string().optional(),
+  // Separate address fields
+  province: z.string().optional(),
+  regency: z.string().optional(),
+  district: z.string().optional(),
+  village: z.string().optional(),
+  addressDetail: z.string().optional(),
+  postalCode: z.string().optional(),
   // Optional: create user account for parent
   email: z.string().email().optional(),
   password: z.string().min(6).optional(),
@@ -69,6 +76,13 @@ export const updateParentSchema = z.object({
   motherOccupation: z.string().optional(),
   phone: z.string().optional(),
   address: z.string().optional(),
+  // Separate address fields
+  province: z.string().optional(),
+  regency: z.string().optional(),
+  district: z.string().optional(),
+  village: z.string().optional(),
+  addressDetail: z.string().optional(),
+  postalCode: z.string().optional(),
 });
 
 export type CreateStudentInput = z.infer<typeof createStudentSchema>;
