@@ -1640,86 +1640,14 @@
     </div>
   </Teleport>
 
-  <!-- Add Member Modal (RESTORED) -->
-  <Teleport to="body">
-    <div
-      v-if="showAddMemberModal"
-      class="add-member-overlay"
-      @click.self="showAddMemberModal = false"
-    >
-      <div class="modal-content add-member-modal">
-        <div class="modal-header">
-          <h3>Tambah Anggota</h3>
-          <button @click="showAddMemberModal = false" class="close-btn">
-            <Icon icon="solar:close-circle-line-duotone" />
-          </button>
-        </div>
-        <div class="modal-body">
-          <div class="search-box">
-            <Icon icon="solar:magnifer-line-duotone" class="search-icon" />
-            <input
-              v-model="addMemberSearch"
-              type="text"
-              placeholder="Cari pengguna..."
-              @input="searchUsersToAdd"
-              class="search-input"
-            />
-          </div>
-          <div class="add-member-results">
-            <div
-              v-for="user in addMemberResults"
-              :key="user.id"
-              class="add-member-item"
-              @click="addMember(user.id)"
-            >
-              <div class="member-avatar">
-                {{ user.email?.charAt(0).toUpperCase() }}
-              </div>
-              <div
-                class="user-info"
-                style="
-                  flex: 1;
-                  display: flex;
-                  flex-direction: column;
-                  overflow: hidden;
-                  margin-left: 0.5rem;
-                "
-              >
-                <span
-                  style="
-                    font-weight: 500;
-                    font-size: 0.875rem;
-                    color: #1e293b;
-                    white-space: nowrap;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
-                  "
-                  >{{ user.name || user.email }}</span
-                >
-                <span
-                  style="
-                    font-size: 0.75rem;
-                    color: #64748b;
-                    white-space: nowrap;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
-                  "
-                  >{{ user.email }}</span
-                >
-              </div>
-              <Icon icon="solar:add-circle-line-duotone" class="add-icon" />
-            </div>
-            <p
-              v-if="addMemberResults.length === 0 && addMemberSearch"
-              class="no-results"
-            >
-              Tidak ada pengguna ditemukan
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </Teleport>
+  <!-- Add Member Modal -->
+  <AddMemberModal
+    v-if="showAddMemberModal"
+    :search-results="addMemberResults"
+    @close="showAddMemberModal = false"
+    @add="addMember"
+    @search="searchUsersToAdd"
+  />
 
   <!-- Custom Alert Modal -->
   <AlertModal
@@ -4240,17 +4168,17 @@ async function toggleGroupLock() {
 }
 
 // Search users to add as members
-async function searchUsersToAdd() {
-  if (!addMemberSearch.value.trim()) {
+async function searchUsersToAdd(query) {
+  // Support both direct query parameter and using addMemberSearch ref
+  const searchQuery = query !== undefined ? query : addMemberSearch.value;
+  if (!searchQuery || !searchQuery.trim()) {
     addMemberResults.value = [];
     return;
   }
 
   try {
     const response = await fetch(
-      `${API_URL}/api/users?search=${encodeURIComponent(
-        addMemberSearch.value
-      )}`,
+      `${API_URL}/api/users?search=${encodeURIComponent(searchQuery)}`,
       {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
