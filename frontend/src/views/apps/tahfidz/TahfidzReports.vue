@@ -680,10 +680,10 @@
           </div>
 
           <!-- CATATAN & NILAI AKHIR -->
-          <div class="grid grid-cols-3 gap-4 mb-6 text-sm">
-            <div class="col-span-2">
+          <div class="grid grid-cols-4 gap-4 mb-6 text-sm">
+            <div class="col-span-3 flex flex-col">
               <h5 class="font-bold mb-2">Catatan</h5>
-              <div class="border border-slate-300 p-3 min-h-[80px] text-xs">
+              <div class="border border-slate-300 p-3 h-full text-xs">
                 {{
                   notes ||
                   "Kemampuan menghafal baik, dan melebihi target yang telah ditentukan.\nBacaan baik sesuai kaidah tajwid\nAnanda selalu menunjukkan Adab yang mulia"
@@ -745,8 +745,16 @@
                     {{ finalScore }}
                   </td>
                 </tr>
+                <!-- Merged Predicate Row -->
+                <tr>
+                  <td
+                    colspan="2"
+                    class="border border-slate-300 p-2 text-center font-bold"
+                  >
+                    {{ tercapaiLabel }}
+                  </td>
+                </tr>
               </table>
-              <p class="text-center font-bold mt-2">{{ tercapaiLabel }}</p>
             </div>
           </div>
 
