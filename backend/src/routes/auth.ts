@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import { eq } from "drizzle-orm";
+import { eq, and, ne } from "drizzle-orm";
 import { db } from "../db";
 import { users } from "../db/schema/users";
 import { hashPassword, verifyPassword } from "../utils/password";
@@ -163,22 +163,55 @@ auth.get("/me", authMiddleware, async (c) => {
 auth.get("/users", authMiddleware, async (c) => {
   try {
     const currentUser = c.get("user");
+    const { teachers } = await import("../db/schema/teachers");
+    const { students, parents } = await import("../db/schema/students");
 
-    const allUsers = await db.query.users.findMany({
-      columns: {
-        id: true,
-        email: true,
-        role: true,
-      },
-      where: eq(users.isActive, true),
+    // We can't easily do a 4-way left join in one clean query object syntax with conditional logic cleanly in Drizzle indiscriminately.
+    // But we can fetch users and then enrich, OR use query builder with left joins.
+    // Query builder is better.
+
+    const allUsers = await db
+      .select({
+        id: users.id,
+        email: users.email,
+        role: users.role,
+        name: users.name,
+        photo: users.photo,
+        teacherName: teachers.fullName,
+        studentName: students.fullName,
+        parentFatherName: parents.fatherName,
+        parentMotherName: parents.motherName,
+      })
+      .from(users)
+      .leftJoin(teachers, eq(users.id, teachers.userId))
+      .leftJoin(students, eq(users.id, students.userId))
+      .leftJoin(parents, eq(users.id, parents.userId))
+      .where(and(eq(users.isActive, true), ne(users.id, currentUser.userId)));
+
+    const mappedUsers = allUsers.map((u) => {
+      let displayName = u.name || u.email; // Fallback
+
+      if (u.role === "teacher" && u.teacherName) {
+        displayName = u.teacherName;
+      } else if (u.role === "student" && u.studentName) {
+        displayName = u.studentName;
+      } else if (u.role === "parent") {
+        displayName =
+          u.parentFatherName || u.parentMotherName || u.name || "Orang Tua";
+      }
+
+      return {
+        id: u.id,
+        email: u.email,
+        role: u.role,
+        name: displayName,
+        photo: u.photo, // Include photo if available
+      };
     });
-
-    // Filter out current user
-    const otherUsers = allUsers.filter((u) => u.id !== currentUser.userId);
 
     return c.json({
       success: true,
-      data: otherUsers,
+      data: mappedUsers,
     });
   } catch (error) {
     console.error("Get users error:", error);

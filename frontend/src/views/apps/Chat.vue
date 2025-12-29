@@ -1832,7 +1832,38 @@
               <div class="member-avatar">
                 {{ user.email?.charAt(0).toUpperCase() }}
               </div>
-              <span>{{ user.email }}</span>
+              <div
+                class="user-info"
+                style="
+                  flex: 1;
+                  display: flex;
+                  flex-direction: column;
+                  overflow: hidden;
+                  margin-left: 0.5rem;
+                "
+              >
+                <span
+                  style="
+                    font-weight: 500;
+                    font-size: 0.875rem;
+                    color: #1e293b;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                  "
+                  >{{ user.name || user.email }}</span
+                >
+                <span
+                  style="
+                    font-size: 0.75rem;
+                    color: #64748b;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                  "
+                  >{{ user.email }}</span
+                >
+              </div>
               <Icon icon="solar:add-circle-line-duotone" class="add-icon" />
             </div>
             <p
