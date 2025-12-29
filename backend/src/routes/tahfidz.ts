@@ -13,6 +13,7 @@ import {
   tahfidzReportCards,
   tahfidzExamTypes,
   classHomeroomTeachers,
+  settings,
 } from "../db/schema";
 import {
   eq,
@@ -1028,6 +1029,7 @@ const settingsSchema = z.object({
   contactInfo: z.string().optional(),
   headmasterName: z.string().optional(),
   tahfidzHeadName: z.string().optional(),
+  tahfidzHeadNameAkhwat: z.string().optional(), // Ketua Tahfidz Akhwat (optional)
   cityDate: z.string().optional(),
 });
 
@@ -1158,7 +1160,26 @@ app.get("/report-card/:studentId", async (c) => {
     });
 
     // 5. Get Settings
-    const settings = await db.query.tahfidzReportSettings.findFirst();
+    const tahfidzSettings = await db.query.tahfidzReportSettings.findFirst();
+
+    // 5b. Get city name from institution settings
+    let cityName = "";
+    const regencySetting = await db.query.settings.findFirst({
+      where: eq(settings.key, "institution_regency"),
+    });
+    if (regencySetting?.value) {
+      try {
+        const regencyData = JSON.parse(regencySetting.value);
+        if (regencyData?.name) {
+          // Remove "KABUPATEN " or "KOTA " prefix (case insensitive)
+          cityName = regencyData.name
+            .replace(/^KABUPATEN\s+/i, "")
+            .replace(/^KOTA\s+/i, "");
+        }
+      } catch (e) {
+        console.error("Failed to parse institution_regency:", e);
+      }
+    }
 
     // 6. Get Target based on Halaqah Level or Class Grade
     const allTargets = await db.select().from(tahfidzTargets);
@@ -1311,7 +1332,7 @@ app.get("/report-card/:studentId", async (c) => {
         exams,
         attendance,
         totalHafalan: totalPages.toFixed(2),
-        settings: settings || {},
+        settings: { ...(tahfidzSettings || {}), cityName },
         mading: madingData,
         target: {
           ...(target || { level: "Default", targetPages: 50 }),

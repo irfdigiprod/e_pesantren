@@ -1306,11 +1306,20 @@ export { uploadFile };
 // ============================================
 
 export const uploadsApi = {
-  upload(formData) {
-    return request("/api/uploads", {
+  async upload(file) {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const token = getToken();
+    const res = await fetch(`${BASE_URL}/api/uploads`, {
       method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
       body: formData,
     });
+
+    return parseResponse(res);
   },
 };
 

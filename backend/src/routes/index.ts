@@ -23,6 +23,7 @@ import salaryRoute from "./salary";
 import salaryReportRoute from "./salary-report";
 import salaryGradesRoute from "./salary-grades";
 import tahfidzRoute from "./tahfidz";
+import wilayahRoute from "./wilayah";
 
 export {
   authRoute,
@@ -49,4 +50,5 @@ export {
   salaryReportRoute,
   salaryGradesRoute,
   tahfidzRoute,
+  wilayahRoute,
 };

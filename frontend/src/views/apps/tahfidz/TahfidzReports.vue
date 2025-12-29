@@ -145,7 +145,7 @@
           <!-- HEADER IMAGE -->
           <div class="mb-4">
             <img
-              src="/images/tahfidz-header.png"
+              :src="headerImageUrl"
               alt="Header Rapor Tahfidz"
               class="w-full h-auto"
             />
@@ -770,9 +770,7 @@
               <p>Ketua Bagian Tahfidz</p>
               <div class="h-20"></div>
               <p class="font-bold">
-                {{
-                  settings.tahfidzHeadName || "..............................."
-                }}
+                {{ tahfidzHeadNameDisplay }}
               </p>
             </div>
             <div>
@@ -826,6 +824,31 @@ const currentDate = computed(() => {
     month: "long",
     year: "numeric",
   });
+});
+
+// API Base for image URLs
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
+
+// Dynamic header image URL from settings
+const headerImageUrl = computed(() => {
+  const logo = settings.value?.institutionLogo;
+  if (!logo) return "/images/tahfidz-header.png"; // Fallback
+  if (logo.startsWith("http")) return logo;
+  return `${API_BASE}/api/${logo}`;
+});
+
+// Conditional Tahfidz Head Name based on student gender
+const tahfidzHeadNameDisplay = computed(() => {
+  const isFemale =
+    student.value?.gender === "female" || student.value?.gender === "perempuan";
+
+  // If female and akhwat head name is set, use it
+  if (isFemale && settings.value?.tahfidzHeadNameAkhwat) {
+    return settings.value.tahfidzHeadNameAkhwat;
+  }
+
+  // Otherwise use the default (ikhwan) head name
+  return settings.value?.tahfidzHeadName || "...............................";
 });
 
 // Computed for UPK exams (type = UPK)

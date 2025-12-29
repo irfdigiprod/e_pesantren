@@ -28,7 +28,7 @@
             : 'border-transparent text-slate-500 hover:text-slate-700',
         ]"
       >
-        Kops & Laporan
+        Kops & TTD
       </button>
       <button
         @click="activeTab = 'types'"
@@ -120,121 +120,159 @@
       </div>
     </div>
 
-    <!-- TAB: HEADER SETTINGS -->
+    <!-- TAB: HEADER SETTINGS (KOP SURAT) -->
     <div v-else-if="activeTab === 'header'">
       <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-        <h3 class="font-bold text-slate-800 mb-4 border-b pb-2">
-          Kops Surat & Tanda Tangan
-        </h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <!-- Left Column -->
-          <div class="space-y-4">
-            <div>
-              <label class="block text-sm font-medium text-slate-700 mb-1"
-                >Nama Institusi / Yayasan</label
+        <h3 class="font-bold text-slate-800 mb-2">Kop Surat Rapor Tahfidz</h3>
+        <p class="text-sm text-slate-500 mb-6">
+          Upload gambar kop surat yang akan digunakan sebagai header rapor
+          tahfidz. Disarankan menggunakan gambar dengan rasio lebar (landscape)
+          dan resolusi tinggi.
+        </p>
+
+        <!-- Upload Zone -->
+        <div
+          @dragover.prevent="isDragging = true"
+          @dragleave.prevent="isDragging = false"
+          @drop.prevent="handleDrop"
+          :class="[
+            'relative border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-300 cursor-pointer',
+            isDragging
+              ? 'border-[#602515] bg-[#602515]/5 scale-[1.01]'
+              : 'border-slate-300 hover:border-[#602515]/50 hover:bg-slate-50',
+          ]"
+          @click="triggerFileInput"
+        >
+          <input
+            ref="fileInput"
+            type="file"
+            accept="image/*"
+            class="hidden"
+            @change="handleFileSelect"
+          />
+
+          <!-- Upload Progress -->
+          <div v-if="uploadingHeader" class="flex flex-col items-center gap-4">
+            <div
+              class="w-16 h-16 rounded-full border-4 border-[#602515]/20 border-t-[#602515] animate-spin"
+            ></div>
+            <span class="text-slate-600 font-medium">Mengupload gambar...</span>
+          </div>
+
+          <!-- Preview (if image exists) -->
+          <div v-else-if="headerForm.institutionLogo" class="space-y-4">
+            <img
+              :src="getImageUrl(headerForm.institutionLogo)"
+              alt="Kop Surat Preview"
+              class="max-h-48 mx-auto rounded-lg shadow-lg border border-slate-200"
+            />
+            <div class="flex items-center justify-center gap-3">
+              <button
+                @click.stop="triggerFileInput"
+                class="px-4 py-2 text-sm font-medium text-[#602515] border border-[#602515] rounded-lg hover:bg-[#602515]/5 flex items-center gap-2"
               >
-              <input
-                v-model="headerForm.institutionName"
-                type="text"
-                class="w-full px-3 py-2 border rounded-lg focus:ring-2 ring-[#602515]/20 outline-none"
-                placeholder="Contoh: Markaz Syariah Minhajul Haq"
-              />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-slate-700 mb-1"
-                >Alamat Lengkap (Kops)</label
+                <Icon icon="solar:gallery-edit-bold" />
+                Ganti Gambar
+              </button>
+              <button
+                @click.stop="removeHeader"
+                class="px-4 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 flex items-center gap-2"
               >
-              <textarea
-                v-model="headerForm.institutionAddress"
-                rows="3"
-                class="w-full px-3 py-2 border rounded-lg focus:ring-2 ring-[#602515]/20 outline-none"
-                placeholder="Alamat lengkap, Telepon, Email, Website..."
-              ></textarea>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-slate-700 mb-1"
-                >URL Logo (Absolute URL)</label
-              >
-              <input
-                v-model="headerForm.institutionLogo"
-                type="text"
-                class="w-full px-3 py-2 border rounded-lg focus:ring-2 ring-[#602515]/20 outline-none"
-                placeholder="https://..."
-              />
-              <p class="text-xs text-slate-500 mt-1">
-                Masukkan URL gambar logo yang valid.
-              </p>
+                <Icon icon="solar:trash-bin-trash-bold" />
+                Hapus
+              </button>
             </div>
           </div>
 
-          <!-- Right Column -->
-          <div class="space-y-4">
-            <div>
-              <label class="block text-sm font-medium text-slate-700 mb-1"
-                >Kota Tanggal (Default)</label
-              >
-              <input
-                v-model="headerForm.cityDate"
-                type="text"
-                class="w-full px-3 py-2 border rounded-lg focus:ring-2 ring-[#602515]/20 outline-none"
-                placeholder="Contoh: Purwakarta"
+          <!-- Empty State -->
+          <div v-else class="space-y-4">
+            <div
+              class="w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-[#602515]/10 to-[#602515]/5 flex items-center justify-center"
+            >
+              <Icon
+                icon="solar:cloud-upload-bold-duotone"
+                class="w-10 h-10 text-[#602515]"
               />
-              <p class="text-xs text-slate-500 mt-1">
-                Format tanggal raport akan mengikuti: [Kota], [Tanggal]
+            </div>
+            <div>
+              <p class="text-slate-700 font-medium">
+                Drag & drop gambar kop surat di sini
+              </p>
+              <p class="text-slate-500 text-sm mt-1">
+                atau klik untuk memilih file (PNG, JPG, max 5MB)
               </p>
             </div>
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm font-medium text-slate-700 mb-1"
-                  >Nama Kepala Bagian Tahfidz</label
-                >
-                <input
-                  v-model="headerForm.tahfidzHeadName"
-                  type="text"
-                  class="w-full px-3 py-2 border rounded-lg focus:ring-2 ring-[#602515]/20 outline-none"
-                  placeholder="Nama lengkap + Gelar"
-                />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-slate-700 mb-1"
-                  >Nama Wali Kelas (Default)</label
-                >
-                <input
-                  type="text"
-                  disabled
-                  class="w-full px-3 py-2 border rounded-lg bg-slate-50 text-slate-500"
-                  placeholder="(Otomatis dari Data)"
-                />
-              </div>
-            </div>
+          </div>
+        </div>
+
+        <!-- Tips -->
+        <div
+          class="mt-6 p-4 bg-amber-50 border border-amber-100 rounded-xl flex items-start gap-3"
+        >
+          <Icon
+            icon="solar:lightbulb-bolt-bold"
+            class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5"
+          />
+          <div class="text-sm text-amber-900">
+            <p class="font-medium mb-1">Tips:</p>
+            <ul class="list-disc list-inside space-y-1 text-amber-800">
+              <li>Gunakan gambar dengan lebar minimal 800px</li>
+              <li>Format yang disarankan: PNG dengan background transparan</li>
+              <li>Pastikan teks pada kop surat terbaca dengan jelas</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Signature Names Section -->
+        <div class="mt-8 border-t pt-6">
+          <h4 class="font-bold text-slate-800 mb-4">Nama Tanda Tangan</h4>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Ketua Tahfidz Ikhwan -->
             <div>
-              <label class="block text-sm font-medium text-slate-700 mb-1"
-                >Nama Kepala Sekolah / Mudir (Optional)</label
-              >
+              <label class="block text-sm font-medium text-slate-700 mb-1">
+                Ketua Bagian Tahfidz (Ikhwan)
+              </label>
               <input
-                v-model="headerForm.headmasterName"
+                v-model="headerForm.tahfidzHeadName"
                 type="text"
                 class="w-full px-3 py-2 border rounded-lg focus:ring-2 ring-[#602515]/20 outline-none"
                 placeholder="Nama lengkap + Gelar"
               />
             </div>
+            <!-- Ketua Tahfidz Akhwat -->
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">
+                Ketua Bagian Tahfidz (Akhwat)
+                <span class="text-slate-400 font-normal">(Opsional)</span>
+              </label>
+              <input
+                v-model="headerForm.tahfidzHeadNameAkhwat"
+                type="text"
+                class="w-full px-3 py-2 border rounded-lg focus:ring-2 ring-[#602515]/20 outline-none"
+                placeholder="Kosongkan jika sama dengan Ikhwan"
+              />
+              <p class="text-xs text-slate-500 mt-1">
+                Jika diisi, nama ini akan tampil di rapor siswi (perempuan).
+              </p>
+            </div>
           </div>
-        </div>
 
-        <div class="mt-8 flex justify-end">
-          <button
-            @click="saveHeader"
-            :disabled="savingHeader"
-            class="px-6 py-2 bg-[#602515] text-white rounded-lg hover:bg-[#4a1c10] disabled:opacity-50 flex items-center gap-2"
-          >
-            <Icon
-              v-if="savingHeader"
-              icon="solar:spinner-bold"
-              class="animate-spin"
-            />
-            <Icon v-else icon="solar:diskette-bold-duotone" />
-            {{ savingHeader ? "Menyimpan..." : "Simpan Pengaturan" }}
-          </button>
+          <!-- Save Button -->
+          <div class="mt-6 flex justify-end">
+            <button
+              @click="saveHeaderSettings"
+              :disabled="savingHeader"
+              class="px-6 py-2 bg-[#602515] text-white rounded-lg hover:bg-[#4a1c10] disabled:opacity-50 flex items-center gap-2"
+            >
+              <Icon
+                v-if="savingHeader"
+                icon="solar:spinner-bold"
+                class="animate-spin"
+              />
+              <Icon v-else icon="solar:diskette-bold-duotone" />
+              {{ savingHeader ? "Menyimpan..." : "Simpan Pengaturan" }}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -466,52 +504,45 @@
       </div>
     </div>
 
-    <!-- Delete Confirmation -->
-    <div
-      v-if="deleteConfirm.show"
-      class="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999]"
-      @click.self="deleteConfirm.show = false"
-    >
-      <div
-        class="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl text-center"
-      >
-        <Icon
-          icon="solar:trash-bin-minimalistic-bold-duotone"
-          class="text-5xl text-red-500 mb-4 mx-auto"
-        />
-        <h3 class="text-lg font-bold text-slate-800 mb-2">Hapus Target?</h3>
-        <p class="text-slate-600 mb-6">
-          Target level <strong>{{ deleteConfirm.item?.level }}</strong> akan
-          dihapus.
-        </p>
-        <div class="flex justify-center gap-3">
-          <button
-            @click="deleteConfirm.show = false"
-            class="px-4 py-2 border border-slate-200 rounded-lg hover:bg-slate-50"
-          >
-            Batal
-          </button>
-          <button
-            @click="doDelete"
-            class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-          >
-            Hapus
-          </button>
-        </div>
-      </div>
-    </div>
+    <!-- CONFIRM MODAL -->
+    <ConfirmModal
+      :isOpen="confirmModal.isOpen"
+      :title="confirmModal.title"
+      :message="confirmModal.message"
+      confirmText="Hapus"
+      cancelText="Batal"
+      type="danger"
+      @confirm="handleConfirm"
+      @cancel="confirmModal.isOpen = false"
+    />
+
+    <!-- STATUS MODAL -->
+    <StatusModal
+      :isOpen="statusModal.isOpen"
+      :type="statusModal.type"
+      :title="statusModal.title"
+      :message="statusModal.message"
+      @close="statusModal.isOpen = false"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted, watch } from "vue";
 import { Icon } from "@iconify/vue";
-import { tahfidzApi } from "@/services/api";
+import { tahfidzApi, uploadsApi } from "@/services/api";
+import ConfirmModal from "@/components/ui/ConfirmModal.vue";
+import StatusModal from "@/components/ui/StatusModal.vue";
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 
 const activeTab = ref("targets");
 const loading = ref(false);
 const saving = ref(false);
 const savingHeader = ref(false);
+const uploadingHeader = ref(false);
+const isDragging = ref(false);
+const fileInput = ref(null);
 const targets = ref([]);
 const showModal = ref(false);
 
@@ -529,13 +560,31 @@ const headerForm = reactive({
   contactInfo: "",
   headmasterName: "",
   tahfidzHeadName: "",
+  tahfidzHeadNameAkhwat: "",
   cityDate: "Purwakarta",
 });
 
-const deleteConfirm = reactive({
-  show: false,
+const confirmModal = reactive({
+  isOpen: false,
+  title: "",
+  message: "",
   item: null,
+  action: null, // 'delete_target' | 'delete_type'
 });
+
+const statusModal = reactive({
+  isOpen: false,
+  type: "success",
+  title: "",
+  message: "",
+});
+
+function showStatus(type, title, message) {
+  statusModal.type = type;
+  statusModal.title = title;
+  statusModal.message = message;
+  statusModal.isOpen = true;
+}
 
 // --- TARGETS LOGIC ---
 async function loadTargets() {
@@ -569,7 +618,7 @@ function openModal(item = null) {
 
 async function saveTarget() {
   if (!form.level || !form.targetPages) {
-    alert("Level dan Target harus diisi!");
+    showStatus("warning", "Validasi Gagal", "Level dan Target harus diisi!");
     return;
   }
 
@@ -583,33 +632,51 @@ async function saveTarget() {
 
     if (form.id) {
       await tahfidzApi.updateTarget(form.id, payload);
+      showStatus("success", "Berhasil", "Data target berhasil diperbarui");
     } else {
       await tahfidzApi.createTarget(payload);
+      showStatus("success", "Berhasil", "Target baru berhasil ditambahkan");
     }
 
     showModal.value = false;
     loadTargets();
   } catch (e) {
     console.error("Failed to save target:", e);
-    alert("Gagal menyimpan target");
+    showStatus("error", "Gagal", "Terjadi kesalahan saat menyimpan target");
   } finally {
     saving.value = false;
   }
 }
 
 function confirmDelete(item) {
-  deleteConfirm.item = item;
-  deleteConfirm.show = true;
+  confirmModal.item = item;
+  confirmModal.action = "delete_target";
+  confirmModal.title = "Hapus Target?";
+  confirmModal.message = `Target level ${item.level} akan dihapus permanen.`;
+  confirmModal.isOpen = true;
 }
 
-async function doDelete() {
-  try {
-    await tahfidzApi.deleteTarget(deleteConfirm.item.id);
-    deleteConfirm.show = false;
-    loadTargets();
-  } catch (e) {
-    console.error("Failed to delete target:", e);
-    alert("Gagal menghapus target");
+async function handleConfirm() {
+  confirmModal.isOpen = false;
+
+  if (confirmModal.action === "delete_target") {
+    try {
+      await tahfidzApi.deleteTarget(confirmModal.item.id);
+      showStatus("success", "Berhasil", "Target berhasil dihapus");
+      loadTargets();
+    } catch (e) {
+      console.error("Failed to delete target:", e);
+      showStatus("error", "Gagal", "Gagal menghapus target");
+    }
+  } else if (confirmModal.action === "delete_type") {
+    try {
+      await tahfidzApi.deleteExamType(confirmModal.item.id);
+      showStatus("success", "Berhasil", "Jenis ujian berhasil dihapus");
+      loadExamTypes();
+    } catch (e) {
+      console.error(e);
+      showStatus("error", "Gagal", "Gagal menghapus jenis ujian");
+    }
   }
 }
 
@@ -625,18 +692,96 @@ async function loadSettings() {
   }
 }
 
-async function saveHeader() {
-  if (!headerForm.institutionName) {
-    alert("Nama Institusi wajib diisi");
+function getImageUrl(path) {
+  if (!path) return "";
+  if (path.startsWith("http")) return path;
+  return `${API_BASE}/api/${path}`;
+}
+
+function triggerFileInput() {
+  fileInput.value?.click();
+}
+
+function handleDrop(e) {
+  isDragging.value = false;
+  const files = e.dataTransfer?.files;
+  if (files && files.length > 0) {
+    uploadFile(files[0]);
+  }
+}
+
+function handleFileSelect(e) {
+  const files = e.target?.files;
+  if (files && files.length > 0) {
+    uploadFile(files[0]);
+  }
+}
+
+async function uploadFile(file) {
+  if (!file.type.startsWith("image/")) {
+    showStatus(
+      "warning",
+      "File Tidak Valid",
+      "Silakan pilih file gambar (PNG, JPG)"
+    );
     return;
   }
+
+  if (file.size > 5 * 1024 * 1024) {
+    showStatus(
+      "warning",
+      "File Terlalu Besar",
+      "Ukuran maksimal file adalah 5MB"
+    );
+    return;
+  }
+
+  uploadingHeader.value = true;
+  try {
+    const res = await uploadsApi.upload(file);
+    if (res.success && res.data?.filePath) {
+      headerForm.institutionLogo = res.data.filePath;
+      // Auto save after upload
+      await saveHeaderSettings();
+      showStatus(
+        "success",
+        "Berhasil",
+        "Gambar kop surat berhasil diupload dan disimpan"
+      );
+    } else {
+      throw new Error(res.message || "Upload gagal");
+    }
+  } catch (e) {
+    console.error("Upload error:", e);
+    showStatus(
+      "error",
+      "Gagal Upload",
+      e.message || "Terjadi kesalahan saat mengupload gambar"
+    );
+  } finally {
+    uploadingHeader.value = false;
+  }
+}
+
+async function removeHeader() {
+  headerForm.institutionLogo = "";
+  await saveHeaderSettings();
+  showStatus("success", "Berhasil", "Gambar kop surat berhasil dihapus");
+}
+
+async function saveHeaderSettings() {
   savingHeader.value = true;
   try {
-    await tahfidzApi.updateSettings(headerForm);
-    alert("Pengaturan header berhasil disimpan!");
+    await tahfidzApi.updateSettings({
+      institutionLogo: headerForm.institutionLogo,
+      institutionName: headerForm.institutionName || "Default",
+      tahfidzHeadName: headerForm.tahfidzHeadName,
+      tahfidzHeadNameAkhwat: headerForm.tahfidzHeadNameAkhwat,
+    });
+    showStatus("success", "Berhasil", "Pengaturan berhasil disimpan");
   } catch (e) {
     console.error(e);
-    alert("Gagal menyimpan pengaturan");
+    throw e;
   } finally {
     savingHeader.value = false;
   }
@@ -697,7 +842,7 @@ function openTypeModal(item = null) {
 
 async function saveType() {
   if (!typeForm.name) {
-    alert("Nama Ujian harus diisi!");
+    showStatus("warning", "Validasi Gagal", "Nama Ujian harus diisi!");
     return;
   }
   savingType.value = true;
@@ -710,32 +855,30 @@ async function saveType() {
 
     if (typeForm.id) {
       await tahfidzApi.updateExamType(typeForm.id, payload);
+      showStatus("success", "Berhasil", "Jenis ujian berhasil diperbarui");
     } else {
       await tahfidzApi.createExamType(payload);
+      showStatus(
+        "success",
+        "Berhasil",
+        "Jenis ujian baru berhasil ditambahkan"
+      );
     }
     showTypeModal.value = false;
     loadExamTypes();
   } catch (e) {
     console.error(e);
-    alert("Gagal menyimpan jenis ujian");
+    showStatus("error", "Gagal", "Gagal menyimpan jenis ujian");
   } finally {
     savingType.value = false;
   }
 }
 
 function confirmDeleteType(item) {
-  if (confirm(`Hapus jenis ujian "${item.name}"?`)) {
-    doDeleteType(item.id);
-  }
-}
-
-async function doDeleteType(id) {
-  try {
-    await tahfidzApi.deleteExamType(id);
-    loadExamTypes();
-  } catch (e) {
-    console.error(e);
-    alert("Gagal menghapus jenis ujian");
-  }
+  confirmModal.item = item;
+  confirmModal.action = "delete_type";
+  confirmModal.title = "Hapus Jenis Ujian?";
+  confirmModal.message = `Jenis ujian "${item.name}" akan dihapus permanen.`;
+  confirmModal.isOpen = true;
 }
 </script>

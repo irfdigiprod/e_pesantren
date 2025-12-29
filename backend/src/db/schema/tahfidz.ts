@@ -121,7 +121,8 @@ export const tahfidzReportSettings = mysqlTable("tahfidz_report_settings", {
   institutionLogo: varchar("institution_logo", { length: 255 }), // URL path
   contactInfo: varchar("contact_info", { length: 255 }), // Email/Phone
   headmasterName: varchar("headmaster_name", { length: 100 }),
-  tahfidzHeadName: varchar("tahfidz_head_name", { length: 100 }),
+  tahfidzHeadName: varchar("tahfidz_head_name", { length: 100 }), // Ketua Tahfidz Ikhwan
+  tahfidzHeadNameAkhwat: varchar("tahfidz_head_name_akhwat", { length: 100 }), // Ketua Tahfidz Akhwat (optional)
   cityDate: varchar("city_date", { length: 100 }), // e.g. "Purwakarta" (Date is dynamic usually, but City is static)
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
 });

@@ -149,17 +149,12 @@
               />
             </div>
 
-            <!-- ALAMAT -->
+            <!-- ALAMAT WILAYAH (Cascading) -->
             <div class="col-span-full">
-              <label class="block text-sm font-medium text-slate-700 mb-1"
-                >Alamat Lengkap</label
-              >
-              <textarea
-                v-model="form.institution_address"
-                rows="3"
-                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 outline-none transition-all"
-                placeholder="Jalan, Desa/Kelurahan, Kecamatan, Kabupaten/Kota, Provinsi"
-              ></textarea>
+              <AddressSelector
+                v-model="form.institution_address_region"
+                label="Alamat Lembaga"
+              />
             </div>
 
             <!-- NOMOR IZIN/SK -->
@@ -217,10 +212,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from "vue";
+import { ref, reactive, onMounted, computed, watch } from "vue";
 import { Icon } from "@iconify/vue";
 import { settingsApi, uploadsApi } from "@/services/api";
 import StatusModal from "@/components/ui/StatusModal.vue";
+import AddressSelector from "@/components/ui/AddressSelector.vue";
 
 const loading = ref(true);
 const saving = ref(false);
@@ -247,7 +243,7 @@ function openModal(type, title, message) {
 const form = reactive({
   institution_name: "",
   foundation_name: "",
-  institution_address: "",
+  institution_address_region: null, // Cascading address data { province, regency, district, village, addressDetail, postalCode }
   institution_number: "",
   institution_contact: "",
   institution_logo: "", // URL path
@@ -279,13 +275,56 @@ async function loadSettings() {
       const data = res.data;
       if (data.institution_name) form.institution_name = data.institution_name;
       if (data.foundation_name) form.foundation_name = data.foundation_name;
-      if (data.institution_address)
-        form.institution_address = data.institution_address;
       if (data.institution_number)
         form.institution_number = data.institution_number;
       if (data.institution_contact)
         form.institution_contact = data.institution_contact;
       if (data.institution_logo) form.institution_logo = data.institution_logo;
+
+      // Reconstruct address object from separate fields
+      const addressRegion = {
+        province: null,
+        regency: null,
+        district: null,
+        village: null,
+        addressDetail: data.institution_address_detail || "",
+        postalCode: data.institution_postal_code || "",
+      };
+
+      // Parse province
+      if (data.institution_province) {
+        try {
+          addressRegion.province = JSON.parse(data.institution_province);
+        } catch {
+          addressRegion.province = null;
+        }
+      }
+      // Parse regency
+      if (data.institution_regency) {
+        try {
+          addressRegion.regency = JSON.parse(data.institution_regency);
+        } catch {
+          addressRegion.regency = null;
+        }
+      }
+      // Parse district
+      if (data.institution_district) {
+        try {
+          addressRegion.district = JSON.parse(data.institution_district);
+        } catch {
+          addressRegion.district = null;
+        }
+      }
+      // Parse village
+      if (data.institution_village) {
+        try {
+          addressRegion.village = JSON.parse(data.institution_village);
+        } catch {
+          addressRegion.village = null;
+        }
+      }
+
+      form.institution_address_region = addressRegion;
     }
   } catch (err) {
     console.error("Failed to load settings:", err);
@@ -339,13 +378,32 @@ async function saveSettings() {
   error.value = null;
   try {
     // Transform formatting to bulk update format expected by backend
+    const addr = form.institution_address_region || {};
     const settingsPayload = [
       { key: "institution_name", value: form.institution_name },
       { key: "foundation_name", value: form.foundation_name },
-      { key: "institution_address", value: form.institution_address },
       { key: "institution_number", value: form.institution_number },
       { key: "institution_contact", value: form.institution_contact },
       { key: "institution_logo", value: form.institution_logo },
+      // Save address fields separately
+      {
+        key: "institution_province",
+        value: addr.province ? JSON.stringify(addr.province) : "",
+      },
+      {
+        key: "institution_regency",
+        value: addr.regency ? JSON.stringify(addr.regency) : "",
+      },
+      {
+        key: "institution_district",
+        value: addr.district ? JSON.stringify(addr.district) : "",
+      },
+      {
+        key: "institution_village",
+        value: addr.village ? JSON.stringify(addr.village) : "",
+      },
+      { key: "institution_address_detail", value: addr.addressDetail || "" },
+      { key: "institution_postal_code", value: addr.postalCode || "" },
     ];
 
     await settingsApi.update(settingsPayload);
