@@ -30,6 +30,17 @@
       >
         Kops & Laporan
       </button>
+      <button
+        @click="activeTab = 'types'"
+        :class="[
+          'px-4 py-2 font-medium text-sm transition-colors border-b-2',
+          activeTab === 'types'
+            ? 'border-[#602515] text-[#602515]'
+            : 'border-transparent text-slate-500 hover:text-slate-700',
+        ]"
+      >
+        Jenis Ujian
+      </button>
     </div>
 
     <!-- TAB: TARGETS -->
@@ -223,6 +234,164 @@
             />
             <Icon v-else icon="solar:diskette-bold-duotone" />
             {{ savingHeader ? "Menyimpan..." : "Simpan Pengaturan" }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: EXAM TYPES -->
+    <div v-if="activeTab === 'types'">
+      <!-- Add Button -->
+      <div class="mb-4">
+        <button
+          @click="openTypeModal()"
+          class="px-4 py-2 bg-[#602515] text-white rounded-lg hover:bg-[#4a1c10] flex items-center gap-2"
+        >
+          <Icon icon="solar:add-circle-bold" />
+          Tambah Jenis Ujian
+        </button>
+      </div>
+
+      <!-- Loading -->
+      <div v-if="loadingTypes" class="h-32 flex items-center justify-center">
+        <span class="text-slate-500 animate-pulse">Memuat data...</span>
+      </div>
+
+      <!-- Types Table -->
+      <div
+        v-else
+        class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden"
+      >
+        <table class="w-full text-sm">
+          <thead class="bg-slate-50">
+            <tr>
+              <th class="p-3 text-left font-medium text-slate-700">
+                Nama Ujian
+              </th>
+              <th class="p-3 text-left font-medium text-slate-700">Kategori</th>
+              <th class="p-3 text-left font-medium text-slate-700">
+                Deskripsi
+              </th>
+              <th class="p-3 text-center font-medium text-slate-700">Aksi</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr v-for="t in examTypes" :key="t.id" class="hover:bg-slate-50">
+              <td class="p-3 font-medium text-slate-800">{{ t.name }}</td>
+              <td class="p-3 text-slate-600">
+                <span
+                  class="px-2 py-1 rounded text-xs font-semibold"
+                  :class="{
+                    'bg-blue-100 text-blue-700': t.category === 'UPK',
+                    'bg-green-100 text-green-700': t.category === 'UKJ',
+                    'bg-purple-100 text-purple-700': t.category === 'UA',
+                    'bg-amber-100 text-amber-700': t.category === 'Suluk',
+                    'bg-slate-100 text-slate-700': t.category === 'Other',
+                  }"
+                  >{{ t.category }}</span
+                >
+              </td>
+              <td class="p-3 text-slate-600">{{ t.description || "-" }}</td>
+              <td class="p-3 text-center">
+                <div class="flex justify-center gap-2">
+                  <button
+                    @click="openTypeModal(t)"
+                    class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+                    title="Edit"
+                  >
+                    <Icon icon="solar:pen-bold" />
+                  </button>
+                  <button
+                    @click="confirmDeleteType(t)"
+                    class="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                    title="Hapus"
+                  >
+                    <Icon icon="solar:trash-bin-minimalistic-bold" />
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr v-if="!examTypes.length">
+              <td colspan="4" class="p-6 text-center text-slate-500 italic">
+                Belum ada jenis ujian. Klik "Tambah Jenis Ujian" untuk
+                menambahkan.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Modal (Exam Types) -->
+    <div
+      v-if="showTypeModal"
+      class="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999]"
+      @click.self="showTypeModal = false"
+    >
+      <div class="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
+        <h3 class="text-lg font-bold text-slate-800 mb-4">
+          {{ typeForm.id ? "Edit Jenis Ujian" : "Tambah Jenis Ujian" }}
+        </h3>
+
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1"
+              >Nama Ujian</label
+            >
+            <input
+              v-model="typeForm.name"
+              type="text"
+              placeholder="misal: Ujian Kenaikan Juz 30"
+              class="w-full px-3 py-2 border rounded-lg focus:ring-2 ring-[#602515]/20 outline-none"
+            />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1"
+              >Kategori</label
+            >
+            <select
+              v-model="typeForm.category"
+              class="w-full px-3 py-2 border rounded-lg focus:ring-2 ring-[#602515]/20 outline-none"
+            >
+              <option value="Other">Other (Umum)</option>
+              <option value="UPK">UPK (Ujian Pekanan)</option>
+              <option value="UKJ">UKJ (Ujian Kenaikan Juz)</option>
+              <option value="UA">UA (Ujian Akhir)</option>
+              <option value="Suluk">Suluk (Ujian Adab)</option>
+            </select>
+            <p class="text-xs text-slate-500 mt-1">
+              Kategori menentukan input nilai khusus (misal: UKJ butuh input
+              Juz).
+            </p>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1"
+              >Deskripsi (Opsional)</label
+            >
+            <textarea
+              v-model="typeForm.description"
+              rows="2"
+              placeholder="Keterangan tambahan..."
+              class="w-full px-3 py-2 border rounded-lg focus:ring-2 ring-[#602515]/20 outline-none"
+            ></textarea>
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-3 mt-6">
+          <button
+            @click="showTypeModal = false"
+            class="px-4 py-2 border border-slate-200 rounded-lg hover:bg-slate-50"
+          >
+            Batal
+          </button>
+          <button
+            @click="saveType"
+            :disabled="savingType"
+            class="px-4 py-2 bg-[#602515] text-white rounded-lg hover:bg-[#4a1c10] disabled:opacity-50"
+          >
+            {{ savingType ? "Menyimpan..." : "Simpan" }}
           </button>
         </div>
       </div>
@@ -477,9 +646,96 @@ async function saveHeader() {
 watch(activeTab, (val) => {
   if (val === "targets" && targets.value.length === 0) loadTargets();
   if (val === "header") loadSettings();
+  if (val === "types" && examTypes.value.length === 0) loadExamTypes();
 });
 
 onMounted(() => {
   loadTargets();
 });
+
+// --- EXAM TYPES LOGIC ---
+const loadingTypes = ref(false);
+const savingType = ref(false);
+const examTypes = ref([]);
+const showTypeModal = ref(false);
+
+const typeForm = reactive({
+  id: null,
+  name: "",
+  category: "Other",
+  description: "",
+});
+
+async function loadExamTypes() {
+  loadingTypes.value = true;
+  try {
+    const res = await tahfidzApi.getExamTypes();
+    if (res.success) {
+      examTypes.value = res.data || [];
+    }
+  } catch (e) {
+    console.error("Failed to load exam types:", e);
+  } finally {
+    loadingTypes.value = false;
+  }
+}
+
+function openTypeModal(item = null) {
+  if (item) {
+    typeForm.id = item.id;
+    typeForm.name = item.name;
+    typeForm.category = item.category;
+    typeForm.description = item.description || "";
+  } else {
+    typeForm.id = null;
+    typeForm.name = "";
+    typeForm.category = "Other";
+    typeForm.description = "";
+  }
+  showTypeModal.value = true;
+}
+
+async function saveType() {
+  if (!typeForm.name) {
+    alert("Nama Ujian harus diisi!");
+    return;
+  }
+  savingType.value = true;
+  try {
+    const payload = {
+      name: typeForm.name,
+      category: typeForm.category,
+      description: typeForm.description || null,
+    };
+
+    if (typeForm.id) {
+      await tahfidzApi.updateExamType(typeForm.id, payload);
+    } else {
+      await tahfidzApi.createExamType(payload);
+    }
+    showTypeModal.value = false;
+    loadExamTypes();
+  } catch (e) {
+    console.error(e);
+    alert("Gagal menyimpan jenis ujian");
+  } finally {
+    savingType.value = false;
+  }
+}
+
+function confirmDeleteType(item) {
+  if (confirm(`Hapus jenis ujian "${item.name}"?`)) {
+    doDeleteType(item.id);
+  }
+}
+
+async function doDeleteType(id) {
+  try {
+    await tahfidzApi.deleteExamType(id);
+    loadExamTypes();
+  } catch (e) {
+    console.error(e);
+    alert("Gagal menghapus jenis ujian");
+  }
+}
 </script>

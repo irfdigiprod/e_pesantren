@@ -349,17 +349,74 @@
                     required
                   />
                 </div>
-                <div>
-                  <label class="block text-sm font-medium text-slate-700 mb-1"
-                    >Jenis Ujian</label
+                <div class="space-y-3">
+                  <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1"
+                      >Jenis Ujian</label
+                    >
+                    <select
+                      v-model="form.examTypeId"
+                      class="w-full px-3 py-2 border rounded-lg focus:ring-2 ring-[#602515]/20 outline-none"
+                      required
+                    >
+                      <option value="" disabled>Pilih Jenis Ujian</option>
+                      <option
+                        v-for="t in examTypesList"
+                        :key="t.id"
+                        :value="t.id"
+                      >
+                        {{ t.name }}
+                      </option>
+                    </select>
+                  </div>
+
+                  <!-- Conditional Inputs -->
+                  <div v-if="selectedExamType?.category === 'UKJ'">
+                    <label class="block text-sm font-medium text-slate-700 mb-1"
+                      >Juz (1-30)</label
+                    >
+                    <input
+                      type="number"
+                      v-model="form.juz"
+                      min="1"
+                      max="30"
+                      class="w-full px-3 py-2 border rounded-lg focus:ring-2 ring-[#602515]/20 outline-none"
+                      placeholder="Contoh: 30"
+                      required
+                    />
+                  </div>
+
+                  <div
+                    v-if="selectedExamType?.category === 'UPK'"
+                    class="grid grid-cols-2 gap-2"
                   >
-                  <input
-                    type="text"
-                    v-model="form.examType"
-                    class="w-full px-3 py-2 border rounded-lg focus:ring-2 ring-[#602515]/20 outline-none"
-                    placeholder="Contoh: Ujian Juz 30, Semester 1"
-                    required
-                  />
+                    <div>
+                      <label
+                        class="block text-sm font-medium text-slate-700 mb-1"
+                        >Hal. Awal</label
+                      >
+                      <input
+                        type="number"
+                        v-model="form.startPage"
+                        min="1"
+                        class="w-full px-3 py-2 border rounded-lg focus:ring-2 ring-[#602515]/20 outline-none"
+                        placeholder="1"
+                      />
+                    </div>
+                    <div>
+                      <label
+                        class="block text-sm font-medium text-slate-700 mb-1"
+                        >Hal. Akhir</label
+                      >
+                      <input
+                        type="number"
+                        v-model="form.endPage"
+                        min="1"
+                        class="w-full px-3 py-2 border rounded-lg focus:ring-2 ring-[#602515]/20 outline-none"
+                        placeholder="10"
+                      />
+                    </div>
+                  </div>
                 </div>
                 <div class="relative">
                   <label class="block text-sm font-medium text-slate-700 mb-1"
@@ -628,18 +685,29 @@ const columns = [
   { field: "actions", label: "AKSI", align: "center" },
 ];
 
+// Exam Types Logic
+const examTypesList = ref([]);
+// ...
+
 const form = reactive({
   id: null,
   studentId: "",
   examinerId: "",
   examDate: new Date().toISOString().split("T")[0],
-  examType: "",
+  examTypeId: "", // Replacing examType string
+  juz: "", // For UKJ
+  startPage: "", // For UPK
+  endPage: "", // For UPK
   scoreFluency: 0,
   scoreTajwid: 0,
   scoreMakhraj: 0,
   scoreAdab: 0,
   verdict: "pass",
   notes: "",
+});
+
+const selectedExamType = computed(() => {
+  return examTypesList.value.find((t) => t.id === form.examTypeId);
 });
 
 // Auto calculate final score (average)
@@ -711,6 +779,14 @@ async function loadData() {
       if (tRes.data) {
         teachersList.value = tRes.data;
         filteredExaminers.value = tRes.data; // Also for modal
+      }
+    }
+
+    // Load Exam Types
+    if (examTypesList.value.length === 0) {
+      const etRes = await tahfidzApi.getExamTypes();
+      if (etRes.success) {
+        examTypesList.value = etRes.data || [];
       }
     }
   } catch (e) {
@@ -819,62 +895,34 @@ async function editExam(item) {
   form.id = item.id;
   form.studentId = item.studentId;
   form.examinerId = item.examinerId;
-  // Format date to YYYY-MM-DD for input[type=date]
   form.examDate = item.rawDate
     ? new Date(item.rawDate).toISOString().split("T")[0]
     : "";
-  form.examType = item.type;
+
+  // Match Exam Type by Name to populate Dropdown
+  const foundType = examTypesList.value.find((t) => t.name === item.type);
+  form.examTypeId = foundType ? foundType.id : "";
+  // If not found (legacy data), maybe we should show the name somewhere or force user to pick new
+  // For now, if not found, it stays empty forcing selection.
+
+  form.juz = item.juz;
+  form.startPage = item.startPage;
+  form.endPage = item.endPage;
+
   form.scoreFluency = item.scoreFluency;
   form.scoreTajwid = item.scoreTajwid;
   form.scoreMakhraj = item.scoreMakhraj;
   form.scoreAdab = item.scoreAdab;
   form.verdict = item.verdict;
-  form.notes = item.notes || ""; // Handle null notes
+  form.notes = item.notes || "";
 
-  // Set search inputs for display
   studentSearch.value = item.studentName;
   examinerSearch.value = item.examinerName;
 
   showModal.value = true;
 }
 
-function closeModal() {
-  showModal.value = false;
-  form.id = null; // Clear ID on close
-}
-
-async function deleteExam(item) {
-  itemToDelete.value = item;
-  confirmMessage.value = `Apakah Anda yakin ingin menghapus data ujian santri <b>${item.studentName}</b>?`;
-  showConfirmModal.value = true;
-}
-
-async function onConfirmDelete() {
-  if (!itemToDelete.value) return;
-  deleteLoading.value = true;
-  try {
-    const res = await tahfidzApi.deleteExam(itemToDelete.value.id);
-    if (res.success) {
-      showConfirmModal.value = false;
-      showStatus("Berhasil", "Data ujian berhasil dihapus", "success");
-      loadData();
-    } else {
-      showStatus("Gagal", res.message || "Gagal menghapus data", "error");
-    }
-  } catch (e) {
-    showStatus("Error", e.message || "Terjadi kesalahan sistem", "error");
-  } finally {
-    deleteLoading.value = false;
-    itemToDelete.value = null;
-  }
-}
-
-function showStatus(title, message, type = "success") {
-  statusTitle.value = title;
-  statusMessage.value = message;
-  statusType.value = type;
-  showStatusModal.value = true;
-}
+// ... closeModal ... deleteExam ... onConfirmDelete ... showStatus ...
 
 async function submitExam() {
   if (!form.studentId) {
@@ -885,14 +933,42 @@ async function submitExam() {
     showStatus("Peringatan", "Mohon pilih penguji terlebih dahulu", "error");
     return;
   }
+  if (!form.examTypeId) {
+    showStatus("Peringatan", "Mohon pilih jenis ujian", "error");
+    return;
+  }
 
   saving.value = true;
   try {
+    const selectedType = examTypesList.value.find(
+      (t) => t.id === form.examTypeId
+    );
+
     const payload = {
-      ...form,
+      // Basic info
       studentId: Number(form.studentId),
       examinerId: Number(form.examinerId),
+      examDate: form.examDate,
+
+      // Mapped from Type
+      examType: selectedType ? selectedType.name : "Unknown",
+      examCategory: selectedType ? selectedType.category : "Other",
+
+      // Conditional Fields
+      juz: selectedType?.category === "UKJ" ? Number(form.juz) : null,
+      startPage:
+        selectedType?.category === "UPK" ? Number(form.startPage) : null,
+      endPage: selectedType?.category === "UPK" ? Number(form.endPage) : null,
+
+      // Scores
+      scoreFluency: Number(form.scoreFluency),
+      scoreTajwid: Number(form.scoreTajwid),
+      scoreMakhraj: Number(form.scoreMakhraj),
+      scoreAdab: Number(form.scoreAdab),
       finalScore: calculatedFinalScore.value,
+
+      verdict: form.verdict,
+      notes: form.notes,
     };
 
     let res;

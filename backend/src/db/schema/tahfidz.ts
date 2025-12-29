@@ -148,6 +148,18 @@ export const tahfidzReportCards = mysqlTable("tahfidz_report_cards", {
   generatedAt: timestamp("generated_at").defaultNow(),
 });
 
+// --- Tahfidz Exam Types (Jenis Ujian Dinamis) ---
+export const tahfidzExamTypes = mysqlTable("tahfidz_exam_types", {
+  id: int("id").primaryKey().autoincrement(),
+  name: varchar("name", { length: 150 }).notNull(), // e.g., "Ujian Kenaikan Juz 29", "UPK Pekanan"
+  category: mysqlEnum("category", ["UPK", "UKJ", "UA", "Suluk", "Other"])
+    .notNull()
+    .default("Other"),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
+});
+
 // Relations
 import { relations } from "drizzle-orm";
 

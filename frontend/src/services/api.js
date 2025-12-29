@@ -1424,4 +1424,20 @@ export const tahfidzApi = {
         : `/api/tahfidz/report-card/${studentId}`
     );
   },
+  // Exam Types
+  async getExamTypes() {
+    return request("/api/tahfidz/exam-types");
+  },
+  async createExamType(data) {
+    return request("/api/tahfidz/exam-types", { method: "POST", body: data });
+  },
+  async updateExamType(id, data) {
+    return request(`/api/tahfidz/exam-types/${id}`, {
+      method: "PUT",
+      body: data,
+    });
+  },
+  async deleteExamType(id) {
+    return request(`/api/tahfidz/exam-types/${id}`, { method: "DELETE" });
+  },
 };

@@ -11,6 +11,8 @@ import {
   halaqahMentors,
   tahfidzReportSettings,
   tahfidzReportCards,
+  tahfidzExamTypes,
+  classHomeroomTeachers,
 } from "../db/schema";
 import {
   eq,
@@ -61,7 +63,11 @@ const examSchema = z.object({
   studentId: z.number(),
   examinerId: z.number(),
   examType: z.string(),
+  examCategory: z.enum(["UPK", "UKJ", "UA", "Suluk", "Other"]).optional(),
   examDate: z.string(),
+  juz: z.number().nullable().optional(),
+  startPage: z.number().nullable().optional(),
+  endPage: z.number().nullable().optional(),
   scoreFluency: z.number().optional(),
   scoreTajwid: z.number().optional(),
   scoreMakhraj: z.number().optional(),
@@ -948,6 +954,65 @@ app.delete("/targets/:id", async (c) => {
   }
 });
 
+// --- EXAM TYPES CRUD ---
+const examTypeSchema = z.object({
+  name: z.string().min(1),
+  category: z.enum(["UPK", "UKJ", "UA", "Suluk", "Other"]).default("Other"),
+  description: z.string().optional(),
+});
+
+// GET /exam-types - List all
+app.get("/exam-types", async (c) => {
+  try {
+    const types = await db.query.tahfidzExamTypes.findMany({
+      orderBy: (t, { asc }) => [asc(t.name)],
+    });
+    return c.json({ success: true, data: types });
+  } catch (e: any) {
+    return c.json({ success: false, message: e.message }, 500);
+  }
+});
+
+// POST /exam-types - Create
+app.post("/exam-types", zValidator("json", examTypeSchema), async (c) => {
+  const body = c.req.valid("json");
+  try {
+    await db.insert(tahfidzExamTypes).values(body);
+    return c.json({ success: true, message: "Jenis ujian berhasil dibuat" });
+  } catch (e: any) {
+    return c.json({ success: false, message: e.message }, 500);
+  }
+});
+
+// PUT /exam-types/:id - Update
+app.put("/exam-types/:id", zValidator("json", examTypeSchema), async (c) => {
+  const id = parseInt(c.req.param("id"));
+  const body = c.req.valid("json");
+  try {
+    await db
+      .update(tahfidzExamTypes)
+      .set({ ...body, updatedAt: new Date() })
+      .where(eq(tahfidzExamTypes.id, id));
+    return c.json({
+      success: true,
+      message: "Jenis ujian berhasil diperbarui",
+    });
+  } catch (e: any) {
+    return c.json({ success: false, message: e.message }, 500);
+  }
+});
+
+// DELETE /exam-types/:id - Delete
+app.delete("/exam-types/:id", async (c) => {
+  const id = parseInt(c.req.param("id"));
+  try {
+    await db.delete(tahfidzExamTypes).where(eq(tahfidzExamTypes.id, id));
+    return c.json({ success: true, message: "Jenis ujian berhasil dihapus" });
+  } catch (e: any) {
+    return c.json({ success: false, message: e.message }, 500);
+  }
+});
+
 export default app;
 
 // --- SETTINGS & REPORT CARD ---
@@ -1027,6 +1092,25 @@ app.get("/report-card/:studentId", async (c) => {
       },
     });
 
+    // 1b. Get Homeroom Teacher
+    let homeroomTeacherName = "-";
+    if (student.classId) {
+      const waliQuery = await db
+        .select({ name: teachers.fullName })
+        .from(classHomeroomTeachers)
+        .innerJoin(teachers, eq(classHomeroomTeachers.teacherId, teachers.id))
+        .where(
+          and(
+            eq(classHomeroomTeachers.classId, student.classId),
+            eq(classHomeroomTeachers.role, "wali_kelas")
+          )
+        )
+        .limit(1);
+      if (waliQuery.length > 0) {
+        homeroomTeacherName = waliQuery[0].name;
+      }
+    }
+
     // 2. Get Exams (UPK & UKJ)
     // Filter by academic year dates if we had them... For now just get all or limit?
     // Ideally we should filter by date range of the semester.
@@ -1047,9 +1131,9 @@ app.get("/report-card/:studentId", async (c) => {
     // Add date filter here if needed
 
     const attendance = {
-      sakit: deposits.filter((d) => d.type === "sakit").length,
-      izin: deposits.filter((d) => d.type === "izin").length,
-      alpha: deposits.filter((d) => d.type === "alpha").length,
+      sakit: deposits.filter((d) => d.type?.toLowerCase() === "sakit").length,
+      izin: deposits.filter((d) => d.type?.toLowerCase() === "izin").length,
+      alpha: deposits.filter((d) => d.type?.toLowerCase() === "alpha").length,
     };
 
     // 4. Get Cumulative Hafalan (Total Pages)
@@ -1073,6 +1157,145 @@ app.get("/report-card/:studentId", async (c) => {
     // 5. Get Settings
     const settings = await db.query.tahfidzReportSettings.findFirst();
 
+    // 6. Get Target based on Halaqah Level or Class Grade
+    const allTargets = await db.select().from(tahfidzTargets);
+    let target = null; // Start null to track if found
+
+    // Priority 1: Check Halaqah Target Level Link
+    if (
+      halaqahMember?.halaqah &&
+      (halaqahMember.halaqah as any).targetLevelId
+    ) {
+      const tId = (halaqahMember.halaqah as any).targetLevelId;
+      target = allTargets.find((t) => t.id === tId) || null;
+    }
+
+    // Priority 2: Fallback to Class/Grade Matching
+    if (!target && student.class?.name) {
+      const className = student.class.name.toUpperCase();
+
+      // Try to find exact match first
+      const exactMatch = allTargets.find((t) =>
+        className.includes(t.level.toUpperCase())
+      );
+      if (exactMatch) target = exactMatch;
+      else if (
+        className.includes("SMP") ||
+        className.includes("7") ||
+        className.includes("8") ||
+        className.includes("9")
+      ) {
+        // Try SMP generic
+        let match = allTargets.find((t) => t.level === "SMP");
+
+        // Try Grade Mapping for "Level X" users
+        // Check for both "Level 1" and "Level1" formats
+        if (!match && className.includes("7"))
+          match = allTargets.find(
+            (t) =>
+              t.level.replace(/\s/g, "").includes("Level1") || t.level === "1"
+          );
+        if (!match && className.includes("8"))
+          match = allTargets.find(
+            (t) =>
+              t.level.replace(/\s/g, "").includes("Level2") || t.level === "2"
+          );
+        if (!match && className.includes("9"))
+          match = allTargets.find(
+            (t) =>
+              t.level.replace(/\s/g, "").includes("Level3") || t.level === "3"
+          );
+
+        target = match || target;
+      } else if (
+        className.includes("SMA") ||
+        className.includes("ALIYAH") ||
+        className.includes("10") ||
+        className.includes("11") ||
+        className.includes("12")
+      ) {
+        let match = allTargets.find((t) => t.level === "SMA");
+        // Try Grade Mapping for SMA
+        if (!match && className.includes("10"))
+          match = allTargets.find((t) =>
+            t.level.replace(/\s/g, "").includes("Level1")
+          );
+        if (!match && className.includes("11"))
+          match = allTargets.find((t) =>
+            t.level.replace(/\s/g, "").includes("Level2")
+          );
+        // ...
+
+        target = match || target;
+      }
+    }
+
+    // Default if still not found
+    if (!target)
+      target = allTargets[0] || { targetPages: 50, level: "Default" };
+
+    // 7. Calculate Mading Data (Monthly Ziyadah)
+    // Group by Month-Year
+    const madingMap = new Map<
+      string,
+      { month: number; year: number; pages: number; juzSet: Set<number> }
+    >();
+
+    ziyadah.forEach((d) => {
+      const date = new Date(d.depositDate);
+      const key = `${date.getFullYear()}-${date.getMonth()}`;
+      if (!madingMap.has(key)) {
+        madingMap.set(key, {
+          month: date.getMonth(),
+          year: date.getFullYear(),
+          pages: 0,
+          juzSet: new Set(),
+        });
+      }
+      const entry = madingMap.get(key)!;
+
+      let p = 0;
+      if (d.totalPages) p = Number(d.totalPages);
+      else if (d.pageNumber) p = 1;
+      entry.pages += p;
+
+      if (d.juz) entry.juzSet.add(d.juz);
+    });
+
+    const monthNames = [
+      "Januari",
+      "Februari",
+      "Maret",
+      "April",
+      "Mei",
+      "Juni",
+      "Juli",
+      "Agustus",
+      "September",
+      "Oktober",
+      "November",
+      "Desember",
+    ];
+
+    // Convert to array and sort
+    const madingData = Array.from(madingMap.values())
+      .map((m) => ({
+        bulan: monthNames[m.month],
+        halaman: Number(m.pages.toFixed(2)),
+        juz: m.juzSet.size > 0 ? `${Array.from(m.juzSet).join(", ")}` : "-", // Just listing juz involved
+      }))
+      // Sort by time? The map iteration order is not guaranteed, but usually insertion order.
+      // Better to sort by month index if needed, but for now relying on DB order (though filtered separately).
+      // Let's sort simply:
+      // Actually, we process based on Ziyadah fetch which didn't have specific order in the query above (step 4 filter).
+      // We should sort the input ziyadah first or sort this array.
+      .reverse();
+
+    // Dynamic Target Calculation: Monthly Target * Number of Active Months
+    let baseTarget = target ? target.targetPages : 50;
+    const monthCount = Math.max(1, madingData.length);
+    const finalTargetPages = baseTarget * monthCount;
+
     return c.json({
       success: true,
       data: {
@@ -1080,11 +1303,17 @@ app.get("/report-card/:studentId", async (c) => {
           ...student,
           halaqah: (halaqahMember?.halaqah as any)?.name || "-",
           className: student.class?.name || "-",
+          homeroomTeacher: homeroomTeacherName,
         },
         exams,
         attendance,
         totalHafalan: totalPages.toFixed(2),
         settings: settings || {},
+        mading: madingData,
+        target: {
+          ...(target || { level: "Default", targetPages: 50 }),
+          targetPages: finalTargetPages,
+        },
       },
     });
   } catch (e: any) {

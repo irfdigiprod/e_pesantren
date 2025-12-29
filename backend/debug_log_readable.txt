@@ -1,0 +1,47 @@
+$ bun run --hot src/index.ts
+
+╔═══════════════════════════════════════════════════════════════╗
+║     Sistem Informasi Manajemen Pesantren - REST API           ║
+╠═══════════════════════════════════════════════════════════════╣
+║  Server running on http://localhost:3000                      ║
+║  WebSocket endpoint: ws://localhost:3000/ws                   ║
+║  CORS enabled for cross-origin requests                       ║
+╚═══════════════════════════════════════════════════════════════╝
+
+Server started on port 3000
+[WS] Connection attempt from http://localhost:3000/ws?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIsImVtYWlsIjoiaXJmYW5Ac3RhaW1oLmFjLmlkIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzY2NTYxNjM1LCJleHAiOjE3NjcxNjY0MzV9.PwNQvtYlh-cxpYplP2I_bWDSOT_wdlwsAWX_ChiK0HA
+[WS] Authenticated user: irfan@staimh.ac.id
+[WS] Upgrade successful for irfan@staimh.ac.id
+<-- GET /api/chat/conversations
+--> GET /api/chat/conversations [32m200[0m 43ms
+<-- GET /api/notifications
+--> GET /api/notifications [32m200[0m 5ms
+[WS] Connection attempt from http://localhost:3000/ws?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsImVtYWlsIjoiYWRtaW5AcGVzYW50cmVuLmlkIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzY2ODk1NDk2LCJleHAiOjE3Njc1MDAyOTZ9.0wwzibjy1bmhDRSqHEiWIKsCs_jS1OMfi3Qpo9zFeAc
+[WS] Authenticated user: admin@pesantren.id
+[WS] Upgrade successful for admin@pesantren.id
+<-- GET /api/chat/conversations
+--> GET /api/chat/conversations [32m200[0m 3ms
+<-- GET /api/notifications
+--> GET /api/notifications [32m200[0m 4ms
+<-- GET /api/tahfidz/report-card/1
+DEBUG HALAQAH: {
+  "id": 1,
+  "name": "Mauhub1",
+  "description": "Mauhub Ikhwan",
+  "schedule": null,
+  "location": null,
+  "targetLevelId": 7,
+  "status": "active",
+  "createdAt": "2025-12-25T08:33:24.000Z",
+  "updatedAt": "2025-12-27T22:21:27.000Z"
+}
+Found targetLevelId: 7 number
+Target found via ID: {
+  id: 7,
+  level: "Level3",
+  targetPages: 10,
+  description: "Mahir",
+  createdAt: 2025-12-27T22:10:17.000Z,
+  updatedAt: 2025-12-27T22:10:17.000Z,
+}
+--> GET /api/tahfidz/report-card/1 [32m200[0m 54ms

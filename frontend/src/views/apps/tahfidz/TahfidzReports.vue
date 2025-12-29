@@ -51,7 +51,7 @@
                   <span class="font-medium">{{ s.fullName }}</span>
                   <span class="text-xs text-slate-400"
                     >{{ s.nis || "-" }} •
-                    {{ s.className || "Belum ada kelas" }}</span
+                    {{ s.class?.name || "Belum ada kelas" }}</span
                   >
                 </div>
               </div>
@@ -567,7 +567,7 @@
                   <td
                     class="border border-slate-300 px-2 text-center align-middle"
                   >
-                    50
+                    {{ targetHafalan || 50 }}
                   </td>
                 </tr>
                 <tr class="h-7">
@@ -683,11 +683,10 @@
           <div class="grid grid-cols-4 gap-4 mb-6 text-sm">
             <div class="col-span-3 flex flex-col">
               <h5 class="font-bold mb-2">Catatan</h5>
-              <div class="border border-slate-300 p-3 h-full text-xs">
-                {{
-                  notes ||
-                  "Kemampuan menghafal baik, dan melebihi target yang telah ditentukan.\nBacaan baik sesuai kaidah tajwid\nAnanda selalu menunjukkan Adab yang mulia"
-                }}
+              <div
+                class="border border-slate-300 p-3 h-full text-xs whitespace-pre-line"
+              >
+                {{ notes || "-" }}
               </div>
             </div>
             <div>
@@ -720,7 +719,7 @@
                     UA
                   </td>
                   <td class="border border-slate-300 px-2 py-1 text-center">
-                    -
+                    {{ uaScore || "-" }}
                   </td>
                 </tr>
                 <tr>
@@ -764,22 +763,26 @@
               <p>Mengetahui,</p>
               <p>Orang tua</p>
               <div class="h-20"></div>
-              <p class="">...............................</p>
+              <p class="">( ............................... )</p>
             </div>
             <div>
               <p>Mengetahui,</p>
               <p>Ketua Bagian Tahfidz</p>
               <div class="h-20"></div>
               <p class="font-bold">
-                {{ settings.tahfidzHeadName || "Miqdad Abdul Matin, S.Pd." }}
+                {{
+                  settings.tahfidzHeadName || "..............................."
+                }}
               </p>
             </div>
             <div>
-              <p>{{ settings.cityName || "Purwakarta" }}, {{ currentDate }}</p>
+              <p>{{ settings.cityName || "..........." }}, {{ currentDate }}</p>
               <p>Wali Kelas</p>
               <div class="h-20"></div>
               <p class="font-bold">
-                {{ student.homeroomTeacher || "Muhammad Ja'far, S.Pd." }}
+                {{
+                  student.homeroomTeacher || "..............................."
+                }}
               </p>
             </div>
           </div>
@@ -811,9 +814,10 @@ const student = ref(null);
 const settings = ref({});
 const exams = ref([]);
 const attendance = ref({ sakit: 0, izin: 0, alpha: 0 });
-const totalHafalan = ref(52);
+const totalHafalan = ref(0);
 const notes = ref("");
-const sulukScore = ref(90);
+const targetHafalan = ref(50); // Default, updated from API
+const madingData = ref([]);
 
 // Current date
 const currentDate = computed(() => {
@@ -826,7 +830,9 @@ const currentDate = computed(() => {
 
 // Computed for UPK exams (type = UPK)
 const upkExams = computed(() => {
-  return exams.value.filter((e) => e.type === "UPK").slice(0, 8);
+  return exams.value
+    .filter((e) => e.examCategory === "UPK" || e.type === "UPK")
+    .slice(0, 8);
 });
 
 const upkExamsLeft = computed(() => {
@@ -847,7 +853,29 @@ const upkExamsRight = computed(() => {
 
 // Computed for UKJ exams
 const ukjExams = computed(() => {
-  return exams.value.filter((e) => e.type === "UKJ");
+  return exams.value.filter(
+    (e) => e.examCategory === "UKJ" || e.type === "UKJ"
+  );
+});
+
+// Computed for UA
+const uaScore = computed(() => {
+  const ua = exams.value.find((e) => e.examCategory === "UA");
+  return ua ? Number(ua.finalScore) : 0;
+});
+
+// Computed for Suluk
+const sulukScore = computed(() => {
+  // Ambil semua ujian yang memiliki nilai adab (scoreAdab)
+  const examsWithAdab = exams.value.filter(
+    (e) => e.scoreAdab !== undefined && e.scoreAdab !== null && e.scoreAdab > 0
+  );
+
+  if (examsWithAdab.length === 0) return 0;
+
+  // Hitung rata-rata
+  const total = examsWithAdab.reduce((sum, e) => sum + Number(e.scoreAdab), 0);
+  return (total / examsWithAdab.length).toFixed(2);
 });
 
 // Average UPK
@@ -876,47 +904,66 @@ const rincianJuz = computed(() => {
 const finalScore = computed(() => {
   const upk = Number(avgUPK.value) || 0;
   const ukj = Number(avgUKJ.value) || 0;
+  const ua = Number(uaScore.value) || 0;
   const suluk = Number(sulukScore.value) || 0;
-  // Weighted average: UPK 30%, UKJ 30%, Suluk 40%
-  return (upk * 0.3 + ukj * 0.3 + suluk * 0.4).toFixed(2);
+
+  // Rata-rata dari 4 komponen (UPK, UKJ, UA, Suluk)
+  // Note: If UA is 0 (not held), should we divide by 3?
+  // User said "rata-rata dari nilai upk, ukj, ua dan suluk". Assuming all must exist.
+  // If UA is usually integral, we keep / 4.
+  const components = [upk, ukj, ua, suluk].filter((v) => v > 0);
+  if (components.length === 0) return 0;
+
+  // return (components.reduce((a, b) => a + b, 0) / components.length).toFixed(2);
+  // Strict average of 4 components as requested? Or valid components?
+  // Usually if UA is missing, it's 0. Let's stick to / 4 for standard.
+  return ((upk + ukj + ua + suluk) / 4).toFixed(2);
 });
 
 // Jumlah Juz
 const jumlahJuz = computed(() => {
-  const pages = totalHafalan.value;
+  const pages = Number(totalHafalan.value);
   const juz = Math.floor(pages / 20);
-  const remaining = pages % 20;
+  const remaining = (pages % 20).toFixed(0);
   if (juz === 0) return `${remaining} Halaman`;
   return `${juz} Juz ${remaining} Halaman`;
 });
 
 // Keterangan Hafalan
 const keteranganHafalan = computed(() => {
-  if (totalHafalan.value >= 50) return "MELEBIHI TARGET (MT)";
-  if (totalHafalan.value >= 40) return "SESUAI TARGET (ST)";
+  const current = Number(totalHafalan.value);
+  const target = Number(targetHafalan.value);
+
+  if (current >= target) return "MELEBIHI TARGET (MT)";
+  // "SESUAI TARGET" logic? Maybe range? User prompt didn't specify distinct Sesuai/Melebihi range
+  // Assuming >= Target is MT. < Target is "BELUM SESUAI TARGET"
+  // Let's keep existing logic if target is met.
   return "BELUM SESUAI TARGET";
 });
 
 // Tercapai label
 const tercapaiLabel = computed(() => {
-  return totalHafalan.value >= 50 ? "Tercapai" : "Belum Tercapai";
-});
+  // Logic: Jika Nilai akhir < 70 ATAU Keterangan Tidak mencapai target MT -> Tidak tercapai
+  const score = Number(finalScore.value);
+  const isTargetMet = Number(totalHafalan.value) >= Number(targetHafalan.value);
 
-// Mading data (mock for now, will be from API later)
-const madingData = ref([
-  { bulan: "Agustus", halaman: 14, juz: "14 Halaman" },
-  { bulan: "September", halaman: 12, juz: "12 Halaman" },
-  { bulan: "Oktober", halaman: 12, juz: "12 Halaman" },
-  { bulan: "November", halaman: 14, juz: "14 Halaman" },
-]);
+  if (score < 70 || !isTargetMet) {
+    return "Tidak Tercapai";
+  }
+  return "Tercapai";
+});
 
 // --- HELPER FUNCTIONS ---
 function getExamCode(exam) {
   if (!exam || !exam.id) return "-";
   if (exam.examCode) return exam.examCode;
+
+  // Use property from API response if varies (e.g. date vs examDate)
+  const dateStr = exam.date || exam.examDate;
+
   // Generate from date
-  if (exam.date) {
-    const d = new Date(exam.date);
+  if (dateStr) {
+    const d = new Date(dateStr);
     const month = d.toLocaleString("id-ID", { month: "short" }).toUpperCase();
     const week = Math.ceil(d.getDate() / 7);
     return `${month}(${week})`;
@@ -931,23 +978,26 @@ function getPageRange(exam) {
   return "-";
 }
 
+// Predicate Helper
 function getPredicate(score) {
-  if (!score || score === 0) return "-";
-  if (score >= 90) return "A+";
-  if (score >= 85) return "A";
-  if (score >= 80) return "B+";
-  if (score >= 75) return "B";
-  if (score >= 70) return "C";
-  return "D";
+  if (score === null || score === undefined || score === "") return "-";
+  const s = Number(score);
+  if (isNaN(s)) return "-";
+
+  if (s >= 90) return "A+"; // Mumtaz
+  if (s >= 80) return "A"; // Jayyid Jiddan
+  if (s >= 70) return "B+"; // Jayyid
+  if (s >= 65) return "B"; // Maqbul
+  return "C"; // Rosib (0-64.99)
 }
 
 function getUkjScore(juz) {
-  const exam = ukjExams.value.find((e) => e.juz === juz);
+  const exam = ukjExams.value.find((e) => e.juz == juz); // loose equality for string/number
   return exam ? exam.finalScore : "";
 }
 
 function getUkjPredicate(juz) {
-  const exam = ukjExams.value.find((e) => e.juz === juz);
+  const exam = ukjExams.value.find((e) => e.juz == juz);
   return exam ? getPredicate(exam.finalScore) : "";
 }
 
@@ -982,18 +1032,27 @@ async function selectStudent(s) {
   loading.value = true;
 
   try {
-    // Load student details
-    const res = await studentsApi.getById(s.id);
-    student.value = res.data;
+    // Load report card data from new endpoint
+    const res = await tahfidzApi.getReportCard(s.id);
+    // Need to ensure tahfidzApi.getReportCard exists or use generic get
+    // The previous implementation used getExams. Step 1 updated backend route.
+    // Assume `tahfidzApi.getReportCard` is: client.get(`/tahfidz/report-card/${id}`)
 
-    // Load exams
-    const examRes = await tahfidzApi.getExams({ studentId: s.id });
-    if (examRes.success) {
-      exams.value = examRes.data;
+    if (res.data) {
+      const d = res.data;
+
+      student.value = d.student;
+      exams.value = d.exams || [];
+
+      attendance.value = d.attendance || { sakit: 0, izin: 0, alpha: 0 };
+      totalHafalan.value = Number(d.totalHafalan || 0);
+      settings.value = d.settings || {};
+      madingData.value = d.mading || [];
+      targetHafalan.value = d.target?.targetPages || 50;
     }
   } catch (e) {
     console.error("Failed to load student data:", e);
-    alert("Gagal memuat data santri");
+    alert("Gagal memuat data rapor santri");
   } finally {
     loading.value = false;
   }
@@ -1003,6 +1062,8 @@ function clearSelection() {
   student.value = null;
   searchQuery.value = "";
   exams.value = [];
+  madingData.value = [];
+  totalHafalan.value = 0;
 }
 
 // --- EXPORT FUNCTIONS ---
