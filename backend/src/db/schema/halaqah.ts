@@ -81,10 +81,10 @@ export const halaqahGroupsRelations = relations(
   ({ many, one }) => ({
     members: many(halaqahMembers),
     mentors: many(halaqahMentors),
-    // targetLevel: one(tahfidzTargets, {
-    //   fields: [halaqahGroups.targetLevelId],
-    //   references: [tahfidzTargets.id],
-    // }),
+    targetLevel: one(tahfidzTargets, {
+      fields: [halaqahGroups.targetLevelId],
+      references: [tahfidzTargets.id],
+    }),
   })
 );
 

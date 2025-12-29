@@ -2605,35 +2605,7 @@ function formatDateLocal(date, options = {}) {
 }
 
 function formatTime(dateStr) {
-  if (!dateStr) return "";
-  const date = new Date(dateStr);
-  const now = new Date();
-
-  // Calculate diff in calendar days
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const messageDate = new Date(
-    date.getFullYear(),
-    date.getMonth(),
-    date.getDate()
-  );
-  const diffDays = Math.floor((today - messageDate) / (1000 * 60 * 60 * 24));
-
-  if (diffDays === 0) {
-    return formatTimeLocal(date, {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  }
-
-  if (diffDays === 1) {
-    return "Kemarin";
-  }
-
-  if (diffDays < 7) {
-    return formatDateLocal(date, { weekday: "short" });
-  }
-
-  return formatDateLocal(date, { day: "numeric", month: "short" });
+  return formatMessageTime(dateStr);
 }
 
 function formatMessageTime(dateStr) {
@@ -2663,10 +2635,12 @@ function formatMessageTime(dateStr) {
     // Yesterday
     return `Kemarin, ${timeStr}`;
   } else {
-    // Older - show date and time
+    // Older - show date and time, include year if different
+    const isDifferentYear = date.getFullYear() !== now.getFullYear();
     const dateFormatted = formatDateLocal(date, {
       day: "numeric",
       month: "short",
+      ...(isDifferentYear ? { year: "numeric" } : {}),
     });
     return `${dateFormatted}, ${timeStr}`;
   }
