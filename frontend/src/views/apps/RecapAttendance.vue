@@ -288,7 +288,6 @@
                       teacher.daily[date.iso].status === 'present' &&
                       teacher.daily[date.iso].isClaim
                     "
-                    "
                     class="flex flex-col items-center justify-center gap-0.5"
                   >
                     <span
@@ -312,7 +311,9 @@
                     class="flex flex-col items-center justify-center gap-0.5"
                   >
                     <span
-                      class="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 font-bold text-[10px]"
+                      class="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 font-bold text-[10px] cursor-pointer hover:bg-emerald-200 hover:scale-105 transition-all"
+                      title="Hadir (Klik untuk hapus)"
+                      @click.stop="handleHClick(teacher.daily[date.iso])"
                       >H</span
                     >
                     <span
@@ -333,8 +334,15 @@
                     "
                   >
                     <span
-                      class="px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 font-bold text-[10px]"
-                      title="Izin Potong Gaji"
+                      class="px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 font-bold text-[10px] cursor-pointer hover:bg-rose-200 hover:scale-105 transition-all"
+                      title="Izin Potong Gaji (Klik untuk ubah/hapus)"
+                      @click.stop="
+                        handlePermissionClick(
+                          teacher.daily[date.iso],
+                          teacher.id,
+                          date.iso
+                        )
+                      "
                       >IP</span
                     >
                   </div>
@@ -347,15 +355,30 @@
                     "
                   >
                     <span
-                      class="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 font-bold text-[10px]"
-                      title="Izin Tanpa Potong"
+                      class="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 font-bold text-[10px] cursor-pointer hover:bg-emerald-200 hover:scale-105 transition-all"
+                      title="Izin Tanpa Potong (Klik untuk ubah/hapus)"
+                      @click.stop="
+                        handlePermissionClick(
+                          teacher.daily[date.iso],
+                          teacher.id,
+                          date.iso
+                        )
+                      "
                       >IT</span
                     >
                   </div>
-                  <!-- Sick (legacy) -->
+                  <!-- Sick (legacy/simple) -->
                   <div v-else-if="teacher.daily[date.iso].status === 'sick'">
                     <span
-                      class="px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-bold text-[10px]"
+                      class="px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-bold text-[10px] cursor-pointer hover:bg-amber-200 hover:scale-105 transition-all"
+                      title="Sakit (Klik untuk ubah/hapus)"
+                      @click.stop="
+                        handlePermissionClick(
+                          teacher.daily[date.iso],
+                          teacher.id,
+                          date.iso
+                        )
+                      "
                       >S</span
                     >
                   </div>
@@ -419,8 +442,6 @@
           : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'
       "
     >
-
-
       <!-- Skeleton Loading -->
       <TableSkeleton v-if="loading" viewMode="card" :rows="6" class="p-2" />
 
@@ -509,13 +530,28 @@
     <ConfirmModal
       :isOpen="confirmModal.isOpen"
       :title="confirmModal.title"
-      :message="confirmModal.message"
       confirmText="Hapus"
       cancelText="Batal"
       type="danger"
       @confirm="confirmDeleteClaim"
       @cancel="confirmModal.isOpen = false"
-    />
+    >
+      <div class="space-y-3">
+        <p>{{ confirmModal.message }}</p>
+        <div
+          v-if="confirmModal.note"
+          class="bg-amber-50 border border-amber-100 rounded-lg p-3 text-sm text-amber-900 text-left"
+        >
+          <div
+            class="font-bold text-xs mb-1 opacity-80 uppercase tracking-wider flex items-center gap-1"
+          >
+            <Icon icon="solar:notes-bold" />
+            Catatan Klaim:
+          </div>
+          {{ confirmModal.note }}
+        </div>
+      </div>
+    </ConfirmModal>
 
     <StatusModal
       :isOpen="statusModal.isOpen"
@@ -524,13 +560,97 @@
       :message="statusModal.message"
       @close="statusModal.isOpen = false"
     />
+
+    <!-- Permission Action Modal -->
+    <div
+      v-if="permissionActionModal.isOpen"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm"
+      @click="permissionActionModal.isOpen = false"
+    >
+      <div
+        class="bg-white rounded-xl shadow-xl w-full max-w-sm border border-slate-200 p-6 space-y-4"
+        @click.stop
+      >
+        <div class="text-center">
+          <div
+            class="w-12 h-12 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto mb-3"
+          >
+            <Icon icon="solar:pen-new-square-bold-duotone" class="w-6 h-6" />
+          </div>
+          <h3 class="font-bold text-slate-800 text-lg">Kelola Izin</h3>
+          <p class="text-sm text-slate-500 mt-1">
+            Pilih tindakan untuk izin tanggal
+            {{ formatDate(permissionActionModal.date) }}
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 gap-3">
+          <!-- Toggle Button -->
+          <button
+            @click="togglePermissionType"
+            class="flex items-center justify-center gap-2 w-full p-3 rounded-lg border-2 border-dashed transition-all"
+            :class="
+              isDeduct(permissionActionModal.status)
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:border-emerald-300'
+                : 'border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 hover:border-rose-300'
+            "
+          >
+            <Icon
+              :icon="
+                isDeduct(permissionActionModal.status)
+                  ? 'solar:shield-check-bold'
+                  : 'solar:shield-warning-bold'
+              "
+              class="w-5 h-5"
+            />
+            <div class="text-left">
+              <div class="font-bold text-sm">
+                {{
+                  isDeduct(permissionActionModal.status)
+                    ? "Ubah ke Tidak Potong"
+                    : "Ubah ke Potong Gaji"
+                }}
+              </div>
+              <div class="text-[10px] opacity-80">
+                {{
+                  isDeduct(permissionActionModal.status)
+                    ? "Ubah menjadi IT (Izin)"
+                    : "Ubah menjadi IP (Izin Potong)"
+                }}
+              </div>
+            </div>
+          </button>
+
+          <!-- Delete Button -->
+          <button
+            @click="deletePermission"
+            class="flex items-center justify-center gap-2 w-full p-3 rounded-lg border border-red-200 bg-white text-red-600 hover:bg-red-50 transition-colors"
+          >
+            <Icon icon="solar:trash-bin-trash-bold" class="w-5 h-5" />
+            <span class="font-medium text-sm">Hapus Izin</span>
+          </button>
+        </div>
+
+        <button
+          @click="permissionActionModal.isOpen = false"
+          class="w-full py-2 text-slate-500 hover:text-slate-700 text-sm font-medium"
+        >
+          Batal
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, reactive, computed } from "vue";
 import { Icon } from "@iconify/vue";
-import { attendanceApi, settingsApi, divisionsApi } from "@/services/api";
+import {
+  attendanceApi,
+  settingsApi,
+  divisionsApi,
+  permissionsApi,
+} from "@/services/api";
 import ExcelJS from "exceljs/dist/exceljs.min.js";
 import { saveAs } from "file-saver";
 import TableSkeleton from "@/components/ui/TableSkeleton.vue";
@@ -583,6 +703,7 @@ const confirmModal = reactive({
   isOpen: false,
   title: "",
   message: "",
+  note: "",
   item: null,
 });
 const statusModal = reactive({
@@ -590,6 +711,12 @@ const statusModal = reactive({
   type: "success",
   title: "",
   message: "",
+});
+const permissionActionModal = reactive({
+  isOpen: false,
+  teacherId: null,
+  date: null,
+  status: null,
 });
 
 // Computed Date Range for Headers
@@ -834,46 +961,134 @@ async function exportToExcel() {
 }
 
 // === Delete Claim Logic ===
-function handleKClick(dayData) {
-  // Only allow if it's a claim and has an ID
-  if (dayData.isClaim && dayData.attendanceId) {
-    confirmModal.item = dayData;
-    confirmModal.title = "Hapus Klaim Kehadiran?";
-    confirmModal.message =
-      "Apakah Anda yakin ingin menghapus data klaim ini? Tindakan ini tidak dapat dibatalkan.";
-
-    if (dayData.notes) {
-      confirmModal.message += `\n\nCatatan: "${dayData.notes}"`;
-    }
-
-    confirmModal.isOpen = true;
-  }
+// Actions
+function handleKClick(item) {
+  confirmModal.title = "Hapus Klaim Kehadiran";
+  confirmModal.message =
+    "Apakah Anda yakin ingin menghapus data klaim kehadiran ini? Tindakan ini tidak dapat dibatalkan.";
+  confirmModal.item = item;
+  confirmModal.note = item.notes || ""; // Add note
+  confirmModal.confirmAction = "deleteClaim"; // Tag action
+  confirmModal.isOpen = true;
 }
 
-async function confirmDeleteClaim() {
-  if (!confirmModal.item) return;
-  confirmModal.isOpen = false;
+function handleHClick(item) {
+  confirmModal.title = "Hapus Kehadiran";
+  confirmModal.message =
+    "Apakah Anda yakin ingin menghapus data kehadiran (H) ini? Tindakan ini tidak dapat dibatalkan.";
+  confirmModal.item = item;
+  confirmModal.note = ""; // Reset note
+  confirmModal.confirmAction = "deleteAttendance"; // Tag action
+  confirmModal.isOpen = true;
+}
+
+function handlePermissionClick(item, teacherId, dateIso) {
+  permissionActionModal.teacherId = teacherId;
+  permissionActionModal.date = dateIso;
+  permissionActionModal.status = item.status;
+  permissionActionModal.isOpen = true;
+}
+
+function isDeduct(status) {
+  return ["permit_deduct", "sick_deduct", "permitted", "sick"].includes(status);
+}
+
+function formatDate(iso) {
+  if (!iso) return "-";
+  return new Date(iso).toLocaleDateString("id-ID", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+// Permission Actions
+async function togglePermissionType() {
+  permissionActionModal.isOpen = false;
   loading.value = true;
   try {
-    await attendanceApi.deleteTeacherAttendance(confirmModal.item.attendanceId);
-    
-    // Refresh data
-    await fetchRecap();
+    const res = await permissionsApi.manageByDate(
+      "toggle",
+      permissionActionModal.teacherId,
+      permissionActionModal.date
+    );
 
-    // Show success
-    statusModal.type = "success";
-    statusModal.title = "Berhasil";
-    statusModal.message = "Data klaim kehadiran berhasil dihapus.";
-    statusModal.isOpen = true;
-  } catch (error) {
-    console.error("Delete claim error:", error);
+    if (res.success) {
+      statusModal.type = "success";
+      statusModal.title = "Berhasil Diubah";
+      statusModal.message = "Tipe izin berhasil diperbarui.";
+      statusModal.isOpen = true;
+      fetchRecap(); // Refresh
+    }
+  } catch (e) {
     statusModal.type = "error";
-    statusModal.title = "Gagal";
-    statusModal.message = error.message || "Gagal menghapus data.";
+    statusModal.title = "Gagal Mengubah";
+    statusModal.message = e.message || "Terjadi kesalahan saat mengubah izin.";
     statusModal.isOpen = true;
   } finally {
     loading.value = false;
-    confirmModal.item = null;
+  }
+}
+
+async function deletePermission() {
+  permissionActionModal.isOpen = false;
+
+  // Double confirm for delete
+  confirmModal.title = "Hapus Izin";
+  confirmModal.message =
+    "Apakah Anda yakin ingin menghapus izin ini? Data pengajuan dan absensi terkait akan dihapus permanen.";
+  confirmModal.note = ""; // Reset note
+  confirmModal.item = {
+    teacherId: permissionActionModal.teacherId,
+    date: permissionActionModal.date,
+  };
+  confirmModal.confirmAction = "deletePermission";
+  confirmModal.isOpen = true;
+}
+
+// Confirm Modal Actions Router
+async function confirmDeleteClaim() {
+  confirmModal.isOpen = false;
+  loading.value = true;
+
+  try {
+    let res;
+    if (confirmModal.confirmAction === "deleteClaim") {
+      // Logic for deleting K (Claim) - uses attendance ID directly
+      // Assuming item has attendanceId or id
+      const id = confirmModal.item.attendanceId || confirmModal.item.id;
+      if (!id) throw new Error("ID not found");
+      res = await attendanceApi.deleteTeacherAttendance(id);
+    } else if (confirmModal.confirmAction === "deleteAttendance") {
+      // Logic for deleting H (Presence) - uses attendance ID directly
+      const id = confirmModal.item.attendanceId || confirmModal.item.id;
+      if (!id) throw new Error("ID not found");
+      res = await attendanceApi.deleteTeacherAttendance(id);
+    } else if (confirmModal.confirmAction === "deletePermission") {
+      // Logic for deleting Permission via manage-by-date
+      res = await permissionsApi.manageByDate(
+        "delete",
+        confirmModal.item.teacherId,
+        confirmModal.item.date
+      );
+    }
+
+    if (res && res.success) {
+      statusModal.type = "success";
+      statusModal.title = "Berhasil Dihapus";
+      statusModal.message = res.message || "Data berhasil dihapus.";
+      statusModal.isOpen = true;
+      fetchRecap();
+    }
+  } catch (e) {
+    console.error(e);
+    statusModal.type = "error";
+    statusModal.title = "Gagal Menghapus";
+    statusModal.message = e.message || "Terjadi kesalahan saat menghapus data.";
+    statusModal.isOpen = true;
+  } finally {
+    loading.value = false;
   }
 }
 

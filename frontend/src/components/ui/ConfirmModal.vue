@@ -51,9 +51,9 @@
             <h3 class="text-xl font-bold text-slate-800 mb-2">
               {{ title }}
             </h3>
-            <p class="text-slate-500 text-sm mb-8 leading-relaxed">
+            <div class="text-slate-500 text-sm mb-8 leading-relaxed">
               <slot>{{ message }}</slot>
-            </p>
+            </div>
 
             <!-- Actions -->
             <div class="flex gap-3">

@@ -1211,6 +1211,13 @@ export const permissionsApi = {
       body: { status, deductSalary, rejectionReason },
     });
   },
+
+  async manageByDate(action, teacherId, date) {
+    return request("/api/permissions/manage-by-date", {
+      method: "POST",
+      body: { action, teacherId, date },
+    });
+  },
 };
 
 // Export individual utilities

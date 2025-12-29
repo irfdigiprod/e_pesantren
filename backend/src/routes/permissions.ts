@@ -1,7 +1,8 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import { eq, desc, and, inArray } from "drizzle-orm";
+import { eq, desc, and, inArray, sql } from "drizzle-orm";
 import { db } from "../db";
+import { z } from "zod";
 import {
   permissionRequests,
   teacherAttendances,
@@ -339,6 +340,165 @@ permissionsRoute.post(
       console.error("Update status error", e);
       return c.json(
         { success: false, message: "Failed to update status" },
+        500
+      );
+    }
+  }
+);
+
+// Manage Permission by Date (Toggle/Delete)
+permissionsRoute.post(
+  "/manage-by-date",
+  requireRole("admin"),
+  zValidator(
+    "json",
+    z.object({
+      action: z.enum(["toggle", "delete"]),
+      teacherId: z.number(),
+      date: z.string(), // YYYY-MM-DD
+    })
+  ),
+  async (c) => {
+    const { action, teacherId, date } = c.req.valid("json");
+
+    try {
+      // 1. Find the Approved Request covering this date
+      const requests = await db.query.permissionRequests.findMany({
+        where: and(
+          eq(permissionRequests.teacherId, teacherId),
+          eq(permissionRequests.status, "approved")
+        ),
+      });
+
+      const targetDate = new Date(date);
+      const req = requests.find((r) => {
+        const start = new Date(r.startDate);
+        const end = new Date(r.endDate);
+        return targetDate >= start && targetDate <= end;
+      });
+
+      if (!req) {
+        return c.json(
+          {
+            success: false,
+            message: "No active permission found for this date.",
+          },
+          404
+        );
+      }
+
+      if (action === "toggle") {
+        // Find all attendance records for this request
+        // We match by date range and teacherId
+        const start = new Date(req.startDate).toISOString().split("T")[0];
+        const end = new Date(req.endDate).toISOString().split("T")[0];
+
+        const attendances = await db.query.teacherAttendances.findMany({
+          where: and(
+            eq(teacherAttendances.teacherId, teacherId),
+            sql`${teacherAttendances.date} >= ${start}`,
+            sql`${teacherAttendances.date} <= ${end}`
+          ),
+        });
+
+        // Toggle Logic
+        // We check the first record to determine current state
+        if (attendances.length === 0) {
+          return c.json({
+            success: false,
+            message: "No attendance records found to toggle.",
+          });
+        }
+
+        const currentStatus = attendances[0].status;
+        let newStatus: string | null = null;
+        let newNoteSuffix = "";
+
+        if (
+          currentStatus === "permit_deduct" ||
+          currentStatus === "sick_deduct"
+        ) {
+          // Switch to No Deduct
+          newStatus =
+            currentStatus === "sick_deduct"
+              ? "sick_no_deduct"
+              : "permit_no_deduct";
+          newNoteSuffix = " (Tidak Potong Gaji)";
+        } else if (
+          currentStatus === "permit_no_deduct" ||
+          currentStatus === "sick_no_deduct"
+        ) {
+          // Switch to Deduct
+          newStatus =
+            currentStatus === "sick_no_deduct"
+              ? "sick_deduct"
+              : "permit_deduct";
+          newNoteSuffix = " (Potong Gaji)";
+        } else {
+          // Use req.type to decide default if somehow status is weird
+          // But usually we just return error if not a toggleable status
+          // Fallback legacy "permitted" -> "permit_deduct"
+          if (currentStatus === "permitted") newStatus = "permit_deduct";
+          else if (currentStatus === "sick") newStatus = "sick_deduct";
+        }
+
+        if (newStatus) {
+          // Update all
+          for (const att of attendances) {
+            await db
+              .update(teacherAttendances)
+              .set({
+                status: newStatus as any,
+                notes: `Updated Permission: ${req.reason}${newNoteSuffix}`,
+              })
+              .where(eq(teacherAttendances.id, att.id));
+          }
+
+          return c.json({
+            success: true,
+            message: "Permission status toggled successfully.",
+          });
+        } else {
+          return c.json(
+            {
+              success: false,
+              message: "Current status cannot be toggled.",
+            },
+            400
+          );
+        }
+      } else if (action === "delete") {
+        // Delete Permission Request and Attendances
+        const start = new Date(req.startDate).toISOString().split("T")[0];
+        const end = new Date(req.endDate).toISOString().split("T")[0];
+
+        // 1. Delete Attendances
+        await db
+          .delete(teacherAttendances)
+          .where(
+            and(
+              eq(teacherAttendances.teacherId, teacherId),
+              sql`${teacherAttendances.date} >= ${start}`,
+              sql`${teacherAttendances.date} <= ${end}`
+            )
+          );
+
+        // 2. Delete Request
+        await db
+          .delete(permissionRequests)
+          .where(eq(permissionRequests.id, req.id));
+
+        return c.json({
+          success: true,
+          message: "Permission and attendance records deleted.",
+        });
+      }
+
+      return c.json({ success: false, message: "Invalid action." }, 400);
+    } catch (e) {
+      console.error("Manage permission error", e);
+      return c.json(
+        { success: false, message: "Failed to manage permission." },
         500
       );
     }
