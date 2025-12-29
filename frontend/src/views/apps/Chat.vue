@@ -974,179 +974,22 @@
     </main>
 
     <!-- New Chat Modal -->
-    <div
+    <NewChatModal
       v-if="showNewChat"
-      class="modal-overlay"
-      @click.self="showNewChat = false"
-    >
-      <div class="modal new-chat-modal">
-        <div class="modal-header">
-          <h3>Percakapan Baru</h3>
-          <button @click="showNewChat = false" class="modal-close-btn">
-            <Icon icon="mdi:close" />
-          </button>
-        </div>
-
-        <!-- Search Input -->
-        <div class="user-search-box">
-          <Icon icon="mdi:magnify" class="search-icon" />
-          <input
-            v-model="userSearchQuery"
-            type="text"
-            placeholder="Cari pengguna..."
-            class="user-search-input"
-          />
-        </div>
-
-        <!-- User List -->
-        <div class="user-list">
-          <div
-            v-for="user in filteredAvailableUsers"
-            :key="user.id"
-            :class="['user-item', { selected: newChatUserId === user.id }]"
-            @click="selectUser(user)"
-          >
-            <div class="user-avatar">
-              {{ user.email.charAt(0).toUpperCase() }}
-            </div>
-            <div class="user-info">
-              <span class="user-name">{{ user.name || user.email }}</span>
-              <span class="user-email">{{ user.email }}</span>
-            </div>
-            <Icon
-              v-if="newChatUserId === user.id"
-              icon="mdi:check-circle"
-              class="selected-icon"
-            />
-          </div>
-          <div v-if="filteredAvailableUsers.length === 0" class="no-users">
-            <p>Tidak ada pengguna ditemukan</p>
-          </div>
-        </div>
-
-        <div class="modal-actions">
-          <button @click="showNewChat = false" class="btn-cancel">Batal</button>
-          <button
-            @click="createNewConversation"
-            :disabled="!newChatUserId"
-            class="btn-primary"
-          >
-            Mulai Chat
-          </button>
-        </div>
-      </div>
-    </div>
+      :users="availableUsers"
+      :current-user-id="currentUser?.id"
+      @close="showNewChat = false"
+      @create="handleNewChatCreate"
+    />
 
     <!-- New Group Chat Modal -->
-    <div
+    <NewGroupModal
       v-if="showNewGroupChat"
-      class="modal-overlay"
-      @click.self="showNewGroupChat = false"
-    >
-      <div class="modal new-chat-modal">
-        <div class="modal-header">
-          <h3>Grup Baru</h3>
-          <button @click="showNewGroupChat = false" class="modal-close-btn">
-            <Icon icon="mdi:close" />
-          </button>
-        </div>
-
-        <!-- Group Name Input -->
-        <div class="group-name-input-wrapper">
-          <Icon icon="mdi:account-group" class="group-icon" />
-          <input
-            v-model="newGroupName"
-            type="text"
-            placeholder="Nama Grup"
-            class="group-name-input"
-          />
-        </div>
-
-        <!-- Selected Members Preview -->
-        <div
-          v-if="selectedGroupMembers.length > 0"
-          class="selected-members-preview"
-        >
-          <span class="selected-label"
-            >{{ selectedGroupMembers.length }} anggota dipilih</span
-          >
-          <div class="selected-avatars">
-            <div
-              v-for="member in selectedGroupMembers.slice(0, 5)"
-              :key="member.id"
-              class="mini-avatar"
-              :title="member.name || member.email"
-            >
-              {{ (member.name || member.email).charAt(0).toUpperCase() }}
-            </div>
-            <span v-if="selectedGroupMembers.length > 5" class="more-count">
-              +{{ selectedGroupMembers.length - 5 }}
-            </span>
-          </div>
-        </div>
-
-        <!-- Search Input -->
-        <div class="user-search-box">
-          <Icon icon="mdi:magnify" class="search-icon" />
-          <input
-            v-model="groupSearchQuery"
-            type="text"
-            placeholder="Cari anggota..."
-            class="user-search-input"
-          />
-        </div>
-
-        <!-- User List (Multi-select) -->
-        <div class="user-list">
-          <div
-            v-for="user in filteredGroupUsers"
-            :key="user.id"
-            :class="['user-item', { selected: isGroupMemberSelected(user) }]"
-            @click="toggleGroupMember(user)"
-          >
-            <div class="user-avatar">
-              {{ (user.name || user.email).charAt(0).toUpperCase() }}
-            </div>
-            <div class="user-info">
-              <span class="user-name">{{ user.name || user.email }}</span>
-              <span class="user-email">{{ user.email }}</span>
-            </div>
-            <Icon
-              v-if="isGroupMemberSelected(user)"
-              icon="mdi:check-circle"
-              class="selected-icon"
-            />
-          </div>
-          <div v-if="filteredGroupUsers.length === 0" class="no-users">
-            <p>Tidak ada pengguna ditemukan</p>
-          </div>
-        </div>
-
-        <!-- Invite Mode Option -->
-        <div class="invite-mode-option">
-          <label class="checkbox-label">
-            <input type="checkbox" v-model="useInviteMode" />
-            <span class="checkbox-text">
-              <Icon icon="mdi:email-send" class="checkbox-icon" />
-              Kirim undangan ke anggota (harus menerima dulu)
-            </span>
-          </label>
-        </div>
-
-        <div class="modal-actions">
-          <button @click="showNewGroupChat = false" class="btn-cancel">
-            Batal
-          </button>
-          <button
-            @click="createNewGroup"
-            :disabled="!newGroupName.trim() || selectedGroupMembers.length < 1"
-            class="btn-primary"
-          >
-            Buat Grup
-          </button>
-        </div>
-      </div>
-    </div>
+      :users="availableUsers"
+      :current-user-id="currentUser?.id"
+      @close="showNewGroupChat = false"
+      @create="handleNewGroupCreate"
+    />
 
     <!-- Centered Emoji Picker Modal -->
     <Teleport to="body">
@@ -1879,57 +1722,19 @@
   </Teleport>
 
   <!-- Custom Alert Modal -->
-  <Teleport to="body">
-    <div
-      v-if="showAlertModal"
-      class="alert-overlay"
-      @click.self="showAlertModal = false"
-    >
-      <div class="modal-content modal-alert">
-        <div class="modal-header">
-          <h3>Pemberitahuan</h3>
-          <button @click="showAlertModal = false" class="close-btn">
-            <Icon icon="solar:close-circle-line-duotone" />
-          </button>
-        </div>
-        <div class="modal-body p-4">
-          <p>{{ alertMessage }}</p>
-        </div>
-        <div class="modal-actions" style="margin-top: 1rem">
-          <button class="btn-primary" @click="showAlertModal = false">
-            OK
-          </button>
-        </div>
-      </div>
-    </div>
-  </Teleport>
+  <AlertModal
+    v-if="showAlertModal"
+    :message="alertMessage"
+    @close="showAlertModal = false"
+  />
 
   <!-- Custom Confirm Modal -->
-  <Teleport to="body">
-    <div
-      v-if="showConfirmModal"
-      class="confirm-overlay"
-      @click.self="handleConfirm(false)"
-    >
-      <div class="modal-content modal-confirm">
-        <div class="modal-header">
-          <h3>Konfirmasi</h3>
-          <button @click="handleConfirm(false)" class="close-btn">
-            <Icon icon="solar:close-circle-line-duotone" />
-          </button>
-        </div>
-        <div class="modal-body p-4">
-          <p>{{ confirmMessage }}</p>
-        </div>
-        <div class="modal-actions" style="margin-top: 1rem">
-          <button class="btn-cancel" @click="handleConfirm(false)">
-            Batal
-          </button>
-          <button class="btn-primary" @click="handleConfirm(true)">Ya</button>
-        </div>
-      </div>
-    </div>
-  </Teleport>
+  <ConfirmModal
+    v-if="showConfirmModal"
+    :message="confirmMessage"
+    @confirm="handleConfirm(true)"
+    @cancel="handleConfirm(false)"
+  />
 
   <!-- Notification Modal -->
   <Teleport to="body">
@@ -3418,6 +3223,36 @@ async function createNewGroup() {
   }
 }
 
+// Handler for NewGroupModal component
+async function handleNewGroupCreate({ name, members, inviteMode }) {
+  if (!name.trim() || members.length < 1) return;
+
+  try {
+    const participantIds = members.map((m) => m.id);
+
+    const res = await chatApi.createConversation({
+      type: "group",
+      name: name.trim(),
+      participantIds,
+      inviteMode: inviteMode ? "invite" : "direct",
+    });
+
+    if (res.success && res.data) {
+      await loadConversations();
+      const newConv = conversations.value.find((c) => c.id === res.data.id);
+      if (newConv) {
+        selectConversation(newConv);
+      }
+      showNewGroupChat.value = false;
+    } else {
+      showAlert("Gagal membuat grup: " + (res.message || "Unknown error"));
+    }
+  } catch (e) {
+    console.error("Failed to create group:", e);
+    showAlert("Gagal membuat grup: " + (e.message || "Unknown error"));
+  }
+}
+
 // Handle message tap to show actions at tap position (for mobile)
 // Handle message tap to show actions at tap position (for mobile)
 function handleMessageTap(event, messageId) {
@@ -4725,6 +4560,54 @@ async function createNewConversation() {
   selectConversation(tempConv);
   showNewChat.value = false;
   newChatUserId.value = "";
+}
+
+// Handler for NewChatModal component
+function handleNewChatCreate(user) {
+  if (!user) return;
+
+  // Check if conversation already exists
+  const existingConv = conversations.value.find((c) => {
+    if (c.type !== "private") return false;
+    const other = c.participants?.find(
+      (p) => p.userId !== currentUser.value?.id
+    );
+    return other?.userId === user.id;
+  });
+
+  if (existingConv) {
+    selectConversation(existingConv);
+    showNewChat.value = false;
+    return;
+  }
+
+  // Create temporary conversation locally
+  const tempConv = {
+    id: `new_${Date.now()}`,
+    type: "private",
+    name: user.name,
+    avatarUrl: user.avatarUrl,
+    participants: [
+      {
+        userId: currentUser.value.id,
+        name: currentUser.value.name,
+        email: currentUser.value.email,
+      },
+      {
+        userId: user.id,
+        name: user.name,
+        email: user.email,
+      },
+    ],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    isTemp: true,
+    tempUserId: user.id,
+  };
+
+  conversations.value.unshift(tempConv);
+  selectConversation(tempConv);
+  showNewChat.value = false;
 }
 
 // Loading state for sidebar
