@@ -508,13 +508,7 @@
                 </div>
               </div>
               <div>
-                <label class="block text-sm font-medium text-slate-700 mb-1"
-                  >Alamat</label
-                >
-                <input
-                  v-model="form.address"
-                  class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#602515]"
-                />
+                <AddressSelector v-model="form.addressRegion" label="Alamat" />
               </div>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -681,6 +675,7 @@ import ConfirmModal from "@/components/ui/ConfirmModal.vue";
 import DataTable from "@/components/ui/DataTable.vue";
 import ImportModal from "@/components/common/ImportModal.vue";
 import StatusModal from "@/components/ui/StatusModal.vue";
+import AddressSelector from "@/components/ui/AddressSelector.vue";
 
 const router = useRouter();
 
@@ -925,7 +920,7 @@ const form = reactive({
   birthDate: "",
   birthPlace: "",
   gender: "male",
-  address: "",
+  addressRegion: null, // { province, regency, district, village, addressDetail, postalCode }
   phone: "",
   status: "active",
   email: "",
@@ -1029,10 +1024,30 @@ async function submitForm() {
   saving.value = true;
   modal.error = "";
   try {
-    // Sanitize payload: remove empty strings for optional fields
-    const payload = { ...form };
+    // Build address fields from addressRegion
+    const addr = form.addressRegion || {};
+    const payload = {
+      id: form.id,
+      nis: form.nis,
+      fullName: form.fullName,
+      birthDate: form.birthDate || undefined,
+      birthPlace: form.birthPlace || undefined,
+      gender: form.gender,
+      // Separate address fields
+      province: addr.province ? JSON.stringify(addr.province) : undefined,
+      regency: addr.regency ? JSON.stringify(addr.regency) : undefined,
+      district: addr.district ? JSON.stringify(addr.district) : undefined,
+      village: addr.village ? JSON.stringify(addr.village) : undefined,
+      addressDetail: addr.addressDetail || undefined,
+      postalCode: addr.postalCode || undefined,
+      phone: form.phone || undefined,
+      status: form.status,
+      email: form.email || undefined,
+      password: form.password || undefined,
+    };
+    // Remove undefined values
     Object.keys(payload).forEach((key) => {
-      if (payload[key] === "") {
+      if (payload[key] === undefined || payload[key] === "") {
         delete payload[key];
       }
     });
@@ -1140,7 +1155,7 @@ function openCreate() {
     birthDate: "",
     birthPlace: "",
     gender: "male",
-    address: "",
+    addressRegion: null,
     phone: "",
     status: "active",
     email: "",
@@ -1162,6 +1177,28 @@ function openEdit(item) {
     }
   }
 
+  // Reconstruct address region from separate fields
+  const addressRegion = {
+    province: null,
+    regency: null,
+    district: null,
+    village: null,
+    addressDetail: item.addressDetail || "",
+    postalCode: item.postalCode || "",
+  };
+  try {
+    if (item.province) addressRegion.province = JSON.parse(item.province);
+  } catch {}
+  try {
+    if (item.regency) addressRegion.regency = JSON.parse(item.regency);
+  } catch {}
+  try {
+    if (item.district) addressRegion.district = JSON.parse(item.district);
+  } catch {}
+  try {
+    if (item.village) addressRegion.village = JSON.parse(item.village);
+  } catch {}
+
   Object.assign(form, {
     id: item.id,
     nis: item.nis || "",
@@ -1169,7 +1206,7 @@ function openEdit(item) {
     birthDate: formattedBirthDate,
     birthPlace: item.birthPlace || "",
     gender: item.gender || "male",
-    address: item.address || "",
+    addressRegion,
     phone: item.phone || "",
     status: item.status || "active",
     email: item.email || "",

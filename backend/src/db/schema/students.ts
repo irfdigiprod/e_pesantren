@@ -31,6 +31,13 @@ export const students = mysqlTable("students", {
   birthPlace: varchar("birth_place", { length: 255 }),
   gender: mysqlEnum("gender", ["male", "female"]),
   address: text("address"),
+  // Separate address fields for structured address data
+  province: text("province"), // JSON: { code, name }
+  regency: text("regency"), // JSON: { code, name }
+  district: text("district"), // JSON: { code, name }
+  village: text("village"), // JSON: { code, name }
+  addressDetail: text("address_detail"),
+  postalCode: varchar("postal_code", { length: 10 }),
   phone: varchar("phone", { length: 20 }),
   parentId: int("parent_id").references(() => parents.id),
   classId: int("class_id"),

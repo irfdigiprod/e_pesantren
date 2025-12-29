@@ -218,6 +218,13 @@ teachersRoute.post(
         birthPlace: data.birthPlace,
         gender: data.gender,
         address: data.address,
+        // Separate address fields
+        province: data.province,
+        regency: data.regency,
+        district: data.district,
+        village: data.village,
+        addressDetail: data.addressDetail,
+        postalCode: data.postalCode,
         phone: data.phone,
         email: data.email,
         position: data.position,
