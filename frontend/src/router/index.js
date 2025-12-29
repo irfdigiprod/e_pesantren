@@ -386,7 +386,9 @@ router.beforeEach((to, from, next) => {
     // guest boleh buka login/register
     if (isAuthPage) return next();
 
-    // guest buka path lain → biarkan DynamicNotFound atau route lain menanganinya
+    // guest buka path lain → redirect ke login
+    if (!isAuthPage) return next("/login");
+
     return next();
   }
 

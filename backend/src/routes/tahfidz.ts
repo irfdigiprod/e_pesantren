@@ -460,6 +460,9 @@ app.get("/exams", async (c) => {
         scoreMakhraj: tahfidzExams.scoreMakhraj,
         scoreAdab: tahfidzExams.scoreAdab,
         notes: tahfidzExams.notes,
+        juz: tahfidzExams.juz,
+        startPage: tahfidzExams.startPage,
+        endPage: tahfidzExams.endPage,
       })
       .from(tahfidzExams)
       .leftJoin(students, eq(tahfidzExams.studentId, students.id))

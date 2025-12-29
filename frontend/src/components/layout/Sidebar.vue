@@ -42,28 +42,6 @@ const submenuByMain = {
   apps: {
     title: "Apps",
     items: [
-      { label: "AI", icon: "solar:cpu-bolt-line-duotone", route: "/apps/ai" },
-      {
-        label: "Contacts",
-        icon: "solar:phone-rounded-line-duotone",
-        route: "/apps/contacts",
-      },
-      {
-        label: "Ecommerce",
-        icon: "solar:cart-large-4-line-duotone",
-        children: [
-          { label: "Products", route: "/apps/ecommerce/products" },
-          { label: "Orders", route: "/apps/ecommerce/orders" },
-        ],
-      },
-      {
-        label: "Blogs",
-        icon: "solar:document-add-line-duotone",
-        children: [
-          { label: "Blog List", route: "/apps/blogs/list" },
-          { label: "Blog Detail", route: "/apps/blogs/detail" },
-        ],
-      },
       {
         label: "Chats",
         icon: "solar:chat-round-dots-line-duotone",
@@ -75,40 +53,13 @@ const submenuByMain = {
         route: "/apps/user-profile",
       },
       {
-        label: "Santri",
-        icon: "solar:user-circle-line-duotone",
-        route: "/apps/students",
-      },
-
-      {
         label: "Guru",
         icon: "solar:square-academic-cap-line-duotone",
-        route: "/apps/teachers",
-      },
-      {
-        label: "Divisi",
-        icon: "solar:buildings-2-line-duotone",
-        route: "/apps/divisions",
-      },
-      {
-        label: "Tahfidz",
-        icon: "solar:book-bookmark-line-duotone",
         children: [
-          { label: "Grup Halaqah", route: "/apps/halaqah" },
-          { label: "Mutaba'ah", route: "/apps/tahfidz/dashboard" },
-          { label: "Input per Halaqah", route: "/apps/tahfidz/halaqah" },
-          { label: "Ujian Tahfidz", route: "/apps/tahfidz/exams" },
-          { label: "Laporan & Sertifikat", route: "/apps/tahfidz/reports" },
-          { label: "Mading Halaqah", route: "/apps/tahfidz/mading" },
-          { label: "Pengaturan Target", route: "/apps/tahfidz/settings" },
-        ],
-      },
-      {
-        label: "Absensi",
-        icon: "solar:calendar-mark-line-duotone",
-        children: [
-          { label: "Absensi Santri", route: "/apps/attendance" },
           { label: "Absensi Guru", route: "/apps/teacher-attendance" },
+          { label: "Data Guru", route: "/apps/teachers" },
+          { label: "Laporan Gaji", route: "/apps/salary-report" },
+          { label: "Divisi", route: "/apps/divisions" },
           {
             label: "Rekap Absensi",
             route: "/apps/attendance-recap",
@@ -126,39 +77,18 @@ const submenuByMain = {
         ],
       },
       {
-        label: "Laporan Gaji",
-        icon: "solar:wallet-money-line-duotone",
-        route: "/apps/salary-report",
-        adminOnly: true,
-      },
-      {
-        label: "Penghargaan",
-        icon: "solar:star-line-duotone",
-        route: "/apps/rewards",
-      },
-      {
-        label: "Halaqah",
-        icon: "solar:users-group-two-rounded-line-duotone",
-        route: "/apps/halaqah",
-      },
-      {
-        label: "Kamar",
-        icon: "solar:bed-line-duotone",
-        route: "/apps/rooms",
-      },
-
-      {
-        label: "Klinik",
-        icon: "solar:stethoscope-line-duotone",
+        label: "Santri",
+        icon: "solar:user-circle-line-duotone",
         children: [
-          { label: "Obat-obatan", route: "/apps/clinic/medicines" },
-          { label: "Rawat Inap", route: "/apps/clinic/inpatients" },
-          { label: "Pemeriksaan", route: "/apps/clinic/examinations" },
+          { label: "Data Santri", route: "/apps/students" },
+          { label: "Kamar", route: "/apps/rooms" },
+          { label: "Penghargaan", route: "/apps/rewards" },
+          { label: "Absensi Santri", route: "/apps/attendance" },
         ],
       },
       {
         label: "Akademik",
-        icon: "solar:book-2-line-duotone",
+        icon: "solar:buildings-3-line-duotone",
         children: [
           { label: "Kelas", route: "/apps/academic/classes" },
           { label: "Mata Pelajaran", route: "/apps/academic/subjects" },
@@ -168,37 +98,26 @@ const submenuByMain = {
         ],
       },
       {
-        label: "Invoice",
-        icon: "solar:bill-list-line-duotone",
+        label: "Tahfidz",
+        icon: "solar:book-bookmark-line-duotone",
         children: [
-          { label: "Invoice List", route: "/apps/invoice/list" },
-          { label: "Invoice Details", route: "/apps/invoice/details" },
+          { label: "Grup Halaqah", route: "/apps/halaqah" },
+          { label: "Mutaba'ah", route: "/apps/tahfidz/dashboard" },
+          { label: "Input per Halaqah", route: "/apps/tahfidz/halaqah" },
+          { label: "Ujian Tahfidz", route: "/apps/tahfidz/exams" },
+          { label: "Laporan & Sertifikat", route: "/apps/tahfidz/reports" },
+          { label: "Mading Halaqah", route: "/apps/tahfidz/mading" },
+          { label: "Pengaturan Target", route: "/apps/tahfidz/settings" },
         ],
       },
       {
-        label: "Notes",
-        icon: "solar:notes-line-duotone",
-        route: "/apps/notes",
-      },
-      {
-        label: "Calendar",
-        icon: "solar:calendar-date-line-duotone",
-        route: "/apps/calendar",
-      },
-      {
-        label: "Email",
-        icon: "solar:mailbox-line-duotone",
-        route: "/apps/email",
-      },
-      {
-        label: "Tickets",
-        icon: "solar:ticket-line-duotone",
-        route: "/apps/tickets",
-      },
-      {
-        label: "Kanban",
-        icon: "solar:widget-5-line-duotone",
-        route: "/apps/kanban",
+        label: "Klinik",
+        icon: "solar:stethoscope-line-duotone",
+        children: [
+          { label: "Obat-obatan", route: "/apps/clinic/medicines" },
+          { label: "Rawat Inap", route: "/apps/clinic/inpatients" },
+          { label: "Pemeriksaan", route: "/apps/clinic/examinations" },
+        ],
       },
     ],
   },

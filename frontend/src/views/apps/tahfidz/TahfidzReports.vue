@@ -1048,6 +1048,10 @@ async function selectStudent(s) {
       totalHafalan.value = Number(d.totalHafalan || 0);
       settings.value = d.settings || {};
       madingData.value = d.mading || [];
+
+      // Notes logic: Fetch from 'Suluk' exam notes
+      const sulukExam = d.exams?.find((e) => e.examCategory === "Suluk");
+      notes.value = sulukExam?.notes || "";
       targetHafalan.value = d.target?.targetPages || 50;
     }
   } catch (e) {

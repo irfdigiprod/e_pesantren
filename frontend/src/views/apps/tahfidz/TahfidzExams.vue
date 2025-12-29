@@ -922,7 +922,42 @@ async function editExam(item) {
   showModal.value = true;
 }
 
-// ... closeModal ... deleteExam ... onConfirmDelete ... showStatus ...
+function closeModal() {
+  showModal.value = false;
+}
+
+function showStatus(title, message, type = "success") {
+  statusTitle.value = title;
+  statusMessage.value = message;
+  statusType.value = type;
+  showStatusModal.value = true;
+}
+
+function deleteExam(item) {
+  itemToDelete.value = item;
+  confirmMessage.value = `Apakah Anda yakin ingin menghapus data ujian santri <b>${item.studentName}</b>?`;
+  showConfirmModal.value = true;
+}
+
+async function onConfirmDelete() {
+  if (!itemToDelete.value) return;
+  deleteLoading.value = true;
+  try {
+    const res = await tahfidzApi.deleteExam(itemToDelete.value.id);
+    if (res.success) {
+      showStatus("Berhasil", "Data ujian berhasil dihapus", "success");
+      loadData();
+    } else {
+      showStatus("Gagal", res.message || "Gagal menghapus data", "error");
+    }
+  } catch (e) {
+    showStatus("Error", e.message || "Terjadi kesalahan sistem", "error");
+  } finally {
+    deleteLoading.value = false;
+    showConfirmModal.value = false;
+    itemToDelete.value = null;
+  }
+}
 
 async function submitExam() {
   if (!form.studentId) {
