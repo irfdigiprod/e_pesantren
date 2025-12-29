@@ -764,15 +764,13 @@
               <p>Mengetahui,</p>
               <p>Orang tua</p>
               <div class="h-20"></div>
-              <p class="border-t border-slate-800 pt-1">
-                ...............................
-              </p>
+              <p class="">...............................</p>
             </div>
             <div>
               <p>Mengetahui,</p>
               <p>Ketua Bagian Tahfidz</p>
               <div class="h-20"></div>
-              <p class="font-bold border-t border-slate-800 pt-1">
+              <p class="font-bold">
                 {{ settings.tahfidzHeadName || "Miqdad Abdul Matin, S.Pd." }}
               </p>
             </div>
@@ -780,7 +778,7 @@
               <p>{{ settings.cityName || "Purwakarta" }}, {{ currentDate }}</p>
               <p>Wali Kelas</p>
               <div class="h-20"></div>
-              <p class="font-bold border-t border-slate-800 pt-1">
+              <p class="font-bold">
                 {{ student.homeroomTeacher || "Muhammad Ja'far, S.Pd." }}
               </p>
             </div>
