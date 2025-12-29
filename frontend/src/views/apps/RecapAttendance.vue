@@ -841,6 +841,11 @@ function handleKClick(dayData) {
     confirmModal.title = "Hapus Klaim Kehadiran?";
     confirmModal.message =
       "Apakah Anda yakin ingin menghapus data klaim ini? Tindakan ini tidak dapat dibatalkan.";
+
+    if (dayData.notes) {
+      confirmModal.message += `\n\nCatatan: "${dayData.notes}"`;
+    }
+
     confirmModal.isOpen = true;
   }
 }

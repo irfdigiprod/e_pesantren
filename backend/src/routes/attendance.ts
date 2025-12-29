@@ -643,11 +643,11 @@ attendanceRoute.get("/teachers/recap", requireRole("admin"), async (c) => {
         if (!dailyMap[dStr]) {
           dailyMap[dStr] = {
             status: att.status,
-            status: att.status,
             isClaim: att.isClaim || false,
             attendanceId: att.id, // Include ID for deletion/editing
             times: [],
             totalMinutes: 0,
+            notes: att.notes || null,
           };
         }
 
