@@ -1455,190 +1455,31 @@
       </div>
     </Teleport>
   </div>
-  <!-- Group Info Panel (RESTORED) -->
-  <Teleport to="body">
-    <div
-      v-if="showGroupInfo"
-      class="group-info-overlay"
-      @click.self="showGroupInfo = false"
-    >
-      <div class="group-info-panel">
-        <div class="panel-header">
-          <h3>Info Grup</h3>
-          <button @click="showGroupInfo = false" class="close-btn">
-            <Icon icon="solar:close-circle-line-duotone" />
-          </button>
-        </div>
-
-        <div class="panel-content">
-          <!-- Group Header -->
-          <div class="group-header-info">
-            <div class="group-avatar-large relative-container">
-              <img
-                v-if="getConversationAvatar(activeConversation).includes('/')"
-                :src="getConversationAvatar(activeConversation)"
-                class="group-avatar-img"
-              />
-              <div v-else class="group-avatar-fallback">
-                {{ getConversationAvatar(activeConversation) }}
-              </div>
-
-              <!-- Avatar Upload Button (Admin Only) -->
-              <button
-                v-if="currentUserIsAdmin"
-                class="avatar-upload-btn"
-                title="Ganti Foto Grup"
-                @click="triggerAvatarUpload"
-              >
-                <Icon icon="solar:camera-add-line-duotone" />
-              </button>
-              <input
-                type="file"
-                ref="fileInputGroupAvatar"
-                style="display: none"
-                accept="image/*"
-                @change="handleGroupAvatarSelect"
-              />
-            </div>
-
-            <div v-if="editingGroupName" class="group-name-edit">
-              <input
-                v-model="editGroupNameValue"
-                type="text"
-                class="group-name-input"
-                @keypress.enter="saveGroupName"
-              />
-              <button class="save-btn" @click="saveGroupName">
-                <Icon icon="solar:check-circle-line-duotone" />
-              </button>
-              <button class="cancel-btn" @click="editingGroupName = false">
-                <Icon icon="solar:close-circle-line-duotone" />
-              </button>
-            </div>
-            <div v-else class="group-name-display">
-              <h2>{{ activeConversation?.name }}</h2>
-              <button
-                v-if="currentUserIsAdmin"
-                class="edit-name-btn"
-                @click="startEditGroupName"
-              >
-                <Icon icon="solar:pen-new-square-line-duotone" />
-              </button>
-            </div>
-            <span class="member-count">
-              {{ activeConversation?.participants?.length }} anggota
-            </span>
-          </div>
-
-          <!-- Admin Actions -->
-          <div v-if="currentUserIsAdmin" class="admin-actions">
-            <button
-              class="control-btn"
-              :class="{ active: isGroupLocked }"
-              @click="toggleGroupLock"
-            >
-              <Icon
-                :icon="
-                  isGroupLocked
-                    ? 'solar:lock-keyhole-line-duotone'
-                    : 'solar:lock-keyhole-unlocked-line-duotone'
-                "
-              />
-              <span>{{
-                isGroupLocked ? "Buka Kunci Grup" : "Kunci Grup"
-              }}</span>
-            </button>
-            <button class="control-btn" @click="showAddMemberModal = true">
-              <Icon icon="solar:user-plus-line-duotone" />
-              <span>Tambah Anggota</span>
-            </button>
-            <button class="control-btn danger" @click="confirmDeleteGroup">
-              <Icon icon="solar:trash-bin-trash-line-duotone" />
-              <span>Hapus Grup</span>
-            </button>
-          </div>
-
-          <!-- Locked Indicator -->
-          <div v-if="isGroupLocked" class="locked-indicator">
-            <Icon icon="solar:lock-keyhole-line-duotone" />
-            <span>Grup terkunci - Hanya admin yang dapat mengirim pesan</span>
-          </div>
-
-          <!-- Members List -->
-          <div class="group-members-section">
-            <h4>Anggota</h4>
-            <div class="members-list">
-              <div
-                v-for="member in activeConversation?.participants"
-                :key="member.userId"
-                class="member-item"
-              >
-                <div class="member-avatar">
-                  <img
-                    v-if="getMemberPhotoUrl(member)"
-                    :src="getMemberPhotoUrl(member)"
-                    alt="Member"
-                    style="
-                      width: 100%;
-                      height: 100%;
-                      object-fit: cover;
-                      border-radius: 50%;
-                    "
-                  />
-                  <span v-else>{{ getMemberInitials(member) }}</span>
-                </div>
-                <div class="member-info">
-                  <span class="member-name">{{ getMemberName(member) }}</span>
-                  <span v-if="member.role === 'admin'" class="admin-badge"
-                    >Admin</span
-                  >
-                  <span v-if="member.status === 'invited'" class="badge-invited"
-                    >Diundang</span
-                  >
-                </div>
-                <div
-                  v-if="currentUserIsAdmin && member.userId !== currentUser?.id"
-                  class="member-actions"
-                >
-                  <button
-                    class="member-action-btn"
-                    @click="toggleMemberRole(member)"
-                    :title="
-                      member.role === 'admin'
-                        ? 'Jadikan Member'
-                        : 'Jadikan Admin'
-                    "
-                  >
-                    <Icon
-                      :icon="
-                        member.role === 'admin'
-                          ? 'solar:user-id-line-duotone'
-                          : 'solar:shield-user-line-duotone'
-                      "
-                    />
-                  </button>
-                  <button
-                    class="member-action-btn danger"
-                    @click="removeMember(member.userId)"
-                    title="Keluarkan"
-                  >
-                    <Icon icon="solar:user-cross-line-duotone" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="panel-footer">
-            <button class="leave-group-btn" @click="confirmLeaveGroup">
-              <Icon icon="solar:logout-2-line-duotone" />
-              <span>Keluar dari Grup</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </Teleport>
+  <!-- Group Info Panel -->
+  <GroupInfoPanel
+    v-if="showGroupInfo"
+    :name="activeConversation?.name || ''"
+    :avatar="getConversationAvatar(activeConversation)"
+    :participants="activeConversation?.participants || []"
+    :participant-count="activeConversation?.participants?.length || 0"
+    :is-admin="currentUserIsAdmin"
+    :is-locked="isGroupLocked"
+    :editing-name="editingGroupName"
+    :edit-name-value="editGroupNameValue"
+    :current-user-id="currentUser?.id"
+    @close="showGroupInfo = false"
+    @upload-avatar="triggerAvatarUpload"
+    @start-edit-name="startEditGroupName"
+    @save-name="saveGroupName"
+    @cancel-edit-name="editingGroupName = false"
+    @update:editNameValue="editGroupNameValue = $event"
+    @toggle-lock="toggleGroupLock"
+    @add-member="showAddMemberModal = true"
+    @delete-group="confirmDeleteGroup"
+    @toggle-role="toggleMemberRole"
+    @remove-member="removeMember"
+    @leave-group="confirmLeaveGroup"
+  />
 
   <!-- Add Member Modal -->
   <AddMemberModal
