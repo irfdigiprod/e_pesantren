@@ -45,3 +45,13 @@ export const permissionRequestsRelations = relations(
     }),
   })
 );
+
+import { students } from "./students";
+import { classes } from "./academic";
+
+export const studentsRelations = relations(students, ({ one }) => ({
+  class: one(classes, {
+    fields: [students.classId],
+    references: [classes.id],
+  }),
+}));

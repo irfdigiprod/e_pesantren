@@ -9,8 +9,21 @@ import {
   halaqahMembers,
   halaqahGroups,
   halaqahMentors,
+  tahfidzReportSettings,
+  tahfidzReportCards,
 } from "../db/schema";
-import { eq, desc, and, gte, lte, sql, inArray, like, or } from "drizzle-orm";
+import {
+  eq,
+  desc,
+  and,
+  gte,
+  lte,
+  sql,
+  inArray,
+  like,
+  or,
+  asc,
+} from "drizzle-orm";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 
@@ -936,3 +949,145 @@ app.delete("/targets/:id", async (c) => {
 });
 
 export default app;
+
+// --- SETTINGS & REPORT CARD ---
+
+// Settings Schema
+const settingsSchema = z.object({
+  institutionName: z.string().min(1),
+  institutionAddress: z.string().optional(),
+  institutionLogo: z.string().optional(),
+  contactInfo: z.string().optional(),
+  headmasterName: z.string().optional(),
+  tahfidzHeadName: z.string().optional(),
+  cityDate: z.string().optional(),
+});
+
+// GET /settings
+app.get("/settings", async (c) => {
+  try {
+    const settings = await db.select().from(tahfidzReportSettings).limit(1);
+    return c.json({ success: true, data: settings[0] || {} });
+  } catch (e: any) {
+    return c.json({ success: false, message: e.message }, 500);
+  }
+});
+
+// PUT /settings
+app.put("/settings", zValidator("json", settingsSchema), async (c) => {
+  const body = c.req.valid("json");
+  try {
+    const existing = await db
+      .select({ id: tahfidzReportSettings.id })
+      .from(tahfidzReportSettings)
+      .limit(1);
+
+    if (existing.length > 0) {
+      await db
+        .update(tahfidzReportSettings)
+        .set(body)
+        .where(eq(tahfidzReportSettings.id, existing[0]!.id));
+    } else {
+      await db.insert(tahfidzReportSettings).values(body);
+    }
+    return c.json({ success: true, message: "Pengaturan berhasil disimpan" });
+  } catch (e: any) {
+    return c.json({ success: false, message: e.message }, 500);
+  }
+});
+
+// GET /report-card/:studentId
+app.get("/report-card/:studentId", async (c) => {
+  const studentId = parseInt(c.req.param("studentId"));
+  const academicYear = c.req.query("academicYear") || "2025-2026"; // Default or calculated
+  const semester = c.req.query("semester"); // 1 or 2 (Ganjil/Genap)
+
+  try {
+    // 1. Get Student Info with Class & Halaqah
+    const student = await db.query.students.findFirst({
+      where: eq(students.id, studentId),
+      with: {
+        class: true,
+        // halaqahMembers linking? easier to just query halaqahMembers separate or assume relation if exists
+      },
+    });
+
+    if (!student) {
+      return c.json({ success: false, message: "Santri tidak ditemukan" }, 404);
+    }
+
+    // Get Active Halaqah
+    const halaqahMember = await db.query.halaqahMembers.findFirst({
+      where: and(
+        eq(halaqahMembers.studentId, studentId),
+        eq(halaqahMembers.status, "active")
+      ),
+      with: {
+        halaqah: true,
+      },
+    });
+
+    // 2. Get Exams (UPK & UKJ)
+    // Filter by academic year dates if we had them... For now just get all or limit?
+    // Ideally we should filter by date range of the semester.
+    // Let's assume user passes start/end dates for the report or we use academicYear logic.
+    // For MVP: Fetch ALL exams for this student, classify them in frontend or here.
+    const exams = await db
+      .select()
+      .from(tahfidzExams)
+      .where(eq(tahfidzExams.studentId, studentId))
+      .orderBy(asc(tahfidzExams.examDate));
+
+    // 3. Get Attendance Stats (Calculated from Deposits)
+    // Assuming 6 months duration for semester
+    const deposits = await db
+      .select({ type: tahfidzDeposits.type })
+      .from(tahfidzDeposits)
+      .where(eq(tahfidzDeposits.studentId, studentId));
+    // Add date filter here if needed
+
+    const attendance = {
+      sakit: deposits.filter((d) => d.type === "sakit").length,
+      izin: deposits.filter((d) => d.type === "izin").length,
+      alpha: deposits.filter((d) => d.type === "alpha").length,
+    };
+
+    // 4. Get Cumulative Hafalan (Total Pages)
+    // Logic from daily-summary
+    const ziyadah = await db
+      .select()
+      .from(tahfidzDeposits)
+      .where(
+        and(
+          eq(tahfidzDeposits.studentId, studentId),
+          eq(tahfidzDeposits.type, "ziyadah")
+        )
+      );
+
+    let totalPages = 0;
+    ziyadah.forEach((d) => {
+      if (d.totalPages) totalPages += Number(d.totalPages);
+      else if (d.pageNumber) totalPages += 1;
+    });
+
+    // 5. Get Settings
+    const settings = await db.query.tahfidzReportSettings.findFirst();
+
+    return c.json({
+      success: true,
+      data: {
+        student: {
+          ...student,
+          halaqah: (halaqahMember?.halaqah as any)?.name || "-",
+          className: student.class?.name || "-",
+        },
+        exams,
+        attendance,
+        totalHafalan: totalPages.toFixed(2),
+        settings: settings || {},
+      },
+    });
+  } catch (e: any) {
+    return c.json({ success: false, message: e.message }, 500);
+  }
+});

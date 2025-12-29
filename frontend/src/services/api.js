@@ -1409,4 +1409,19 @@ export const tahfidzApi = {
   async deleteTarget(id) {
     return request(`/api/tahfidz/targets/${id}`, { method: "DELETE" });
   },
+  // Report Settings & Generation
+  async getSettings() {
+    return request("/api/tahfidz/settings");
+  },
+  async updateSettings(data) {
+    return request("/api/tahfidz/settings", { method: "PUT", body: data });
+  },
+  async getReportCard(studentId, params = {}) {
+    const query = new URLSearchParams(params).toString();
+    return request(
+      query
+        ? `/api/tahfidz/report-card/${studentId}?${query}`
+        : `/api/tahfidz/report-card/${studentId}`
+    );
+  },
 };

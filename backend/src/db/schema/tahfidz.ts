@@ -73,7 +73,20 @@ export const tahfidzExams = mysqlTable("tahfidz_exams", {
     .notNull(),
 
   examDate: date("exam_date").notNull(),
+  // Modified: examType is still useful, but adding category is better e.g. UPK vs UKJ
   examType: varchar("exam_type", { length: 50 }).notNull(), // e.g., "Juz 30", "Juz 29", "Semester 1"
+  examCategory: mysqlEnum("exam_category", [
+    "UPK",
+    "UKJ",
+    "UA",
+    "Suluk",
+    "Other",
+  ]).default("Other"),
+
+  // Specifics for Report Card
+  juz: int("juz"), // For UKJ
+  startPage: int("start_page"), // For UPK
+  endPage: int("end_page"), // For UPK
 
   // Scoring (0-100 or specific rubric)
   scoreFluency: int("score_fluency"), // Kelancaran
@@ -98,6 +111,41 @@ export const tahfidzTargets = mysqlTable("tahfidz_targets", {
   description: text("description"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
+});
+
+// --- Tahfidz Report Settings (Pengaturan Kops & TTD) ---
+export const tahfidzReportSettings = mysqlTable("tahfidz_report_settings", {
+  id: int("id").primaryKey().autoincrement(),
+  institutionName: varchar("institution_name", { length: 255 }).notNull(),
+  institutionAddress: text("institution_address"),
+  institutionLogo: varchar("institution_logo", { length: 255 }), // URL path
+  contactInfo: varchar("contact_info", { length: 255 }), // Email/Phone
+  headmasterName: varchar("headmaster_name", { length: 100 }),
+  tahfidzHeadName: varchar("tahfidz_head_name", { length: 100 }),
+  cityDate: varchar("city_date", { length: 100 }), // e.g. "Purwakarta" (Date is dynamic usually, but City is static)
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
+});
+
+// --- Tahfidz Report Cards (Snapshot Data Rapor) ---
+// Optional: Store generated report data if needed to be frozen
+export const tahfidzReportCards = mysqlTable("tahfidz_report_cards", {
+  id: int("id").primaryKey().autoincrement(),
+  studentId: int("student_id")
+    .references(() => students.id)
+    .notNull(),
+  academicYear: varchar("academic_year", { length: 20 }), // e.g. 2024/2025
+  semester: mysqlEnum("semester", ["1", "2", "ganjil", "genap"]),
+
+  // Custom Notes
+  notes: text("notes"), // Catatan
+  result: varchar("result", { length: 50 }), // Tercapai / Tidak
+
+  // Attendance Snapshot (in case it differs from calculated)
+  sickCount: int("sick_count").default(0),
+  permissionCount: int("permission_count").default(0),
+  alphaCount: int("alpha_count").default(0),
+
+  generatedAt: timestamp("generated_at").defaultNow(),
 });
 
 // Relations
@@ -127,3 +175,13 @@ export const tahfidzExamsRelations = relations(tahfidzExams, ({ one }) => ({
     references: [teachers.id],
   }),
 }));
+
+export const tahfidzReportCardsRelations = relations(
+  tahfidzReportCards,
+  ({ one }) => ({
+    student: one(students, {
+      fields: [tahfidzReportCards.studentId],
+      references: [students.id],
+    }),
+  })
+);
