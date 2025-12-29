@@ -3690,13 +3690,24 @@ function closeFullEmojiPicker() {
   emojiPickerMessage.value = null;
 }
 
-// Check if a message has been read by at least one recipient (not the sender)
+// Check if a message has been read by recipients
+// For private chat: green when the other person has read
+// For group chat: green only when ALL members (except sender) have read
 function isMessageRead(messageId) {
   const readers = messageReadStatus.value.get(messageId);
   if (!readers || readers.size === 0) return false;
 
+  // Check if this is a group chat
+  if (activeConversation.value?.type === "group") {
+    // Get number of participants (excluding sender)
+    const participants = activeConversation.value.participants || [];
+    const otherMembersCount = participants.length - 1; // Exclude sender
+
+    // Green only if all other members have read
+    return readers.size >= otherMembersCount;
+  }
+
   // For private chat: any read means green checkmark
-  // For group chat: at least one person (not sender) has read
   return true;
 }
 
