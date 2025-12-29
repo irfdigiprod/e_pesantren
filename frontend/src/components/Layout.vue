@@ -29,7 +29,7 @@
             <router-view />
           </slot>
         </div>
-        <Footer />
+        <Footer v-if="shouldShowFooter" />
       </main>
     </div>
   </div>
@@ -49,4 +49,13 @@ function toggleSidebar() {
 }
 
 const isRouteLoadingVal = isRouteLoading;
+
+import { useRoute } from "vue-router";
+import { computed } from "vue";
+
+const route = useRoute();
+const shouldShowFooter = computed(() => {
+  // Hide footer on chat page
+  return !route.path.includes("/apps/chat");
+});
 </script>
