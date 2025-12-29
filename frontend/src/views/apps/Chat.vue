@@ -447,6 +447,19 @@
                   formatMessageTime(message.createdAt)
                 }}</span>
                 <span v-if="message.isEdited" class="edited-label">diedit</span>
+                <!-- Read status checkmark (only for sent messages) -->
+                <span
+                  v-if="
+                    message.senderId === currentUser?.id && !message.isDeleted
+                  "
+                  class="message-read-status"
+                  :class="{ read: isMessageRead(message.id) }"
+                  :title="
+                    isMessageRead(message.id) ? 'Sudah dibaca' : 'Terkirim'
+                  "
+                >
+                  <Icon icon="solar:check-read-linear" />
+                </span>
               </div>
 
               <!-- Reactions (hide if message is deleted) -->
@@ -1793,6 +1806,10 @@ const fileInputGroupAvatar = ref(null); // Avatar Upload Input
 const selectedEmojiCategory = ref("😀 Smileys");
 const emojiGridRef = ref(null);
 const messageInputRef = ref(null);
+
+// Message Read Status Tracking
+// Map of messageId -> Set of userIds who have read the message
+const messageReadStatus = ref(new Map());
 
 // Group Info Panel State
 const showGroupInfo = ref(false);
@@ -3673,6 +3690,16 @@ function closeFullEmojiPicker() {
   emojiPickerMessage.value = null;
 }
 
+// Check if a message has been read by at least one recipient (not the sender)
+function isMessageRead(messageId) {
+  const readers = messageReadStatus.value.get(messageId);
+  if (!readers || readers.size === 0) return false;
+
+  // For private chat: any read means green checkmark
+  // For group chat: at least one person (not sender) has read
+  return true;
+}
+
 function addReactionFromFullPicker(emoji) {
   // Check if this is for message input or for reaction
   if (showInputEmojiPicker.value) {
@@ -4549,6 +4576,20 @@ function setupWebSocketListeners() {
     }
   });
 
+  // Handle message read receipts
+  wsClient.on("message_read", (data) => {
+    const { messageId, userId } = data;
+
+    // Update read status tracking
+    if (!messageReadStatus.value.has(messageId)) {
+      messageReadStatus.value.set(messageId, new Set());
+    }
+    messageReadStatus.value.get(messageId).add(userId);
+
+    // Trigger reactivity
+    messageReadStatus.value = new Map(messageReadStatus.value);
+  });
+
   // Handle new notifications
   wsClient.on("new_notification", (data) => {
     notifications.value.unshift(data.data);
@@ -5100,6 +5141,27 @@ onUnmounted(() => {
 
 .message.own .edited-label {
   color: rgba(255, 255, 255, 0.6);
+}
+
+/* Read status checkmark */
+.message-read-status {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.875rem;
+  color: #9ca3af; /* Gray for sent */
+  margin-left: auto; /* Push to right side */
+}
+
+.message-read-status.read {
+  color: #22c55e; /* Green for read */
+}
+
+.message.own .message-read-status {
+  color: #94a3b8; /* Gray, visible on light background */
+}
+
+.message.own .message-read-status.read {
+  color: #22c55e; /* Green for read */
 }
 
 /* Reply preview */
