@@ -512,7 +512,7 @@
       :message="confirmModal.message"
       confirmText="Hapus"
       cancelText="Batal"
-      confirmType="danger"
+      type="danger"
       @confirm="confirmDeleteClaim"
       @cancel="confirmModal.isOpen = false"
     />

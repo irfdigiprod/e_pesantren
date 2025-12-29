@@ -107,7 +107,7 @@ const submenuByMain = {
           { label: "Ujian Tahfidz", route: "/apps/tahfidz/exams" },
           { label: "Laporan & Sertifikat", route: "/apps/tahfidz/reports" },
           { label: "Mading Halaqah", route: "/apps/tahfidz/mading" },
-          { label: "Pengaturan Target", route: "/apps/tahfidz/settings" },
+          { label: "Pengaturan Tahfidz", route: "/apps/tahfidz/settings" },
         ],
       },
       {
@@ -160,11 +160,6 @@ const submenuByMain = {
         label: "Komponen Gaji",
         icon: "solar:users-group-two-rounded-line-duotone",
         route: "/settings/salary-grading",
-      },
-      {
-        label: "Billing",
-        icon: "solar:wallet-line-duotone",
-        route: "/settings/billing",
       },
       {
         label: "Identitas Lembaga",
