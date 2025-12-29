@@ -105,17 +105,32 @@
 
       <!-- Cell: Status -->
       <template #cell-status="{ item }">
-        <span
-          class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium"
-          :class="{
-            'bg-amber-100 text-amber-800': item.status === 'pending',
-            'bg-emerald-100 text-emerald-800': item.status === 'approved',
-            'bg-slate-100 text-slate-600': item.status === 'rejected',
-          }"
-        >
-          <Icon :icon="statusIcon(item.status)" class="w-3.5 h-3.5" />
-          <span class="capitalize">{{ formatStatus(item.status) }}</span>
-        </span>
+        <div class="flex flex-col items-start gap-1">
+          <span
+            class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium"
+            :class="{
+              'bg-amber-100 text-amber-800': item.status === 'pending',
+              'bg-emerald-100 text-emerald-800': item.status === 'approved',
+              'bg-slate-100 text-slate-600': item.status === 'rejected',
+            }"
+          >
+            <Icon :icon="statusIcon(item.status)" class="w-3.5 h-3.5" />
+            <span class="capitalize">{{ formatStatus(item.status) }}</span>
+          </span>
+          <!-- Rejection Reason -->
+          <div
+            v-if="item.status === 'rejected' && item.rejectionReason"
+            class="mt-1.5 flex items-start gap-1.5 px-2 py-1.5 bg-rose-50 border border-rose-100 rounded-lg max-w-[180px]"
+          >
+            <Icon
+              icon="solar:info-circle-bold"
+              class="w-3.5 h-3.5 text-rose-500 shrink-0 mt-0.5"
+            />
+            <span class="text-[10px] leading-tight text-rose-700 font-medium">
+              {{ item.rejectionReason }}
+            </span>
+          </div>
+        </div>
       </template>
 
       <!-- Cell: CreatedAt -->
@@ -167,6 +182,19 @@
           <p class="text-sm text-slate-600 line-clamp-2 mt-auto">
             {{ item.reason }}
           </p>
+          <div
+            v-if="item.status === 'rejected' && item.rejectionReason"
+            class="mt-3 flex items-start gap-2 p-2.5 bg-rose-50 border border-rose-100 rounded-lg"
+          >
+            <Icon
+              icon="solar:info-circle-bold"
+              class="w-4 h-4 text-rose-500 shrink-0 mt-0.5"
+            />
+            <div class="text-xs text-rose-700 leading-relaxed">
+              <span class="font-bold text-rose-800">Alasan Penolakan:</span>
+              {{ item.rejectionReason }}
+            </div>
+          </div>
         </div>
       </template>
     </DataTable>

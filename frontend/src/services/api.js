@@ -1205,10 +1205,10 @@ export const permissionsApi = {
     });
   },
 
-  async updateStatus(id, status, deductSalary = false) {
+  async updateStatus(id, status, deductSalary, rejectionReason) {
     return request(`/api/permissions/${id}/status`, {
       method: "POST",
-      body: { status, deductSalary },
+      body: { status, deductSalary, rejectionReason },
     });
   },
 };

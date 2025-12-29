@@ -11,4 +11,5 @@ export const createPermissionSchema = z.object({
 export const updatePermissionStatusSchema = z.object({
   status: z.enum(["approved", "rejected"]),
   deductSalary: z.boolean().optional(), // Only relevant when status = approved
+  rejectionReason: z.string().optional(),
 });

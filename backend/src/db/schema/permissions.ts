@@ -23,6 +23,7 @@ export const permissionRequests = mysqlTable("permission_requests", {
   status: mysqlEnum("status", ["pending", "approved", "rejected"])
     .default("pending")
     .notNull(),
+  rejectionReason: text("rejection_reason"),
 
   // Audit
   approvedBy: int("approved_by").references(() => users.id),

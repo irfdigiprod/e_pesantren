@@ -225,6 +225,8 @@ permissionsRoute.post(
         .update(permissionRequests)
         .set({
           status,
+          rejectionReason:
+            status === "rejected" ? c.req.valid("json").rejectionReason : null,
           approvedBy: adminUser.userId,
           approvedAt: new Date(),
         })
