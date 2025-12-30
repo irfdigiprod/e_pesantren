@@ -9,7 +9,7 @@
     >
       <!-- Header -->
       <div
-        class="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-white"
+        class="flex-none flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-white"
       >
         <h3 class="text-lg font-bold text-slate-800">
           {{ title }}
@@ -22,58 +22,61 @@
         </button>
       </div>
 
-      <!-- Cropper Area -->
-      <div class="flex-1 bg-slate-900 overflow-hidden relative min-h-[400px]">
-        <Cropper
-          ref="cropperRef"
-          :src="imageSrc"
-          :stencil-props="{
-            aspectRatio: aspectRatio,
-            movable: true,
-            resizable: true,
-          }"
-          :resize-image="{
-            adjustStencil: false,
-          }"
-          image-restriction="stencil"
-          class="h-[500px] w-full"
-        />
-      </div>
-
-      <!-- Footer / Controls -->
-      <div class="p-6 bg-white border-t border-slate-100 flex flex-col gap-4">
-        <!-- Instructions -->
-        <div
-          class="text-sm text-slate-500 bg-slate-50 p-3 rounded-lg border border-slate-100"
-        >
-          <p class="flex items-center gap-2 font-medium text-slate-700">
-            <Icon
-              icon="solar:info-circle-bold"
-              class="text-blue-500 shrink-0"
-            />
-            Petunjuk
-          </p>
-          <div class="mt-1 ml-6 text-xs text-slate-500 space-y-1">
-            <p>Geser dan zoom untuk menyesuaikan area gambar.</p>
-            <p>{{ description }}</p>
-          </div>
+      <!-- Scrollable Content -->
+      <div class="flex-1 overflow-y-auto">
+        <!-- Cropper Area -->
+        <div class="bg-slate-900 overflow-hidden relative min-h-[400px]">
+          <Cropper
+            ref="cropperRef"
+            :src="imageSrc"
+            :stencil-props="{
+              aspectRatio: aspectRatio,
+              movable: true,
+              resizable: true,
+            }"
+            :resize-image="{
+              adjustStencil: false,
+            }"
+            image-restriction="stencil"
+            class="h-[500px] w-full"
+          />
         </div>
 
-        <!-- Buttons -->
-        <div class="flex items-center gap-3">
-          <button
-            @click="close"
-            class="flex-1 px-4 py-3 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50 transition-all text-sm"
+        <!-- Footer / Controls -->
+        <div class="p-6 bg-white border-t border-slate-100 flex flex-col gap-4">
+          <!-- Instructions -->
+          <div
+            class="text-sm text-slate-500 bg-slate-50 p-3 rounded-lg border border-slate-100"
           >
-            Batal
-          </button>
-          <button
-            @click="cropImage"
-            class="flex-1 px-4 py-3 rounded-xl bg-[#602515] font-bold text-white hover:bg-[#4a1c10] transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#602515]/20 text-sm whitespace-nowrap"
-          >
-            <Icon icon="solar:scissors-bold" class="text-lg" />
-            Potong & Simpan
-          </button>
+            <p class="flex items-center gap-2 font-medium text-slate-700">
+              <Icon
+                icon="solar:info-circle-bold"
+                class="text-blue-500 shrink-0"
+              />
+              Petunjuk
+            </p>
+            <div class="mt-1 ml-6 text-xs text-slate-500 space-y-1">
+              <p>Geser dan zoom untuk menyesuaikan area gambar.</p>
+              <p>{{ description }}</p>
+            </div>
+          </div>
+
+          <!-- Buttons -->
+          <div class="flex items-center gap-3">
+            <button
+              @click="close"
+              class="flex-1 px-4 py-3 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50 transition-all text-sm"
+            >
+              Batal
+            </button>
+            <button
+              @click="cropImage"
+              class="flex-1 px-4 py-3 rounded-xl bg-[#602515] font-bold text-white hover:bg-[#4a1c10] transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#602515]/20 text-sm whitespace-nowrap"
+            >
+              <Icon icon="solar:scissors-bold" class="text-lg" />
+              Potong & Simpan
+            </button>
+          </div>
         </div>
       </div>
     </div>

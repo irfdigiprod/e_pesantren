@@ -319,6 +319,12 @@ onMounted(() => {
   const raw = localStorage.getItem("user");
   if (raw) user.value = JSON.parse(raw);
   fetchCurrent();
+
+  // Listen for user updates (e.g. from profile edit)
+  window.addEventListener("user-updated", (e) => {
+    if (e.detail) user.value = e.detail;
+  });
+
   window.addEventListener("chat-messages-read", onChatMessagesRead);
 
   const token = localStorage.getItem("token");

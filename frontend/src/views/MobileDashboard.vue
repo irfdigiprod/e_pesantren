@@ -1,8 +1,67 @@
 <script setup>
 import { Icon } from "@iconify/vue";
 import { useRouter } from "vue-router";
+import { ref, computed, onMounted, onUnmounted } from "vue";
+import { usersApi } from "@/services/api";
 
 const router = useRouter();
+const user = ref(null);
+
+const photoUrl = computed(() => {
+  const photo = user.value?.photo || user.value?.raw?.photo;
+  if (!photo) return null;
+  const base = import.meta.env.VITE_API_BASE_URL || "";
+  if (photo.startsWith("uploads/")) {
+    return `${base}/api/${photo}`;
+  }
+  return photo;
+});
+
+const initials = computed(() => {
+  if (!user.value) return "?";
+  const n = user.value.name || user.value.email || "";
+  if (n) {
+    const parts = n.split(/[@\s]/).filter(Boolean);
+    if (parts.length >= 1) return parts[0].slice(0, 2).toUpperCase();
+  }
+  return "?";
+});
+
+function loadStoredUser() {
+  try {
+    const raw = localStorage.getItem("user");
+    if (raw) user.value = JSON.parse(raw);
+  } catch (_) {}
+}
+
+async function fetchCurrent() {
+  const token = localStorage.getItem("token");
+  if (!token) return;
+  try {
+    const res = await usersApi.getCurrent();
+    user.value = res.data || res;
+    localStorage.setItem("user", JSON.stringify(user.value));
+  } catch (_) {}
+}
+
+function onUserUpdated(e) {
+  const maybe = e && e.detail ? e.detail : null;
+  if (maybe) {
+    user.value = maybe;
+  } else {
+    loadStoredUser();
+  }
+}
+
+onMounted(() => {
+  loadStoredUser();
+  fetchCurrent();
+  window.addEventListener("user-updated", onUserUpdated);
+});
+
+onUnmounted(() => {
+  window.removeEventListener("user-updated", onUserUpdated);
+});
 
 // Replicating/Flattening items from Sidebar.vue for the grid
 const menuItems = [
@@ -150,9 +209,17 @@ const navigate = (path) => {
         <p class="text-xs text-slate-500">Selamat datang kembali!</p>
       </div>
       <div
-        class="w-10 h-10 rounded-full bg-[#f8ae19] flex items-center justify-center text-white"
+        class="w-10 h-10 rounded-full bg-[#f8ae19] flex items-center justify-center text-white overflow-hidden shadow-sm"
       >
-        <Icon icon="solar:user-line-duotone" class="text-xl" />
+        <img
+          v-if="photoUrl"
+          :src="photoUrl"
+          class="w-full h-full object-cover"
+        />
+        <span v-else-if="user?.name" class="font-bold text-sm">{{
+          initials
+        }}</span>
+        <Icon v-else icon="solar:user-line-duotone" class="text-xl" />
       </div>
     </div>
 
