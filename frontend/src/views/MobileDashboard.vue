@@ -68,9 +68,21 @@ onUnmounted(() => {
 /* ============================
    INFO BOARD SLIDER
    ============================ */
+// Import useSwipe from vueuse
+import { useSwipe } from "@vueuse/core";
+
 const slides = ref([]);
 const activeSlide = ref(0);
 let slideInterval = null;
+const sliderRef = ref(null); // Reference for swipe container
+
+const { direction, isSwiping } = useSwipe(sliderRef, {
+  threshold: 30, // threshold for swipe detection
+  onSwipeEnd: (e, direction) => {
+    if (direction === "LEFT") nextSlide();
+    if (direction === "RIGHT") prevSlide();
+  },
+});
 
 const getImageUrl = (path) => {
   if (!path) return "";
@@ -101,9 +113,27 @@ function startSlider() {
   if (slideInterval) clearInterval(slideInterval);
   if (slides.value.length > 1) {
     slideInterval = setInterval(() => {
-      activeSlide.value = (activeSlide.value + 1) % slides.value.length;
+      nextSlide(false); // false = not manual
     }, 5000);
   }
+}
+
+function nextSlide(manual = true) {
+  if (slides.value.length < 2) return;
+  activeSlide.value = (activeSlide.value + 1) % slides.value.length;
+  if (manual) resetInterval();
+}
+
+function prevSlide(manual = true) {
+  if (slides.value.length < 2) return;
+  activeSlide.value =
+    (activeSlide.value - 1 + slides.value.length) % slides.value.length;
+  if (manual) resetInterval();
+}
+
+function resetInterval() {
+  if (slideInterval) clearInterval(slideInterval);
+  startSlider();
 }
 
 // Replicating/Flattening items from Sidebar.vue for the grid
@@ -248,7 +278,8 @@ const navigate = (path) => {
     <!-- Slider / Header -->
     <div
       v-if="slides.length > 0"
-      class="mb-6 relative h-44 rounded-2xl overflow-hidden shadow-md group"
+      ref="sliderRef"
+      class="mb-6 relative h-44 rounded-2xl overflow-hidden shadow-md group touch-pan-y"
     >
       <!-- Slides -->
       <div
@@ -259,7 +290,7 @@ const navigate = (path) => {
       >
         <img
           :src="getImageUrl(slide.imageUrl)"
-          class="w-full h-full object-cover"
+          class="w-full h-full object-cover select-none pointer-events-none"
           alt="Info Board"
         />
         <!-- Gradient Overlay -->
@@ -268,13 +299,15 @@ const navigate = (path) => {
         ></div>
       </div>
 
-      <!-- Content Overlay (Optional: Welcome Text on top of slider?) -->
-      <div class="absolute bottom-4 left-4 z-20 text-white">
+      <!-- Content Overlay -->
+      <div class="absolute bottom-4 left-4 z-20 text-white pointer-events-none">
         <p class="text-xs font-medium opacity-90">Information Board</p>
       </div>
 
       <!-- Indicators -->
-      <div class="absolute bottom-3 right-4 z-20 flex gap-1.5">
+      <div
+        class="absolute bottom-3 right-4 z-20 flex gap-1.5 pointer-events-none"
+      >
         <div
           v-for="(_, idx) in slides"
           :key="idx"
@@ -282,6 +315,25 @@ const navigate = (path) => {
           :class="idx === activeSlide ? 'bg-white w-4' : 'bg-white/50'"
         ></div>
       </div>
+
+      <!-- Navigation Buttons (Always visible or hover only? Based on user image, always visible but subtle) -->
+      <!-- Left Button -->
+      <button
+        v-if="slides.length > 1"
+        @click.stop="prevSlide()"
+        class="absolute left-2 top-1/2 -translate-y-1/2 z-30 w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm text-white flex items-center justify-center hover:bg-white/40 active:scale-95 transition-all"
+      >
+        <Icon icon="solar:alt-arrow-left-linear" class="text-xl" />
+      </button>
+
+      <!-- Right Button -->
+      <button
+        v-if="slides.length > 1"
+        @click.stop="nextSlide()"
+        class="absolute right-2 top-1/2 -translate-y-1/2 z-30 w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm text-white flex items-center justify-center hover:bg-white/40 active:scale-95 transition-all"
+      >
+        <Icon icon="solar:alt-arrow-right-linear" class="text-xl" />
+      </button>
     </div>
 
     <!-- Default Header (Fallback) -->
