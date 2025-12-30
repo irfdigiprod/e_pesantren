@@ -122,6 +122,40 @@
               </option>
             </select>
           </div>
+
+          <!-- Class Filter -->
+          <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1"
+              >Kelas</label
+            >
+            <select
+              v-model="filters.classId"
+              @change="loadData"
+              class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-[#602515]"
+            >
+              <option value="">Semua Kelas</option>
+              <option v-for="c in classesList" :key="c.id" :value="c.id">
+                {{ c.name }}
+              </option>
+            </select>
+          </div>
+
+          <!-- Halaqah Filter -->
+          <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1"
+              >Halaqah</label
+            >
+            <select
+              v-model="filters.halaqahId"
+              @change="loadData"
+              class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-[#602515]"
+            >
+              <option value="">Semua Halaqah</option>
+              <option v-for="h in halaqahList" :key="h.id" :value="h.id">
+                {{ h.name }}
+              </option>
+            </select>
+          </div>
         </div>
       </template>
 
@@ -348,6 +382,32 @@
                     class="w-full px-3 py-2 border rounded-lg focus:ring-2 ring-[#602515]/20 outline-none"
                     required
                   />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-slate-700 mb-1"
+                    >Tahun Ajaran</label
+                  >
+                  <select
+                    v-model="form.academicYear"
+                    class="w-full px-3 py-2 border rounded-lg focus:ring-2 ring-[#602515]/20 outline-none"
+                    required
+                  >
+                    <option value="2024-2025">2024-2025</option>
+                    <option value="2025-2026">2025-2026</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-slate-700 mb-1"
+                    >Semester</label
+                  >
+                  <select
+                    v-model="form.semester"
+                    class="w-full px-3 py-2 border rounded-lg focus:ring-2 ring-[#602515]/20 outline-none"
+                    required
+                  >
+                    <option value="ganjil">Ganjil</option>
+                    <option value="genap">Genap</option>
+                  </select>
                 </div>
                 <div class="space-y-3">
                   <div>
@@ -612,7 +672,14 @@ import { Icon } from "@iconify/vue";
 import DataTable from "@/components/ui/DataTable.vue";
 import ConfirmModal from "@/components/ui/ConfirmModal.vue";
 import StatusModal from "@/components/ui/StatusModal.vue";
-import { tahfidzApi, studentsApi, teachersApi, authApi } from "@/services/api";
+import {
+  tahfidzApi,
+  studentsApi,
+  teachersApi,
+  authApi,
+  academicApi,
+  halaqahApi,
+} from "@/services/api";
 
 const loading = ref(false);
 const saving = ref(false);
@@ -628,6 +695,8 @@ const pagination = ref({
 const exams = ref([]);
 const studentsList = ref([]);
 const teachersList = ref([]);
+const classesList = ref([]);
+const halaqahList = ref([]);
 const filteredStudents = ref([]);
 const studentSearch = ref("");
 const showStudentDropdown = ref(false);
@@ -654,6 +723,8 @@ const filters = reactive({
   verdict: "",
   gender: "",
   examinerId: "",
+  classId: "",
+  halaqahId: "",
 });
 
 let searchTimeout = null;
@@ -672,6 +743,8 @@ function resetFilters() {
   filters.verdict = "";
   filters.gender = "";
   filters.examinerId = "";
+  filters.classId = "";
+  filters.halaqahId = "";
   loadData();
 }
 
@@ -694,6 +767,8 @@ const form = reactive({
   studentId: "",
   examinerId: "",
   examDate: new Date().toISOString().split("T")[0],
+  academicYear: "2024-2025",
+  semester: "ganjil",
   examTypeId: "", // Replacing examType string
   juz: "", // For UKJ
   startPage: "", // For UPK
@@ -787,6 +862,22 @@ async function loadData() {
       const etRes = await tahfidzApi.getExamTypes();
       if (etRes.success) {
         examTypesList.value = etRes.data || [];
+      }
+    }
+
+    // Load Classes
+    if (classesList.value.length === 0) {
+      const cRes = await academicApi.getClasses();
+      if (cRes.data) {
+        classesList.value = cRes.data;
+      }
+    }
+
+    // Load Halaqahs
+    if (halaqahList.value.length === 0) {
+      const hRes = await halaqahApi.getAll();
+      if (hRes.data) {
+        halaqahList.value = hRes.data;
       }
     }
   } catch (e) {
@@ -895,6 +986,8 @@ async function editExam(item) {
   form.id = item.id;
   form.studentId = item.studentId;
   form.examinerId = item.examinerId;
+  form.academicYear = item.academicYear || "2024-2025";
+  form.semester = item.semester || "ganjil";
   form.examDate = item.rawDate
     ? new Date(item.rawDate).toISOString().split("T")[0]
     : "";
@@ -984,6 +1077,8 @@ async function submitExam() {
       studentId: Number(form.studentId),
       examinerId: Number(form.examinerId),
       examDate: form.examDate,
+      academicYear: form.academicYear,
+      semester: form.semester,
 
       // Mapped from Type
       examType: selectedType ? selectedType.name : "Unknown",

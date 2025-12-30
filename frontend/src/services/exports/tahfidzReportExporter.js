@@ -49,6 +49,7 @@ export async function exportTahfidzReportToExcel(data) {
     tahfidzHeadNameDisplay,
     cityName,
     currentDate,
+    headerImageUrl,
   } = data;
 
   if (!student) return;
@@ -106,24 +107,48 @@ export async function exportTahfidzReportToExcel(data) {
   const smallBoldFont = { bold: true, name: "Arial", size: 7 }; // For Keterangan
 
   // --- HEADER IMAGE (Rows 1-9) ---
-  try {
-    // Note: Fetching from public folder. Ensure this path is accessible.
-    // In Vue component it was fetch("/images/tahfidz-header.png")
-    const imageResponse = await fetch("/images/tahfidz-header.png");
-    if (imageResponse.ok) {
-      const imageBuffer = await imageResponse.arrayBuffer();
-      const imageId = workbook.addImage({
-        buffer: imageBuffer,
-        extension: "png",
-      });
-      worksheet.addImage(imageId, {
-        tl: { col: 0, row: 0 },
-        br: { col: 23, row: 9 }, // Span A1:W9
-        editAs: "oneCell",
-      });
+  if (headerImageUrl) {
+    try {
+      const imageResponse = await fetch(headerImageUrl);
+      if (imageResponse.ok) {
+        const imageBuffer = await imageResponse.arrayBuffer();
+        // Determine extension from url or simplistic assumption
+        const ext = headerImageUrl.toLowerCase().endsWith(".png")
+          ? "png"
+          : "jpeg";
+        const imageId = workbook.addImage({
+          buffer: imageBuffer,
+          extension: ext,
+        });
+        worksheet.addImage(imageId, {
+          tl: { col: 0, row: 0 },
+          br: { col: 23, row: 9 }, // Span A1:W9
+          editAs: "oneCell",
+        });
+      }
+    } catch (e) {
+      console.error("Failed to load header image:", e);
     }
-  } catch (e) {
-    console.error("Failed to load header image:", e);
+  } else {
+    // Text Fallback
+    worksheet.mergeCells("A1:W9");
+    const cell = worksheet.getCell("A1");
+    cell.value = "Upload Gambar Kop di pengaturan tahfidz";
+    cell.alignment = centerStyle;
+    cell.font = { italic: true, color: { argb: "FF9CA3AF" }, size: 12 }; // Gray-400ish
+    cell.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FFF9FAFB" }, // Slate-50
+    };
+    addBorder(cell); // Optional: border for the box? Or dashed? Excel doesn't support dashed easily on cell border in same way. Let's stick to simple border or no border.
+    // Let's add border to match UI "placeholder" feel slightly
+    cell.border = {
+      top: { style: "dashed", color: { argb: "FFE5E7EB" } },
+      left: { style: "dashed", color: { argb: "FFE5E7EB" } },
+      bottom: { style: "dashed", color: { argb: "FFE5E7EB" } },
+      right: { style: "dashed", color: { argb: "FFE5E7EB" } },
+    };
   }
 
   let r = 11;

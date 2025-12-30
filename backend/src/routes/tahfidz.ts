@@ -65,6 +65,10 @@ const examSchema = z.object({
   examinerId: z.number(),
   examType: z.string(),
   examCategory: z.enum(["UPK", "UKJ", "UA", "Suluk", "Other"]).optional(),
+  // New filtering fields
+  academicYear: z.string().optional(),
+  semester: z.enum(["1", "2", "ganjil", "genap"]).optional(),
+
   examDate: z.string(),
   juz: z.number().nullable().optional(),
   startPage: z.number().nullable().optional(),
@@ -405,6 +409,10 @@ app.get("/exams", async (c) => {
   const verdict = c.req.query("verdict");
   const gender = c.req.query("gender");
   const examinerId = c.req.query("examinerId");
+  const academicYear = c.req.query("academicYear");
+  const semester = c.req.query("semester");
+  const classId = c.req.query("classId");
+  const halaqahId = c.req.query("halaqahId");
 
   try {
     const conditions: any[] = [];
@@ -427,6 +435,14 @@ app.get("/exams", async (c) => {
     if (gender) conditions.push(eq(students.gender, gender as any));
     if (examinerId)
       conditions.push(eq(tahfidzExams.examinerId, Number(examinerId)));
+    if (academicYear)
+      conditions.push(eq(tahfidzExams.academicYear, academicYear));
+    if (semester) conditions.push(eq(tahfidzExams.semester, semester as any));
+
+    // New Filters
+    if (classId) conditions.push(eq(students.classId, Number(classId)));
+    if (halaqahId)
+      conditions.push(eq(halaqahMembers.halaqahId, Number(halaqahId)));
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
@@ -436,6 +452,16 @@ app.get("/exams", async (c) => {
       .from(tahfidzExams)
       .leftJoin(students, eq(tahfidzExams.studentId, students.id));
 
+    if (halaqahId) {
+      countQuery.leftJoin(
+        halaqahMembers,
+        and(
+          eq(tahfidzExams.studentId, halaqahMembers.studentId),
+          eq(halaqahMembers.status, "active")
+        )
+      );
+    }
+
     if (whereClause) {
       countQuery.where(whereClause);
     }
@@ -444,7 +470,9 @@ app.get("/exams", async (c) => {
     const total = Number(countResult?.count || 0);
 
     // 2. Get Data
-    const dataQuery = db
+    // Need to change `const dataQuery` to `let dataQuery` at line 456 first? Or just restructure.
+    // Better to restructure.
+    let dataQuery = db
       .select({
         id: tahfidzExams.id,
         date: tahfidzExams.examDate,
@@ -464,9 +492,23 @@ app.get("/exams", async (c) => {
         juz: tahfidzExams.juz,
         startPage: tahfidzExams.startPage,
         endPage: tahfidzExams.endPage,
+        academicYear: tahfidzExams.academicYear,
+        semester: tahfidzExams.semester,
       })
       .from(tahfidzExams)
-      .leftJoin(students, eq(tahfidzExams.studentId, students.id))
+      .leftJoin(students, eq(tahfidzExams.studentId, students.id));
+
+    if (halaqahId) {
+      dataQuery.leftJoin(
+        halaqahMembers,
+        and(
+          eq(tahfidzExams.studentId, halaqahMembers.studentId),
+          eq(halaqahMembers.status, "active")
+        )
+      );
+    }
+
+    dataQuery
       .leftJoin(teachers, eq(tahfidzExams.examinerId, teachers.id))
       .orderBy(desc(tahfidzExams.examDate))
       .limit(limit)
@@ -1112,19 +1154,24 @@ app.get("/report-card/:studentId", async (c) => {
         )
         .limit(1);
       if (waliQuery.length > 0) {
-        homeroomTeacherName = waliQuery[0].name;
+        homeroomTeacherName = waliQuery[0]?.name || "-";
       }
     }
 
     // 2. Get Exams (UPK & UKJ)
-    // Filter by academic year dates if we had them... For now just get all or limit?
-    // Ideally we should filter by date range of the semester.
-    // Let's assume user passes start/end dates for the report or we use academicYear logic.
-    // For MVP: Fetch ALL exams for this student, classify them in frontend or here.
+    const examConditions = [eq(tahfidzExams.studentId, studentId)];
+    if (academicYear) {
+      examConditions.push(eq(tahfidzExams.academicYear, academicYear));
+    }
+    if (semester) {
+      // semester is enum in db, assert type or just pass string if compatible
+      examConditions.push(eq(tahfidzExams.semester, semester));
+    }
+
     const exams = await db
       .select()
       .from(tahfidzExams)
-      .where(eq(tahfidzExams.studentId, studentId))
+      .where(and(...examConditions))
       .orderBy(asc(tahfidzExams.examDate));
 
     // 3. Get Attendance Stats (Calculated from Deposits)

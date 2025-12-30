@@ -216,9 +216,12 @@
           <div class="text-sm text-amber-900">
             <p class="font-medium mb-1">Tips:</p>
             <ul class="list-disc list-inside space-y-1 text-amber-800">
-              <li>Gunakan gambar dengan lebar minimal 800px</li>
-              <li>Format yang disarankan: PNG dengan background transparan</li>
-              <li>Pastikan teks pada kop surat terbaca dengan jelas</li>
+              <li>
+                Saran Resolusi: <b>1000px x 200px</b> (Rasio 5:1) agar optimal
+                di Excel.
+              </li>
+              <li>Gunakan format PNG dengan background transparan.</li>
+              <li>Pastikan teks pada kop surat terbaca dengan jelas.</li>
             </ul>
           </div>
         </div>
@@ -524,11 +527,20 @@
       :message="statusModal.message"
       @close="statusModal.isOpen = false"
     />
+
+    <!-- CROPPER MODAL -->
+    <ImageCropperModal
+      :is-open="showCropper"
+      :image-src="cropperImageSrc"
+      @close="showCropper = false"
+      @crop="handleCrop"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted, watch } from "vue";
+import ImageCropperModal from "@/components/ui/ImageCropperModal.vue";
 import { Icon } from "@iconify/vue";
 import { tahfidzApi, uploadsApi } from "@/services/api";
 import ConfirmModal from "@/components/ui/ConfirmModal.vue";
@@ -545,6 +557,10 @@ const isDragging = ref(false);
 const fileInput = ref(null);
 const targets = ref([]);
 const showModal = ref(false);
+
+// Cropper State
+const showCropper = ref(false);
+const cropperImageSrc = ref("");
 
 const form = reactive({
   id: null,
@@ -706,18 +722,21 @@ function handleDrop(e) {
   isDragging.value = false;
   const files = e.dataTransfer?.files;
   if (files && files.length > 0) {
-    uploadFile(files[0]);
+    processFile(files[0]);
   }
 }
 
 function handleFileSelect(e) {
   const files = e.target?.files;
   if (files && files.length > 0) {
-    uploadFile(files[0]);
+    processFile(files[0]);
   }
+  // Reset input so same file can be selected again
+  if (e.target) e.target.value = "";
 }
 
-async function uploadFile(file) {
+// Process file before upload (Validate & Open Cropper)
+function processFile(file) {
   if (!file.type.startsWith("image/")) {
     showStatus(
       "warning",
@@ -736,6 +755,24 @@ async function uploadFile(file) {
     return;
   }
 
+  // Read as DataURL for Cropper
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    cropperImageSrc.value = e.target.result;
+    showCropper.value = true;
+  };
+  reader.readAsDataURL(file);
+}
+
+// Handle Crop Result (Blob)
+async function handleCrop(blob) {
+  showCropper.value = false;
+  // Convert Blob to File
+  const file = new File([blob], "header-crop.png", { type: "image/png" });
+  await uploadFile(file);
+}
+
+async function uploadFile(file) {
   uploadingHeader.value = true;
   try {
     const res = await uploadsApi.upload(file);

@@ -145,10 +145,17 @@
           <!-- HEADER IMAGE -->
           <div class="mb-4">
             <img
+              v-if="headerImageUrl"
               :src="headerImageUrl"
               alt="Header Rapor Tahfidz"
               class="w-full h-auto"
             />
+            <div
+              v-else
+              class="w-full h-32 flex items-center justify-center bg-slate-50 border border-slate-200 border-dashed rounded-lg text-slate-400 font-medium italic"
+            >
+              Upload Gambar Kop di pengaturan tahfidz
+            </div>
           </div>
 
           <!-- TITLE -->
@@ -831,7 +838,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 // Dynamic header image URL from settings
 const headerImageUrl = computed(() => {
   const logo = settings.value?.institutionLogo;
-  if (!logo) return "/images/tahfidz-header.png"; // Fallback
+  if (!logo) return null; // No default image, use text fallback
   if (logo.startsWith("http")) return logo;
   return `${API_BASE}/api/${logo}`;
 });
@@ -1054,11 +1061,11 @@ async function selectStudent(s) {
   loading.value = true;
 
   try {
-    // Load report card data from new endpoint
-    const res = await tahfidzApi.getReportCard(s.id);
-    // Need to ensure tahfidzApi.getReportCard exists or use generic get
-    // The previous implementation used getExams. Step 1 updated backend route.
-    // Assume `tahfidzApi.getReportCard` is: client.get(`/tahfidz/report-card/${id}`)
+    // Load report card data with filters
+    const res = await tahfidzApi.getReportCard(s.id, {
+      academicYear: academicYear.value,
+      semester: semester.value,
+    });
 
     if (res.data) {
       const d = res.data;
@@ -1091,6 +1098,14 @@ function clearSelection() {
   madingData.value = [];
   totalHafalan.value = 0;
 }
+
+// Reload when filters change
+import { watch } from "vue";
+watch([academicYear, semester], () => {
+  if (student.value) {
+    selectStudent(student.value);
+  }
+});
 
 // --- EXPORT FUNCTIONS ---
 async function exportToPDF() {
@@ -1201,6 +1216,7 @@ async function exportToExcel() {
     tahfidzHeadNameDisplay: tahfidzHeadNameDisplay.value,
     cityName: settings.value.cityName,
     currentDate: currentDate.value,
+    headerImageUrl: headerImageUrl.value,
   };
 
   try {

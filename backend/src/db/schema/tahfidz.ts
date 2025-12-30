@@ -83,6 +83,10 @@ export const tahfidzExams = mysqlTable("tahfidz_exams", {
     "Other",
   ]).default("Other"),
 
+  // Filtering fields
+  academicYear: varchar("academic_year", { length: 20 }), // e.g., "2024/2025"
+  semester: mysqlEnum("semester", ["1", "2", "ganjil", "genap"]),
+
   // Specifics for Report Card
   juz: int("juz"), // For UKJ
   startPage: int("start_page"), // For UPK
