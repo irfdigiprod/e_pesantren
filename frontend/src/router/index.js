@@ -490,6 +490,12 @@ const router = createRouter({
           component: () => import("@/views/settings/SettingsInstitution.vue"),
         },
         {
+          path: "settings/information-board",
+          name: "InformationBoardSettings",
+          component: () =>
+            import("@/views/settings/InformationBoardSettings.vue"),
+        },
+        {
           path: "about",
           name: "About",
           component: () => import("@/views/About.vue"),

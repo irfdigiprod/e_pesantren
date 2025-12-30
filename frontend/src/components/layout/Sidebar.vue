@@ -161,6 +161,11 @@ const submenuByMain = {
         icon: "solar:buildings-2-line-duotone",
         route: "/settings/institution",
       },
+      {
+        label: "Papan Informasi",
+        icon: "solar:gallery-wide-line-duotone",
+        route: "/settings/information-board",
+      },
     ],
   },
 

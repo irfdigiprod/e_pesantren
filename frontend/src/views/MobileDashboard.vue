@@ -56,12 +56,55 @@ function onUserUpdated(e) {
 onMounted(() => {
   loadStoredUser();
   fetchCurrent();
+  fetchInfoBoard();
   window.addEventListener("user-updated", onUserUpdated);
 });
 
 onUnmounted(() => {
   window.removeEventListener("user-updated", onUserUpdated);
+  if (slideInterval) clearInterval(slideInterval);
 });
+
+/* ============================
+   INFO BOARD SLIDER
+   ============================ */
+const slides = ref([]);
+const activeSlide = ref(0);
+let slideInterval = null;
+
+const getImageUrl = (path) => {
+  if (!path) return "";
+  const base = import.meta.env.VITE_API_BASE_URL || "";
+  if (path.startsWith("http")) return path;
+  if (path.startsWith("uploads/")) return `${base}/api/${path}`;
+  return path;
+};
+
+async function fetchInfoBoard() {
+  try {
+    const token = localStorage.getItem("token");
+    const base = import.meta.env.VITE_API_BASE_URL || "";
+    const res = await fetch(`${base}/api/information-board`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const json = await res.json();
+    if (json.success) {
+      slides.value = json.data;
+      startSlider();
+    }
+  } catch (e) {
+    console.error("Failed to fetch info board:", e);
+  }
+}
+
+function startSlider() {
+  if (slideInterval) clearInterval(slideInterval);
+  if (slides.value.length > 1) {
+    slideInterval = setInterval(() => {
+      activeSlide.value = (activeSlide.value + 1) % slides.value.length;
+    }, 5000);
+  }
+}
 
 // Replicating/Flattening items from Sidebar.vue for the grid
 const menuItems = [
@@ -202,8 +245,47 @@ const navigate = (path) => {
 
 <template>
   <div class="p-4 min-h-full">
-    <!-- Header -->
-    <div class="mb-6 flex justify-between items-center">
+    <!-- Slider / Header -->
+    <div
+      v-if="slides.length > 0"
+      class="mb-6 relative h-44 rounded-2xl overflow-hidden shadow-md group"
+    >
+      <!-- Slides -->
+      <div
+        v-for="(slide, index) in slides"
+        :key="slide.id"
+        class="absolute inset-0 transition-opacity duration-700 ease-in-out"
+        :class="index === activeSlide ? 'opacity-100 z-10' : 'opacity-0 z-0'"
+      >
+        <img
+          :src="getImageUrl(slide.imageUrl)"
+          class="w-full h-full object-cover"
+          alt="Info Board"
+        />
+        <!-- Gradient Overlay -->
+        <div
+          class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"
+        ></div>
+      </div>
+
+      <!-- Content Overlay (Optional: Welcome Text on top of slider?) -->
+      <div class="absolute bottom-4 left-4 z-20 text-white">
+        <p class="text-xs font-medium opacity-90">Information Board</p>
+      </div>
+
+      <!-- Indicators -->
+      <div class="absolute bottom-3 right-4 z-20 flex gap-1.5">
+        <div
+          v-for="(_, idx) in slides"
+          :key="idx"
+          class="w-1.5 h-1.5 rounded-full transition-all duration-300"
+          :class="idx === activeSlide ? 'bg-white w-4' : 'bg-white/50'"
+        ></div>
+      </div>
+    </div>
+
+    <!-- Default Header (Fallback) -->
+    <div v-else class="mb-6 flex justify-between items-center">
       <div>
         <h1 class="text-xl font-bold text-[#602515]">Dashboard</h1>
         <p class="text-xs text-slate-500">Selamat datang kembali!</p>

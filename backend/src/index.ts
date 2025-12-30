@@ -29,6 +29,7 @@ import {
   salaryGradesRoute,
   tahfidzRoute,
   wilayahRoute,
+  informationBoardRoute,
 } from "./routes";
 
 import {
@@ -67,6 +68,7 @@ app.get("/", (c) => {
       uploads: "/api/uploads",
       utils: "/api/utils",
       divisions: "/api/divisions",
+      informationBoard: "/api/information-board",
       websocket: "/ws",
     },
   });
@@ -107,6 +109,7 @@ app.route("/api/salary/reports", salaryReportRoute);
 app.route("/api/salary-grades", salaryGradesRoute);
 app.route("/api/tahfidz", tahfidzRoute);
 app.route("/api/wilayah", wilayahRoute);
+app.route("/api/information-board", informationBoardRoute);
 
 // 404 handler
 app.notFound((c) => {
