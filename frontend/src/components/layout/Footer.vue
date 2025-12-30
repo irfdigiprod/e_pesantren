@@ -24,38 +24,6 @@
               <p class="text-xs text-slate-500">Sistem Manajemen Pesantren</p>
             </div>
           </div>
-
-          <!-- Social Links -->
-          <div class="flex items-center gap-2">
-            <a
-              href="#"
-              class="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
-              title="Facebook"
-            >
-              <Icon icon="lucide:facebook" class="w-5 h-5" />
-            </a>
-            <a
-              href="#"
-              class="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
-              title="Instagram"
-            >
-              <Icon icon="lucide:instagram" class="w-5 h-5" />
-            </a>
-            <a
-              href="#"
-              class="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
-              title="YouTube"
-            >
-              <Icon icon="lucide:youtube" class="w-5 h-5" />
-            </a>
-            <a
-              href="mailto:info@minhajulhaq.sch.id"
-              class="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
-              title="Email"
-            >
-              <Icon icon="lucide:mail" class="w-5 h-5" />
-            </a>
-          </div>
         </div>
 
         <!-- Divider -->
@@ -70,7 +38,11 @@
               Made with
               <Icon icon="lucide:heart" class="w-3.5 h-3.5 text-rose-500" />
               by
-              <a href="#" class="text-indigo-600 hover:underline font-medium">
+              <a
+                target="_blank"
+                href="https://github.com/irfdigiprod"
+                class="text-indigo-600 hover:underline font-medium"
+              >
                 Irfan Alkhotiri
               </a>
             </p>
