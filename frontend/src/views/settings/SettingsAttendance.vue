@@ -55,9 +55,9 @@
       >
         <!-- Header -->
         <div
-          class="px-4 md:px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between"
+          class="px-4 md:px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between gap-4"
         >
-          <div>
+          <div class="flex-1">
             <h1 class="text-xl font-semibold text-slate-800">
               Pengaturan Lokasi Absensi
             </h1>
@@ -207,9 +207,9 @@
         class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mt-6"
       >
         <div
-          class="px-4 md:px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between"
+          class="px-4 md:px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between gap-4"
         >
-          <div>
+          <div class="flex-1">
             <h2 class="text-xl font-semibold text-slate-800">Jenis Kegiatan</h2>
             <p class="text-sm text-slate-500 mt-1">
               Daftar jenis kegiatan yang dapat dipilih saat absensi masuk.
@@ -222,19 +222,19 @@
 
         <div class="p-4 md:p-6">
           <!-- Add new activity -->
-          <div class="flex gap-2 mb-4">
+          <div class="flex flex-col sm:flex-row gap-2 mb-4">
             <input
               v-model="newActivity"
               type="text"
               placeholder="Nama kegiatan baru..."
               @keyup.enter="addActivity"
-              class="flex-1 px-4 py-2.5 rounded-lg border border-slate-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 transition-all outline-none"
+              class="flex-1 w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 transition-all outline-none"
             />
             <button
               type="button"
               @click="addActivity"
               :disabled="!newActivity.trim()"
-              class="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 disabled:bg-slate-300 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+              class="w-full sm:w-auto px-6 py-2.5 bg-amber-600 hover:bg-amber-700 disabled:bg-slate-300 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 whitespace-nowrap"
             >
               <Icon icon="lucide:plus" class="w-4 h-4" />
               Tambah
@@ -274,9 +274,9 @@
         class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mt-6"
       >
         <div
-          class="px-4 md:px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between"
+          class="px-4 md:px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between gap-4"
         >
-          <div>
+          <div class="flex-1">
             <h2
               class="text-xl font-semibold text-slate-800 flex items-center gap-2"
             >
@@ -330,9 +330,9 @@
         class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mt-6"
       >
         <div
-          class="px-4 md:px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between"
+          class="px-4 md:px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between gap-4"
         >
-          <div>
+          <div class="flex-1">
             <h2 class="text-xl font-semibold text-slate-800">Periode Gaji</h2>
             <p class="text-sm text-slate-500 mt-1">
               Tentukan rentang tanggal (tanggal mulai - selesai) untuk periode

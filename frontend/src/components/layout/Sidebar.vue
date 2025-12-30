@@ -142,8 +142,8 @@ const submenuByMain = {
     title: "Settings",
     items: [
       {
-        label: "Attendance",
-        icon: "solar:map-point-wave-line-duotone",
+        label: "Kehadiran",
+        icon: "solar:watch-square-minimalistic-line-duotone",
         route: "/settings/attendance",
       },
       {

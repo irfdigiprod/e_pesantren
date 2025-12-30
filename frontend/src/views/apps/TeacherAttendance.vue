@@ -129,7 +129,7 @@
               !selectedActivity
                 ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
                 : isWithinRadius
-                ? 'bg-amber-600 text-white hover:bg-amber-700 shadow-md'
+                ? 'bg-amber-900 text-white hover:bg-amber-400 shadow-md'
                 : 'bg-slate-200 text-slate-400 cursor-not-allowed'
             "
           >
@@ -191,7 +191,7 @@
               !!todayAttendance?.checkOut
                 ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
                 : isWithinRadius && todayAttendance?.checkIn
-                ? 'bg-amber-500 text-white hover:bg-amber-600 shadow-md'
+                ? 'bg-amber-900 text-white hover:bg-amber-400 shadow-md'
                 : 'bg-slate-200 text-slate-400 cursor-not-allowed'
             "
           >
@@ -230,7 +230,7 @@
               :icon="
                 showFullHistory ? 'lucide:layout-grid' : 'lucide:calendar-days'
               "
-              class="w-5 h-5 text-amber-500"
+              class="w-5 h-5 text-amber-900"
             />
           </button>
         </div>
@@ -680,7 +680,7 @@
       >
         <button
           @click="enableNewShift"
-          class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-full text-sm font-medium hover:bg-indigo-100 transition-colors"
+          class="inline-flex items-center gap-2 px-4 py-2 bg-amber-900 text-white rounded-full text-sm font-medium hover:bg-indigo-100 transition-colors"
         >
           <Icon icon="lucide:plus" class="w-4 h-4" />
           Mulai Shift Baru
