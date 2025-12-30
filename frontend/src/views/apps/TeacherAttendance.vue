@@ -117,7 +117,7 @@
           <button
             @click="handleCheckIn"
             :disabled="
-              saving ||
+              savingCheckIn ||
               !selectedActivity ||
               (!!todayAttendance?.checkIn && !newShiftAllowed) ||
               !isWithinRadius ||
@@ -135,14 +135,14 @@
           >
             <span
               v-if="
-                !saving &&
+                !savingCheckIn &&
                 (!todayAttendance?.checkIn || newShiftAllowed) &&
                 selectedActivity
               "
               class="w-2 h-2 rounded-full bg-white"
             ></span>
             <Icon
-              v-if="saving"
+              v-if="savingCheckIn"
               icon="lucide:loader-2"
               class="w-4 h-4 animate-spin"
             />
@@ -180,7 +180,7 @@
           <button
             @click="handleCheckOut"
             :disabled="
-              saving ||
+              savingCheckOut ||
               !todayAttendance?.checkIn ||
               !!todayAttendance?.checkOut ||
               !isWithinRadius ||
@@ -196,7 +196,7 @@
             "
           >
             <Icon
-              v-if="saving"
+              v-if="savingCheckOut"
               icon="lucide:loader-2"
               class="w-4 h-4 animate-spin inline mr-1"
             />
@@ -674,18 +674,14 @@
       </div>
 
       <!-- New Session Button (when checked out) -->
-      <div
+      <!-- New Session FAB -->
+      <button
         v-if="todayAttendance?.checkOut && !newShiftAllowed && isWithinRadius"
-        class="mt-4 text-center"
+        @click="enableNewShift"
+        class="fixed bottom-24 right-6 z-50 w-14 h-14 bg-amber-900 text-white rounded-full shadow-xl flex items-center justify-center hover:bg-amber-800 transition-transform active:scale-95"
       >
-        <button
-          @click="enableNewShift"
-          class="inline-flex items-center gap-2 px-4 py-2 bg-amber-900 text-white rounded-full text-sm font-medium hover:bg-indigo-100 transition-colors"
-        >
-          <Icon icon="lucide:plus" class="w-4 h-4" />
-          Mulai Shift Baru
-        </button>
-      </div>
+        <Icon icon="lucide:plus" class="w-8 h-8" />
+      </button>
 
       <!-- Location Error Alert -->
       <div
@@ -730,11 +726,13 @@ import "@vuepic/vue-datepicker/dist/main.css";
 // State
 const attendances = ref([]);
 const loading = ref(true);
-const saving = ref(false);
+const savingCheckIn = ref(false);
+const savingCheckOut = ref(false);
 const distance = ref(null);
 const locationError = ref("");
 // Reactive current time (full Date object)
 const now = useNow();
+const isComponentMounted = ref(false);
 
 // Formatted time string for header clock
 const currentTime = useDateFormat(now, "HH:mm:ss");
@@ -1044,7 +1042,7 @@ const isWithinRadius = computed(() => {
 });
 
 const canCheckIn = computed(() => {
-  if (saving.value) return false;
+  if (savingCheckIn.value) return false;
   if (!selectedActivity.value) return false;
   if (!isWithinRadius.value) return false;
 
@@ -1056,7 +1054,7 @@ const canCheckIn = computed(() => {
 });
 
 const canCheckOut = computed(() => {
-  if (saving.value) return false;
+  if (savingCheckOut.value) return false;
   if (!isWithinRadius.value) return false;
 
   // Must be checked in AND not checked out
@@ -1245,9 +1243,9 @@ function getCurrentPosition() {
     navigator.geolocation.getCurrentPosition(
       (pos) => resolve(pos),
       (err) => {
-        console.warn(
+        console.debug(
           "High accuracy location failed, retrying with low accuracy...",
-          err
+          err.message
         );
         // Fallback: Low accuracy (Network/WiFi) - Faster, more reliable indoors
         // Allow cached positions up to 2 minutes old
@@ -1257,7 +1255,8 @@ function getCurrentPosition() {
           { enableHighAccuracy: false, timeout: 15000, maximumAge: 120000 }
         );
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+
+      { enableHighAccuracy: true, timeout: 30000, maximumAge: 10000 }
     );
   });
 }
@@ -1285,7 +1284,7 @@ async function handleCheckIn() {
     return;
   }
 
-  saving.value = true;
+  savingCheckIn.value = true;
   try {
     // Force fresh location update
     const pos = await getCurrentPosition();
@@ -1331,7 +1330,7 @@ async function handleCheckIn() {
 
     showStatus("error", "Gagal Check In", msg || "Terjadi kesalahan");
   } finally {
-    saving.value = false;
+    savingCheckIn.value = false;
   }
 }
 
@@ -1342,7 +1341,7 @@ function enableNewShift() {
 }
 
 async function handleCheckOut() {
-  saving.value = true;
+  savingCheckOut.value = true;
   try {
     // Force fresh location update
     const pos = await getCurrentPosition();
@@ -1384,7 +1383,7 @@ async function handleCheckOut() {
 
     showStatus("error", "Gagal Check Out", msg || "Terjadi kesalahan");
   } finally {
-    saving.value = false;
+    savingCheckOut.value = false;
   }
 }
 
@@ -1400,6 +1399,7 @@ function startGeolocation() {
 
   geoId = navigator.geolocation.watchPosition(
     (pos) => {
+      if (!isComponentMounted.value) return;
       currentPos.value = {
         lat: pos.coords.latitude,
         lng: pos.coords.longitude,
@@ -1420,17 +1420,19 @@ function startGeolocation() {
       locationError.value = "";
     },
     (err) => {
-      console.warn("WatchPosition Warning:", err);
+      if (!isComponentMounted.value) return;
+      console.debug("WatchPosition Info:", err.message);
       // Only show visible error if we haven't locked location yet
       if (!currentPos.value) {
         locationError.value = "Sedang mencari lokasi... (" + err.message + ")";
       }
     },
-    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    { enableHighAccuracy: true, timeout: 30000, maximumAge: 10000 }
   );
 }
 
 onMounted(async () => {
+  isComponentMounted.value = true;
   await fetchUser();
   await fetchSettings();
   await fetchData();
@@ -1438,6 +1440,7 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
+  isComponentMounted.value = false;
   if (geoId) navigator.geolocation.clearWatch(geoId);
 });
 </script>
