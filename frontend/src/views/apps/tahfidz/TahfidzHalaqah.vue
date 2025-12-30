@@ -214,26 +214,30 @@
       <!-- Student List -->
       <div class="space-y-4">
         <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-          <div class="flex items-center justify-between mb-6 border-b pb-4">
+          <div
+            class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 border-b border-slate-100 pb-4"
+          >
             <h3 class="font-bold text-slate-800 text-lg">
               Peserta - {{ formatDateFull(selectedDate) }}
             </h3>
-            <div class="flex items-center gap-2">
+            <div
+              class="flex items-center gap-2 flex-wrap sm:flex-nowrap w-full md:w-auto"
+            >
               <button
                 v-if="isMultiSelectMode && selectedStudentIds.size > 0"
                 @click="openBulkInputModal"
-                class="px-3 py-1.5 bg-[#602515] text-white rounded-lg text-sm font-medium hover:bg-[#4a1c10] transition-colors"
+                class="flex-1 md:flex-none px-3 py-2 bg-[#602515] text-white rounded-lg text-sm font-medium hover:bg-[#4a1c10] transition-colors whitespace-nowrap"
               >
                 Input ({{ selectedStudentIds.size }})
               </button>
 
               <button
                 @click="toggleMultiSelectMode"
-                class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                class="flex-1 md:flex-none px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap text-center"
                 :class="
                   isMultiSelectMode
-                    ? 'bg-slate-100 text-slate-700'
-                    : 'text-[#602515] hover:bg-[#602515]/5'
+                    ? 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    : 'text-[#602515] hover:bg-[#602515]/5 border border-[#602515]/20'
                 "
               >
                 {{ isMultiSelectMode ? "Batal" : "Pilih Banyak" }}
@@ -242,7 +246,7 @@
               <button
                 v-if="isMultiSelectMode"
                 @click="selectAllStudents"
-                class="px-3 py-1.5 rounded-lg text-sm font-medium text-[#602515] hover:bg-[#602515]/5 transition-colors"
+                class="flex-1 md:flex-none px-3 py-2 rounded-lg text-sm font-medium text-[#602515] hover:bg-[#602515]/5 transition-colors whitespace-nowrap border border-[#602515]/20"
               >
                 {{
                   selectedStudentIds.size === students.length
@@ -254,9 +258,9 @@
               <button
                 v-if="isMultiSelectMode && selectedStudentIds.size > 0"
                 @click="showBulkDeleteConfirm = true"
-                class="px-3 py-1.5 rounded-lg text-sm font-medium text-rose-600 hover:bg-rose-50 transition-colors"
+                class="flex-1 md:flex-none px-3 py-2 rounded-lg text-sm font-medium text-rose-600 hover:bg-rose-50 transition-colors whitespace-nowrap border border-rose-200"
               >
-                Hapus Data
+                Hapus
               </button>
             </div>
           </div>
