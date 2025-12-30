@@ -213,11 +213,13 @@
 
       <!-- Student List -->
       <div class="space-y-4">
-        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+        <div
+          class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 md:p-6"
+        >
           <div
             class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 border-b border-slate-100 pb-4"
           >
-            <h3 class="font-bold text-slate-800 text-lg">
+            <h3 class="font-bold text-slate-800 text-base md:text-lg">
               Peserta - {{ formatDateFull(selectedDate) }}
             </h3>
             <div
@@ -281,7 +283,7 @@
             <div
               v-for="item in students"
               :key="item.student.id"
-              class="flex items-center justify-between p-4 rounded-xl border transition-colors cursor-pointer hover:border-[#602515]/30 hover:bg-[#602515]/5"
+              class="flex items-center justify-between p-3 md:p-4 rounded-xl border transition-colors cursor-pointer hover:border-[#602515]/30 hover:bg-[#602515]/5"
               :class="[
                 getStatusColor(item.status),
                 {
@@ -296,7 +298,7 @@
                   : openModal(item)
               "
             >
-              <div class="flex items-center gap-4">
+              <div class="flex items-center gap-3 md:gap-4 overflow-hidden">
                 <!-- Checkbox for Multi Select -->
                 <div
                   v-if="isMultiSelectMode"
@@ -314,7 +316,7 @@
                   />
                 </div>
                 <div
-                  class="w-12 h-12 rounded-full bg-slate-200 overflow-hidden shrink-0"
+                  class="w-10 h-10 md:w-12 md:h-12 rounded-full bg-slate-200 overflow-hidden shrink-0"
                 >
                   <img
                     v-if="item.student.avatar"
@@ -327,13 +329,15 @@
                     class="w-full h-full text-slate-300"
                   />
                 </div>
-                <div>
-                  <h4 class="font-bold text-slate-800">
+                <div class="min-w-0">
+                  <h4
+                    class="font-bold text-slate-800 text-sm md:text-base truncate"
+                  >
                     {{ item.student.name }}
                   </h4>
                   <p
                     v-if="item.status === 'done'"
-                    class="text-sm text-emerald-600 font-medium"
+                    class="text-xs md:text-sm text-emerald-600 font-medium truncate"
                   >
                     <span
                       v-if="item.deposit.startSurah === item.deposit.endSurah"
@@ -342,51 +346,42 @@
                       {{ item.deposit.startAyat }}-{{ item.deposit.endAyat }}
                     </span>
                     <span v-else>
-                      {{ getSurahName(item.deposit.startSurah) }}:
-                      {{ item.deposit.startAyat }} -
-                      {{ getSurahName(item.deposit.endSurah) }}:
-                      {{ item.deposit.endAyat }}
+                      {{ getSurahName(item.deposit.startSurah) }}:{{
+                        item.deposit.startAyat
+                      }}
+                      - {{ getSurahName(item.deposit.endSurah) }}:{{
+                        item.deposit.endAyat
+                      }}
                     </span>
                   </p>
                   <p
                     v-else-if="item.status === 'izin'"
-                    class="text-sm text-yellow-600 font-medium"
+                    class="text-xs md:text-sm text-yellow-600 font-medium truncate"
                   >
                     {{ item.deposit.notes || "Izin" }}
                   </p>
                   <p
                     v-else-if="item.status === 'sakit'"
-                    class="text-sm text-sky-600 font-medium"
+                    class="text-xs md:text-sm text-sky-600 font-medium truncate"
                   >
                     {{ item.deposit.notes || "Sakit" }}
                   </p>
                   <p
                     v-else-if="item.status === 'alpha'"
-                    class="text-sm text-rose-600 font-medium"
+                    class="text-xs md:text-sm text-rose-600 font-medium truncate"
                   >
                     {{ item.deposit.notes || "Alpha" }}
                   </p>
-                  <p v-else class="text-xs text-slate-400">
-                    Klik untuk input setoran
+                  <p v-else class="text-xs text-slate-400 truncate">
+                    Klik untuk input
                   </p>
                 </div>
               </div>
 
-              <div class="flex items-center gap-3">
-                <div class="flex items-center gap-2">
-                  <div
-                    class="w-3 h-3 rounded-full"
-                    :class="getStatusDot(item.status)"
-                  ></div>
-                  <span
-                    class="text-sm font-medium"
-                    :class="getStatusText(item.status)"
-                    >{{ getStatusLabel(item.status) }}</span
-                  >
-                </div>
+              <div class="flex items-center gap-2 pl-2">
                 <Icon
                   icon="solar:alt-arrow-right-linear"
-                  class="text-slate-400"
+                  class="text-slate-400 text-lg"
                 />
               </div>
             </div>
