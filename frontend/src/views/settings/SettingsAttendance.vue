@@ -355,7 +355,7 @@
                 class="flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors"
                 :class="
                   settings.periodType === 'same_month'
-                    ? 'bg-emerald-50 border-emerald-200 ring-1 ring-emerald-200'
+                    ? 'bg-amber-50 border-amber-200 ring-amber-200'
                     : 'bg-white border-slate-200 hover:bg-slate-50'
                 "
               >
@@ -364,7 +364,7 @@
                   value="same_month"
                   v-model="settings.periodType"
                   @change="saveSettings(false)"
-                  class="w-4 h-4 text-emerald-600 focus:ring-emerald-500 border-gray-300"
+                  class="w-4 h-4 text-amber-600 focus:ring-amber-500 border-gray-300"
                 />
                 <div>
                   <span class="block text-sm font-medium text-slate-900"
@@ -379,7 +379,7 @@
                 class="flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors"
                 :class="
                   settings.periodType === 'cross_month'
-                    ? 'bg-emerald-50 border-emerald-200 ring-1 ring-emerald-200'
+                    ? 'bg-amber-50 border-amber-200 ring-amber-200'
                     : 'bg-white border-slate-200 hover:bg-slate-50'
                 "
               >
@@ -388,7 +388,7 @@
                   value="cross_month"
                   v-model="settings.periodType"
                   @change="saveSettings(false)"
-                  class="w-4 h-4 text-emerald-600 focus:ring-emerald-500 border-gray-300"
+                  class="w-4 h-4 text-amber-600 focus:ring-amber-500 border-gray-300"
                 />
                 <div>
                   <span class="block text-sm font-medium text-slate-900"
@@ -410,7 +410,7 @@
               <select
                 v-model.number="settings.periodStart"
                 @change="saveSettings(false)"
-                class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all outline-none"
+                class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 transition-all outline-none"
               >
                 <option v-for="n in 31" :key="n" :value="n">{{ n }}</option>
               </select>
@@ -432,7 +432,7 @@
               <select
                 v-model.number="settings.periodEnd"
                 @change="saveSettings(false)"
-                class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all outline-none"
+                class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 transition-all outline-none"
               >
                 <option v-for="n in 31" :key="n" :value="n">{{ n }}</option>
               </select>

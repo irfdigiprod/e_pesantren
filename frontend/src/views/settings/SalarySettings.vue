@@ -59,7 +59,7 @@
       <template #header-actions>
         <button
           @click="openModal(currentModalType)"
-          class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-lg font-medium transition-colors flex items-center gap-2"
+          class="px-4 py-2 bg-amber-900 hover:bg-amber-400 text-white text-sm rounded-lg font-medium transition-colors flex items-center gap-2"
         >
           <Icon icon="lucide:plus" class="w-4 h-4" />
           <span class="hidden sm:inline">Tambah {{ currentTabLabel }}</span>
@@ -141,7 +141,7 @@
         <div class="flex justify-end gap-2">
           <button
             @click="openModal(currentModalType, item)"
-            class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+            class="p-2 text-amber-900 hover:bg-amber-50 rounded-lg transition-colors"
             title="Edit"
           >
             <Icon icon="lucide:pencil" class="w-4 h-4" />
@@ -257,7 +257,7 @@
           >
             <button
               @click="openModal(currentModalType, item)"
-              class="flex-1 py-2 px-3 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors flex items-center justify-center gap-2"
+              class="flex-1 py-2 px-3 text-sm font-medium text-amber-900 bg-amber-50 rounded-lg hover:bg-amber-100 transition-colors flex items-center justify-center gap-2"
             >
               <Icon icon="lucide:pencil" class="w-4 h-4" />
               Edit

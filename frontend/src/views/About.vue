@@ -49,7 +49,7 @@
         class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-6"
       >
         <div
-          class="p-6 border-b border-slate-100 bg-gradient-to-r from-indigo-600 to-purple-600"
+          class="p-6 border-b border-slate-100 bg-gradient-to-r from-amber-900 to-amber-600"
         >
           <div class="flex items-center gap-4">
             <div
@@ -306,7 +306,7 @@
         <div class="p-6">
           <div class="flex items-center gap-4">
             <div
-              class="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xl font-bold shadow-lg"
+              class="w-16 h-16 rounded-full bg-gradient-to-br from-amber-900 to-amber-600 flex items-center justify-center text-white text-xl font-bold shadow-lg"
             >
               IA
             </div>
@@ -315,22 +315,25 @@
               <p class="text-slate-500 text-sm">Full Stack Developer</p>
               <div class="flex items-center gap-3 mt-2">
                 <a
-                  href="#"
-                  class="text-slate-400 hover:text-indigo-600 transition-colors"
+                  target="_blank"
+                  href="https://github.com/irfdigiprod"
+                  class="text-slate-400 hover:text-amber-400 transition-colors"
                 >
                   <Icon icon="lucide:github" class="w-5 h-5" />
                 </a>
                 <a
-                  href="#"
-                  class="text-slate-400 hover:text-indigo-600 transition-colors"
+                  target="_blank"
+                  href="https://www.linkedin.com/in/irfan-alkhotiri-48b269376/"
+                  class="text-slate-400 hover:text-amber-400 transition-colors"
                 >
                   <Icon icon="lucide:linkedin" class="w-5 h-5" />
                 </a>
                 <a
-                  href="#"
-                  class="text-slate-400 hover:text-indigo-600 transition-colors"
+                  target="_blank"
+                  href="https://irf4n.com"
+                  class="text-slate-400 hover:text-amber-400 transition-colors"
                 >
-                  <Icon icon="lucide:mail" class="w-5 h-5" />
+                  <Icon icon="lucide:earth" class="w-5 h-5" />
                 </a>
               </div>
             </div>

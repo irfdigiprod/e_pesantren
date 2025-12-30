@@ -25,34 +25,6 @@
             </div>
           </div>
 
-          <!-- Links -->
-          <div class="flex flex-wrap items-center gap-6 text-sm">
-            <a
-              href="#"
-              class="text-slate-500 hover:text-indigo-600 transition-colors"
-            >
-              Tentang Kami
-            </a>
-            <a
-              href="#"
-              class="text-slate-500 hover:text-indigo-600 transition-colors"
-            >
-              Bantuan
-            </a>
-            <a
-              href="#"
-              class="text-slate-500 hover:text-indigo-600 transition-colors"
-            >
-              Kebijakan Privasi
-            </a>
-            <a
-              href="#"
-              class="text-slate-500 hover:text-indigo-600 transition-colors"
-            >
-              Syarat & Ketentuan
-            </a>
-          </div>
-
           <!-- Social Links -->
           <div class="flex items-center gap-2">
             <a

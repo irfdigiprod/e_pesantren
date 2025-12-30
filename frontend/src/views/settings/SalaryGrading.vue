@@ -195,7 +195,7 @@
             </div>
             <span
               v-if="item.gender === 'male'"
-              class="bg-blue-50 text-blue-600 p-1 rounded-md"
+              class="bg-amber-50 text-amber-900 p-1 rounded-md"
               title="Laki-laki"
             >
               <Icon icon="lucide:user" class="w-4 h-4" />
@@ -300,7 +300,7 @@
           <div class="pt-3 border-t border-slate-100">
             <button
               @click="openAssignModal(item)"
-              class="w-full py-2 flex items-center justify-center gap-2 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-lg hover:bg-indigo-100 hover:border-indigo-200 transition-colors text-sm font-medium"
+              class="w-full py-2 flex items-center justify-center gap-2 bg-amber-50 text-amber-900 border border-amber-100 rounded-lg hover:bg-amber-100 hover:border-amber-200 transition-colors text-sm font-medium"
             >
               <Icon icon="solar:pen-bold-duotone" class="w-4 h-4" />
               Atur Komponen
@@ -584,7 +584,7 @@
               </button>
               <button
                 type="submit"
-                class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                class="px-4 py-2 bg-amber-900 text-white rounded-lg hover:bg-amber-400 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                 :disabled="saving"
               >
                 <span v-if="saving">Menyimpan...</span>
