@@ -84,16 +84,26 @@
             <!-- Profile Content -->
             <div class="px-6 pb-8 text-center -mt-14 relative z-10">
               <!-- Avatar -->
-              <div class="relative inline-block mx-auto mb-4">
+              <div
+                class="relative inline-block mx-auto mb-4 group cursor-pointer w-28 h-28"
+              >
                 <div
-                  class="w-28 h-28 rounded-full border-4 border-white shadow-lg overflow-hidden flex items-center justify-center text-3xl font-bold relative"
+                  class="w-full h-full rounded-full border-4 border-white shadow-lg overflow-hidden flex items-center justify-center text-3xl font-bold relative bg-slate-100"
                   :class="
-                    student.gender === 'female'
-                      ? 'bg-pink-100 text-pink-600'
-                      : 'bg-blue-100 text-blue-600'
+                    !photoUrl &&
+                    (student.gender === 'female'
+                      ? 'text-pink-600'
+                      : 'text-blue-600')
                   "
                 >
+                  <img
+                    v-if="photoUrl"
+                    :src="photoUrl"
+                    alt="Profile"
+                    class="w-full h-full object-cover"
+                  />
                   <Icon
+                    v-else
                     :icon="
                       student.gender === 'female'
                         ? 'solar:women-bold-duotone'
@@ -101,10 +111,33 @@
                     "
                     class="text-5xl"
                   />
+
+                  <!-- Upload Overlay -->
+                  <div
+                    class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-[1px]"
+                    @click="triggerPhotoUpload"
+                  >
+                    <Icon
+                      icon="solar:camera-add-bold"
+                      class="text-white text-3xl"
+                    />
+                  </div>
+
+                  <!-- Loading Overlay -->
+                  <div
+                    v-if="uploadingPhoto"
+                    class="absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-sm z-20"
+                  >
+                    <Icon
+                      icon="line-md:loading-loop"
+                      class="text-white text-3xl"
+                    />
+                  </div>
                 </div>
-                <!-- Status Indicator -->
+
+                <!-- Status Indicator (positioned outside avatar clip) -->
                 <div
-                  class="absolute bottom-1 right-1 w-6 h-6 rounded-full border-2 border-white flex items-center justify-center"
+                  class="absolute bottom-1 right-1 w-6 h-6 rounded-full border-2 border-white flex items-center justify-center z-10"
                   :class="statusColors[student.status]?.bg || 'bg-slate-400'"
                 >
                   <Icon
@@ -115,6 +148,14 @@
                     class="text-white text-sm"
                   />
                 </div>
+
+                <input
+                  ref="photoInput"
+                  type="file"
+                  accept="image/*"
+                  class="hidden"
+                  @change="handlePhotoUpload"
+                />
               </div>
 
               <!-- Name & Meta -->
@@ -692,6 +733,17 @@
       @close="statusModal.isOpen = false"
     />
 
+    <!-- Image Cropper -->
+    <ImageCropperModal
+      :is-open="showCropper"
+      :image-src="cropperImage"
+      :aspect-ratio="1"
+      title="Sesuaikan Foto Santri"
+      description="Geser dan zoom untuk menyesuaikan foto. Rasio 1:1."
+      @close="showCropper = false"
+      @crop="handleCrop"
+    />
+
     <!-- Parent Edit Modal -->
     <Teleport to="body">
       <div
@@ -856,15 +908,121 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from "vue";
+import { ref, reactive, onMounted, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { Icon } from "@iconify/vue";
 import { studentsApi, parentsApi } from "@/services/api";
 import StatusModal from "@/components/ui/StatusModal.vue";
-import AddressSelector from "@/components/ui/AddressSelector.vue"; // Imported
+import AddressSelector from "@/components/ui/AddressSelector.vue";
+import ImageCropperModal from "@/components/ui/ImageCropperModal.vue";
 
 const route = useRoute();
 const router = useRouter();
+
+const updating = ref(false);
+
+// Photo Upload State
+const photoInput = ref(null);
+const uploadingPhoto = ref(false);
+const showCropper = ref(false);
+const cropperImage = ref("");
+
+// Computed Photo URL
+const photoUrl = computed(() => {
+  if (!student.value?.photo) return null;
+  const base = import.meta.env.VITE_API_BASE_URL || "";
+  if (student.value.photo.startsWith("uploads/")) {
+    return `${base}/api/${student.value.photo}`;
+  }
+  return student.value.photo;
+});
+
+// Photo Actions
+function triggerPhotoUpload() {
+  if (photoInput.value) photoInput.value.click();
+}
+
+function handlePhotoUpload(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  if (!file.type.startsWith("image/")) {
+    openStatusModal("error", "Gagal", "Hanya file gambar yang diperbolehkan");
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    cropperImage.value = e.target.result;
+    showCropper.value = true;
+  };
+  reader.readAsDataURL(file);
+  event.target.value = "";
+}
+
+async function handleCrop(blob) {
+  showCropper.value = false;
+  if (!blob) return;
+  await uploadPhoto(blob);
+}
+
+async function uploadPhoto(fileOrBlob) {
+  uploadingPhoto.value = true;
+
+  try {
+    const token = localStorage.getItem("token");
+    const base = import.meta.env.VITE_API_BASE_URL || "";
+
+    const formData = new FormData();
+    const filename = `student_${student.value.id}.png`;
+    formData.append("file", fileOrBlob, filename);
+
+    const uploadRes = await fetch(`${base}/api/uploads`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    });
+
+    if (!uploadRes.ok) throw new Error("Gagal upload foto");
+
+    const uploadData = await uploadRes.json();
+    const photoPath = uploadData.data?.filePath;
+
+    // Update Student Record
+    const updateRes = await studentsApi.update(student.value.id, {
+      photo: photoPath,
+    });
+
+    if (updateRes.success) {
+      student.value = { ...student.value, photo: photoPath };
+      openStatusModal("success", "Berhasil", "Foto profil berhasil diperbarui");
+    } else {
+      throw new Error(
+        updateRes.message || "Gagal menyimpan foto ke data santri"
+      );
+    }
+  } catch (err) {
+    console.error(err);
+    openStatusModal("error", "Gagal", "Terjadi kesalahan saat mengupload foto");
+  } finally {
+    uploadingPhoto.value = false;
+  }
+}
+
+// Status Modal
+const statusModal = reactive({
+  isOpen: false,
+  type: "success",
+  title: "",
+  message: "",
+});
+
+function openStatusModal(type, title, message) {
+  statusModal.isOpen = true;
+  statusModal.type = type;
+  statusModal.title = title;
+  statusModal.message = message;
+}
 
 const loading = ref(true);
 const error = ref("");
@@ -922,12 +1080,6 @@ const parentForm = reactive({
 });
 
 // Status Modal
-const statusModal = reactive({
-  isOpen: false,
-  type: "success",
-  title: "",
-  message: "",
-});
 
 // Status styling
 const statusColors = {
