@@ -64,7 +64,7 @@
       <!-- Targets Table -->
       <div
         v-else
-        class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden"
+        class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden hidden md:block"
       >
         <table class="w-full text-sm">
           <thead class="bg-slate-50">
@@ -117,6 +117,55 @@
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <!-- Mobile View: Targets -->
+      <div
+        v-if="!loading && activeTab === 'targets'"
+        class="md:hidden space-y-3"
+      >
+        <div
+          v-if="!targets.length"
+          class="p-8 text-center text-slate-500 italic bg-slate-50 rounded-xl border border-dashed border-slate-300"
+        >
+          Belum ada data target.
+        </div>
+        <div
+          v-for="t in targets"
+          :key="'m-' + t.id"
+          class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-3"
+        >
+          <div class="flex justify-between items-start">
+            <div>
+              <h4 class="font-bold text-slate-800 text-lg">{{ t.level }}</h4>
+              <span
+                class="inline-block mt-1 px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-xs font-bold"
+              >
+                Target: {{ t.targetPages }} Halaman/Bulan
+              </span>
+            </div>
+            <div class="flex gap-1">
+              <button
+                @click="openModal(t)"
+                class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+              >
+                <Icon icon="solar:pen-bold" />
+              </button>
+              <button
+                @click="confirmDelete(t)"
+                class="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+              >
+                <Icon icon="solar:trash-bin-minimalistic-bold" />
+              </button>
+            </div>
+          </div>
+          <div
+            v-if="t.description"
+            class="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg"
+          >
+            {{ t.description }}
+          </div>
+        </div>
       </div>
     </div>
 
@@ -301,7 +350,7 @@
       <!-- Types Table -->
       <div
         v-else
-        class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden"
+        class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden hidden md:block"
       >
         <table class="w-full text-sm">
           <thead class="bg-slate-50">
@@ -360,6 +409,61 @@
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <!-- Mobile View: Exam Types -->
+      <div
+        v-if="!loadingTypes && activeTab === 'types'"
+        class="md:hidden space-y-3"
+      >
+        <div
+          v-if="!examTypes.length"
+          class="p-8 text-center text-slate-500 italic bg-slate-50 rounded-xl border border-dashed border-slate-300"
+        >
+          Belum ada jenis ujian.
+        </div>
+        <div
+          v-for="t in examTypes"
+          :key="'m-type-' + t.id"
+          class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-3"
+        >
+          <div class="flex justify-between items-start">
+            <div>
+              <h4 class="font-bold text-slate-800 text-lg">{{ t.name }}</h4>
+              <span
+                class="inline-block mt-1 px-2 py-1 rounded text-xs font-semibold"
+                :class="{
+                  'bg-blue-100 text-blue-700': t.category === 'UPK',
+                  'bg-green-100 text-green-700': t.category === 'UKJ',
+                  'bg-purple-100 text-purple-700': t.category === 'UA',
+                  'bg-amber-100 text-amber-700': t.category === 'Suluk',
+                  'bg-slate-100 text-slate-700': t.category === 'Other',
+                }"
+                >{{ t.category }}</span
+              >
+            </div>
+            <div class="flex gap-1">
+              <button
+                @click="openTypeModal(t)"
+                class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+              >
+                <Icon icon="solar:pen-bold" />
+              </button>
+              <button
+                @click="confirmDeleteType(t)"
+                class="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+              >
+                <Icon icon="solar:trash-bin-minimalistic-bold" />
+              </button>
+            </div>
+          </div>
+          <div
+            v-if="t.description"
+            class="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg"
+          >
+            {{ t.description }}
+          </div>
+        </div>
       </div>
     </div>
 

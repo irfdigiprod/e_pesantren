@@ -142,11 +142,6 @@ const submenuByMain = {
     title: "Settings",
     items: [
       {
-        label: "General",
-        icon: "solar:settings-minimalistic-line-duotone",
-        route: "/settings/general",
-      },
-      {
         label: "Attendance",
         icon: "solar:map-point-wave-line-duotone",
         route: "/settings/attendance",
