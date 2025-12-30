@@ -6,6 +6,7 @@
         'chat-sidebar',
         { 'sidebar-visible': showMobileSidebar || !activeConversation },
       ]"
+      :style="mobileChatStyle"
     >
       <div class="sidebar-header">
         <h2>Pesan</h2>
@@ -107,7 +108,7 @@
     </aside>
 
     <!-- Main Chat Area -->
-    <main class="chat-main">
+    <main class="chat-main" :style="mobileChatStyle">
       <template v-if="activeConversation">
         <!-- Chat Header -->
         <header class="chat-header">
@@ -1593,6 +1594,7 @@ const API_URL =
   (import.meta.env.DEV ? "http://localhost:3000" : "");
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from "vue";
 import { useRoute } from "vue-router";
+import { useMobileLayout } from "@/composables/useMobileLayout";
 import { Icon } from "@iconify/vue";
 import { chatApi, uploadApi, usersApi, utilsApi } from "../../services/api.js";
 import wsClient from "../../services/websocket.js";
@@ -1779,6 +1781,33 @@ const route = useRoute();
 const conversations = ref([]);
 const isMobile = ref(window.innerWidth < 1024);
 const activeConversation = ref(null);
+const { setShowHeader, setShowBottomNav, resetLayout } = useMobileLayout();
+
+const mobileChatStyle = computed(() => {
+  if (route.path.includes("/mobile-dashboard")) {
+    return { top: activeConversation.value ? "0px" : "56px" };
+  }
+  return {};
+});
+
+// Mobile Layout Control
+watch(
+  activeConversation,
+  (newVal) => {
+    if (newVal) {
+      setShowHeader(false);
+      setShowBottomNav(false);
+    } else {
+      setShowHeader(true);
+      setShowBottomNav(true);
+    }
+  },
+  { immediate: true }
+);
+
+onUnmounted(() => {
+  resetLayout();
+});
 const messages = ref([]);
 const messageText = ref("");
 const isSigned = ref(false);
@@ -7363,6 +7392,10 @@ Image Grid (WhatsApp style) */
 
   .chat-sidebar.sidebar-visible {
     transform: translateX(0);
+  }
+
+  .conversation-list {
+    padding-bottom: 80px; /* Space for Mobile Navbar */
   }
 
   .message {

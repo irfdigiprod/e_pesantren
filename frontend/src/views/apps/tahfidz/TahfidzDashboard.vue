@@ -2,7 +2,7 @@
   <div class="max-w-7xl mx-auto pb-12">
     <!-- Header -->
     <div
-      class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4"
+      class="p-2 mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4"
     >
       <div>
         <h1 class="text-2xl font-bold text-slate-800">Mutaba'ah Tahfidz</h1>
@@ -14,7 +14,7 @@
     </div>
 
     <!-- Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    <div class="p-2 grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
       <div
         class="bg-white p-5 rounded-xl border border-slate-100 shadow-sm flex items-center gap-4"
       >

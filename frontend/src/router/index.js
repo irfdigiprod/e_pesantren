@@ -41,6 +41,162 @@ const router = createRouter({
 
     //
     // ======================
+    // MOBILE DASHBOARD
+    // ======================
+    {
+      path: "/mobile-dashboard",
+      component: () => import("@/components/MobileLayout.vue"),
+      children: [
+        {
+          path: "",
+          name: "MobileDashboard",
+          component: () => import("@/views/MobileDashboard.vue"),
+          meta: { title: "Dashboard" },
+        },
+        {
+          path: "chat",
+          name: "MobileChat",
+          component: () => import("@/views/apps/Chat.vue"),
+          meta: { title: "Chat" },
+        },
+        {
+          path: "students",
+          name: "MobileStudents",
+          component: () => import("../views/apps/Students.vue"), // Reusing the import logic might be tricky if not consistent, using dynamic import is safest
+          meta: { title: "Data Santri" },
+        },
+        {
+          path: "tahfidz",
+          name: "MobileTahfidz",
+          component: () => import("@/views/apps/tahfidz/TahfidzDashboard.vue"),
+          meta: { title: "Tahfidz" },
+        },
+        {
+          path: "attendance",
+          name: "MobileAttendance",
+          component: () => import("@/views/apps/TeacherAttendance.vue"),
+          meta: { title: "Absensi Guru" },
+        },
+        {
+          path: "permissions",
+          name: "MobilePermissions",
+          component: () => import("@/views/apps/PermissionList.vue"),
+          meta: { title: "Perizinan Saya" },
+        },
+        // Additional Routes for Grid Items
+        {
+          path: "profile",
+          name: "MobileProfile",
+          component: () => import("@/views/apps/AppsUserProfile.vue"),
+          meta: { title: "Profil Pengguna" },
+        },
+        {
+          path: "teachers",
+          name: "MobileTeachers",
+          component: () => import("@/views/apps/Teachers.vue"),
+          meta: { title: "Data Guru" },
+        },
+        {
+          path: "salary",
+          name: "MobileSalary",
+          component: () => import("@/views/apps/SalaryReport.vue"),
+          meta: { title: "Laporan Gaji" },
+        },
+        {
+          path: "divisions",
+          name: "MobileDivisions",
+          component: () => import("@/views/apps/Divisions.vue"),
+          meta: { title: "Divisi" },
+        },
+        {
+          path: "rooms",
+          name: "MobileRooms",
+          component: () => import("@/views/apps/Rooms.vue"),
+          meta: { title: "Data Kamar" },
+        },
+        {
+          path: "rewards",
+          name: "MobileRewards",
+          component: () => import("@/views/apps/Rewards.vue"),
+          meta: { title: "Prestasi Santri" },
+        },
+        {
+          path: "classes",
+          name: "MobileClasses",
+          component: () => import("@/views/apps/academic/Classes.vue"),
+          meta: { title: "Data Kelas" },
+        },
+        {
+          path: "subjects",
+          name: "MobileSubjects",
+          component: () => import("@/views/apps/academic/Subjects.vue"),
+          meta: { title: "Mata Pelajaran" },
+        },
+        {
+          path: "schedules",
+          name: "MobileSchedules",
+          component: () => import("@/views/apps/academic/Schedules.vue"),
+          meta: { title: "Jadwal Pelajaran" },
+        },
+        {
+          path: "grades",
+          name: "MobileGrades",
+          component: () => import("@/views/apps/academic/Grades.vue"),
+          meta: { title: "Nilai Santri" },
+        },
+        {
+          path: "academic-reports",
+          name: "MobileAcademicReports",
+          component: () => import("@/views/apps/academic/Reports.vue"),
+          meta: { title: "Rapor Akademik" },
+        },
+        {
+          path: "halaqah",
+          name: "MobileHalaqah",
+          component: () => import("@/views/apps/Halaqah.vue"),
+          meta: { title: "Grup Halaqah" },
+        },
+        {
+          path: "tahfidz-input",
+          name: "MobileTahfidzInput",
+          component: () => import("@/views/apps/tahfidz/TahfidzHalaqah.vue"),
+          meta: { title: "Input Tahfidz" },
+        },
+        {
+          path: "tahfidz-exams",
+          name: "MobileTahfidzExams",
+          component: () => import("@/views/apps/tahfidz/TahfidzExams.vue"),
+          meta: { title: "Ujian Tahfidz" },
+        },
+        {
+          path: "tahfidz-reports",
+          name: "MobileTahfidzReports",
+          component: () => import("@/views/apps/tahfidz/TahfidzReports.vue"),
+          meta: { title: "Laporan Tahfidz" },
+        },
+        {
+          path: "clinic",
+          name: "MobileClinic",
+          component: () => import("@/views/apps/clinic/Examinations.vue"),
+          meta: { title: "Klinik" },
+        },
+        {
+          path: "analytics",
+          name: "MobileAnalytics",
+          component: () => import("@/views/analytics/AnalyticsOverview.vue"),
+          meta: { title: "Analytics" },
+        },
+        {
+          path: "settings",
+          name: "MobileSettings",
+          component: () => import("@/views/settings/SettingsGeneral.vue"),
+          meta: { title: "Pengaturan" },
+        },
+      ],
+    },
+
+    //
+    // ======================
     // APP ROUTES (DENGAN LAYOUT)
     // ======================
     //

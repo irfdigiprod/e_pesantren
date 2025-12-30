@@ -794,8 +794,7 @@
 import { ref, computed, onMounted, reactive } from "vue";
 import { Icon } from "@iconify/vue";
 import { studentsApi, tahfidzApi } from "@/services/api";
-import ExcelJS from "exceljs";
-import { saveAs } from "file-saver";
+import { exportTahfidzReportToExcel } from "@/services/exports/tahfidzReportExporter";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
@@ -1180,310 +1179,36 @@ async function exportToPDF() {
 async function exportToExcel() {
   if (!student.value) return;
 
-  const workbook = new ExcelJS.Workbook();
-  const worksheet = workbook.addWorksheet("Rapor Tahfidz");
-
-  // Page setup
-  worksheet.pageSetup = {
-    paperSize: 9,
-    orientation: "portrait",
-    fitToPage: true,
-    fitToWidth: 1,
-    fitToHeight: 1,
-    margins: {
-      left: 0.2,
-      right: 0.2,
-      top: 0.2,
-      bottom: 0.2,
-      header: 0,
-      footer: 0,
-    },
-    horizontalCentered: true,
+  const reportData = {
+    semester: semester.value,
+    academicYear: academicYear.value,
+    student: student.value,
+    upkExams: upkExams.value,
+    avgUPK: avgUPK.value,
+    ukjExams: ukjExams.value,
+    avgUKJ: avgUKJ.value,
+    uaScore: uaScore.value,
+    sulukScore: sulukScore.value,
+    finalScore: finalScore.value,
+    tercapaiLabel: tercapaiLabel.value,
+    madingData: madingData.value,
+    targetHafalan: targetHafalan.value,
+    totalHafalan: totalHafalan.value,
+    jumlahJuz: jumlahJuz.value,
+    keteranganHafalan: keteranganHafalan.value,
+    attendance: attendance.value,
+    notes: notes.value,
+    tahfidzHeadNameDisplay: tahfidzHeadNameDisplay.value,
+    cityName: settings.value.cityName,
+    currentDate: currentDate.value,
   };
 
-  worksheet.headerFooter = {
-    oddHeader: "",
-    oddFooter: "",
-    evenHeader: "",
-    evenFooter: "",
-    firstHeader: "",
-    firstFooter: "",
-  };
-
-  // Column setup - 23 columns (A-W)
-  const cols = [];
-  for (let i = 0; i < 23; i++) cols.push({ width: 5.5 });
-  worksheet.columns = cols;
-
-  const addBorder = (cell) => {
-    cell.border = {
-      top: { style: "thin" },
-      left: { style: "thin" },
-      bottom: { style: "thin" },
-      right: { style: "thin" },
-    };
-  };
-
-  const centerStyle = { vertical: "middle", horizontal: "center" };
-  const leftStyle = { vertical: "middle", horizontal: "left" };
-  const boldFont = { bold: true, name: "Arial", size: 10 };
-  const normalFont = { name: "Arial", size: 10 };
-  const titleFont = { bold: true, name: "Arial", size: 12 };
-
-  // --- HEADER IMAGE (Rows 1-9) ---
   try {
-    const imageResponse = await fetch("/images/tahfidz-header.png");
-    const imageBuffer = await imageResponse.arrayBuffer();
-    const imageId = workbook.addImage({
-      buffer: imageBuffer,
-      extension: "png",
-    });
-    worksheet.addImage(imageId, {
-      tl: { col: 0, row: 0 },
-      br: { col: 23, row: 9 },
-      editAs: "oneCell",
-    });
-  } catch (e) {
-    console.error("Failed to load header image:", e);
+    await exportTahfidzReportToExcel(reportData);
+  } catch (error) {
+    console.error("Export failed:", error);
+    alert("Gagal mengunduh Excel.");
   }
-
-  let r = 11;
-
-  // --- TITLE ---
-  worksheet.mergeCells(`A${r}:W${r}`);
-  worksheet.getCell(`A${r}`).value = `RAPOR TAHFIZH SEMESTER ${semester.value}`;
-  worksheet.getCell(`A${r}`).font = titleFont;
-  worksheet.getCell(`A${r}`).alignment = centerStyle;
-  r++;
-
-  worksheet.mergeCells(`A${r}:W${r}`);
-  worksheet.getCell(`A${r}`).value = `Tahun Ajaran ${academicYear.value}`;
-  worksheet.getCell(`A${r}`).font = boldFont;
-  worksheet.getCell(`A${r}`).alignment = centerStyle;
-  r += 2;
-
-  // --- STUDENT INFO ---
-  // Left side
-  worksheet.mergeCells(`A${r}:C${r}`);
-  worksheet.getCell(`A${r}`).value = "Nama";
-  worksheet.getCell(`A${r}`).font = boldFont;
-  worksheet.getCell(`A${r}`).fill = {
-    type: "pattern",
-    pattern: "solid",
-    fgColor: { argb: "FFF3F4F6" },
-  };
-  addBorder(worksheet.getCell(`A${r}`));
-
-  worksheet.mergeCells(`D${r}:K${r}`);
-  worksheet.getCell(`D${r}`).value = student.value.fullName;
-  worksheet.getCell(`D${r}`).font = boldFont;
-  addBorder(worksheet.getCell(`D${r}`));
-
-  // Right side
-  worksheet.mergeCells(`M${r}:O${r}`);
-  worksheet.getCell(`M${r}`).value = "NISN";
-  worksheet.getCell(`M${r}`).font = boldFont;
-  worksheet.getCell(`M${r}`).fill = {
-    type: "pattern",
-    pattern: "solid",
-    fgColor: { argb: "FFF3F4F6" },
-  };
-  addBorder(worksheet.getCell(`M${r}`));
-
-  worksheet.mergeCells(`P${r}:W${r}`);
-  worksheet.getCell(`P${r}`).value = student.value.nis || "-";
-  worksheet.getCell(`P${r}`).font = normalFont;
-  addBorder(worksheet.getCell(`P${r}`));
-  r++;
-
-  // Halaqoh / Kelas
-  worksheet.mergeCells(`A${r}:C${r}`);
-  worksheet.getCell(`A${r}`).value = "Halaqoh";
-  worksheet.getCell(`A${r}`).font = boldFont;
-  worksheet.getCell(`A${r}`).fill = {
-    type: "pattern",
-    pattern: "solid",
-    fgColor: { argb: "FFF3F4F6" },
-  };
-  addBorder(worksheet.getCell(`A${r}`));
-
-  worksheet.mergeCells(`D${r}:K${r}`);
-  worksheet.getCell(`D${r}`).value = student.value.halaqah || "-";
-  worksheet.getCell(`D${r}`).font = normalFont;
-  addBorder(worksheet.getCell(`D${r}`));
-
-  worksheet.mergeCells(`M${r}:O${r}`);
-  worksheet.getCell(`M${r}`).value = "Kelas";
-  worksheet.getCell(`M${r}`).font = boldFont;
-  worksheet.getCell(`M${r}`).fill = {
-    type: "pattern",
-    pattern: "solid",
-    fgColor: { argb: "FFF3F4F6" },
-  };
-  addBorder(worksheet.getCell(`M${r}`));
-
-  worksheet.mergeCells(`P${r}:W${r}`);
-  worksheet.getCell(`P${r}`).value = student.value.className || "-";
-  worksheet.getCell(`P${r}`).font = normalFont;
-  addBorder(worksheet.getCell(`P${r}`));
-  r += 2;
-
-  // --- UPK SECTION TITLE ---
-  worksheet.mergeCells(`A${r}:W${r}`);
-  worksheet.getCell(`A${r}`).value = "Ujian Pekanan (UPK)";
-  worksheet.getCell(`A${r}`).font = boldFont;
-  worksheet.getCell(`A${r}`).alignment = centerStyle;
-  r++;
-
-  // UPK Header
-  const upkHeaders = ["No", "Kode", "Halaman", "Nilai", "Predikat"];
-  const upkLeftCols = ["A", "B:C", "D:E", "F:G", "H:I"];
-  const upkRightCols = ["M", "N:O", "P:Q", "R:S", "T:U"];
-
-  for (let i = 0; i < upkHeaders.length; i++) {
-    const leftCol = upkLeftCols[i];
-    const rightCol = upkRightCols[i];
-
-    if (leftCol.includes(":")) {
-      worksheet.mergeCells(
-        `${leftCol.split(":")[0]}${r}:${leftCol.split(":")[1]}${r}`
-      );
-    }
-    worksheet.getCell(`${leftCol.split(":")[0]}${r}`).value = upkHeaders[i];
-    worksheet.getCell(`${leftCol.split(":")[0]}${r}`).font = boldFont;
-    worksheet.getCell(`${leftCol.split(":")[0]}${r}`).alignment = centerStyle;
-    worksheet.getCell(`${leftCol.split(":")[0]}${r}`).fill = {
-      type: "pattern",
-      pattern: "solid",
-      fgColor: { argb: "FFF3F4F6" },
-    };
-    addBorder(worksheet.getCell(`${leftCol.split(":")[0]}${r}`));
-
-    if (rightCol.includes(":")) {
-      worksheet.mergeCells(
-        `${rightCol.split(":")[0]}${r}:${rightCol.split(":")[1]}${r}`
-      );
-    }
-    worksheet.getCell(`${rightCol.split(":")[0]}${r}`).value = upkHeaders[i];
-    worksheet.getCell(`${rightCol.split(":")[0]}${r}`).font = boldFont;
-    worksheet.getCell(`${rightCol.split(":")[0]}${r}`).alignment = centerStyle;
-    worksheet.getCell(`${rightCol.split(":")[0]}${r}`).fill = {
-      type: "pattern",
-      pattern: "solid",
-      fgColor: { argb: "FFF3F4F6" },
-    };
-    addBorder(worksheet.getCell(`${rightCol.split(":")[0]}${r}`));
-  }
-  r++;
-
-  // UPK Data (4 rows each side)
-  for (let i = 0; i < 4; i++) {
-    const leftExam = upkExams.value[i] || {};
-    const rightExam = upkExams.value[i + 4] || {};
-
-    // Left side
-    worksheet.getCell(`A${r}`).value = i + 1;
-    worksheet.getCell(`A${r}`).alignment = centerStyle;
-    addBorder(worksheet.getCell(`A${r}`));
-
-    worksheet.mergeCells(`B${r}:C${r}`);
-    worksheet.getCell(`B${r}`).value = getExamCode(leftExam);
-    worksheet.getCell(`B${r}`).alignment = centerStyle;
-    addBorder(worksheet.getCell(`B${r}`));
-
-    worksheet.mergeCells(`D${r}:E${r}`);
-    worksheet.getCell(`D${r}`).value = getPageRange(leftExam);
-    worksheet.getCell(`D${r}`).alignment = centerStyle;
-    addBorder(worksheet.getCell(`D${r}`));
-
-    worksheet.mergeCells(`F${r}:G${r}`);
-    worksheet.getCell(`F${r}`).value = leftExam.finalScore || "-";
-    worksheet.getCell(`F${r}`).alignment = centerStyle;
-    addBorder(worksheet.getCell(`F${r}`));
-
-    worksheet.mergeCells(`H${r}:I${r}`);
-    worksheet.getCell(`H${r}`).value = getPredicate(leftExam.finalScore);
-    worksheet.getCell(`H${r}`).alignment = centerStyle;
-    addBorder(worksheet.getCell(`H${r}`));
-
-    // Right side
-    worksheet.getCell(`M${r}`).value = i + 5;
-    worksheet.getCell(`M${r}`).alignment = centerStyle;
-    addBorder(worksheet.getCell(`M${r}`));
-
-    worksheet.mergeCells(`N${r}:O${r}`);
-    worksheet.getCell(`N${r}`).value = getExamCode(rightExam);
-    worksheet.getCell(`N${r}`).alignment = centerStyle;
-    addBorder(worksheet.getCell(`N${r}`));
-
-    worksheet.mergeCells(`P${r}:Q${r}`);
-    worksheet.getCell(`P${r}`).value = getPageRange(rightExam);
-    worksheet.getCell(`P${r}`).alignment = centerStyle;
-    addBorder(worksheet.getCell(`P${r}`));
-
-    worksheet.mergeCells(`R${r}:S${r}`);
-    worksheet.getCell(`R${r}`).value = rightExam.finalScore || "-";
-    worksheet.getCell(`R${r}`).alignment = centerStyle;
-    addBorder(worksheet.getCell(`R${r}`));
-
-    worksheet.mergeCells(`T${r}:U${r}`);
-    worksheet.getCell(`T${r}`).value = getPredicate(rightExam.finalScore);
-    worksheet.getCell(`T${r}`).alignment = centerStyle;
-    addBorder(worksheet.getCell(`T${r}`));
-
-    r++;
-  }
-
-  // UPK Summary
-  worksheet.mergeCells(`A${r}:G${r}`);
-  worksheet.getCell(`A${r}`).value = "Nilai";
-  worksheet.getCell(`A${r}`).font = boldFont;
-  worksheet.getCell(`A${r}`).fill = {
-    type: "pattern",
-    pattern: "solid",
-    fgColor: { argb: "FFF3F4F6" },
-  };
-  addBorder(worksheet.getCell(`A${r}`));
-
-  worksheet.mergeCells(`H${r}:I${r}`);
-  worksheet.getCell(`H${r}`).value = avgUPK.value;
-  worksheet.getCell(`H${r}`).font = boldFont;
-  worksheet.getCell(`H${r}`).alignment = centerStyle;
-  addBorder(worksheet.getCell(`H${r}`));
-
-  worksheet.mergeCells(`M${r}:S${r}`);
-  worksheet.getCell(`M${r}`).value = "Predikat";
-  worksheet.getCell(`M${r}`).font = boldFont;
-  worksheet.getCell(`M${r}`).fill = {
-    type: "pattern",
-    pattern: "solid",
-    fgColor: { argb: "FFF3F4F6" },
-  };
-  addBorder(worksheet.getCell(`M${r}`));
-
-  worksheet.mergeCells(`T${r}:U${r}`);
-  worksheet.getCell(`T${r}`).value = getPredicate(avgUPK.value);
-  worksheet.getCell(`T${r}`).font = boldFont;
-  worksheet.getCell(`T${r}`).alignment = centerStyle;
-  addBorder(worksheet.getCell(`T${r}`));
-  r += 2;
-
-  // Continue with UKJ section...
-  // (Simplified for brevity - full implementation would include UKJ, Footer tables, Catatan, Signatures)
-
-  worksheet.mergeCells(`A${r}:W${r}`);
-  worksheet.getCell(`A${r}`).value = "Ujian Kenaikan Juz (UKJ)";
-  worksheet.getCell(`A${r}`).font = boldFont;
-  worksheet.getCell(`A${r}`).alignment = centerStyle;
-  r += 2;
-
-  // Save file
-  const buffer = await workbook.xlsx.writeBuffer();
-  const fileName = `Rapor_Tahfidz_${student.value.fullName.replace(
-    /\s+/g,
-    "_"
-  )}_${semester.value}_${academicYear.value}.xlsx`;
-  saveAs(new Blob([buffer]), fileName);
 }
 
 function handlePrint() {

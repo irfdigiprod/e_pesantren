@@ -4,12 +4,12 @@
     <div
       class="mb-6 flex flex-col md:flex-row justify-between items-center gap-4"
     >
-      <div>
+      <!-- <div>
         <h1 class="text-2xl font-bold text-slate-800">Input Setoran Halaqah</h1>
         <p class="text-slate-500">
           Pilih tanggal untuk input setoran massal anggota halaqah
         </p>
-      </div>
+      </div> -->
 
       <!-- Halaqah Selector (if multiple) - Simplified to just taking first active for now or mock -->
       <!-- Halaqah Selector -->
