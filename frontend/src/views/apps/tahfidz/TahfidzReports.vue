@@ -293,7 +293,7 @@
                     :key="'upk-right-' + idx"
                   >
                     <td class="border border-slate-300 px-2 py-1 text-center">
-                      {{ idx + 5 }}
+                      {{ idx + 1 + upkExamsLeft.length }}
                     </td>
                     <td class="border border-slate-300 px-2 py-1 text-center">
                       {{ getExamCode(exam) }}
@@ -857,25 +857,42 @@ const tahfidzHeadNameDisplay = computed(() => {
   return settings.value?.tahfidzHeadName || "...............................";
 });
 
-// Computed for UPK exams (type = UPK)
 const upkExams = computed(() => {
-  return exams.value
-    .filter((e) => e.examCategory === "UPK" || e.type === "UPK")
-    .slice(0, 8);
+  return exams.value.filter(
+    (e) => e.examCategory === "UPK" || e.type === "UPK"
+  );
 });
 
 const upkExamsLeft = computed(() => {
+  const total = upkExams.value.length;
+  // Ensure minimum 4 rows for visual stability
+  const limit = Math.max(4, Math.ceil(total / 2));
+
   const arr = [];
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < limit; i++) {
     arr.push(upkExams.value[i] || null);
   }
   return arr;
 });
 
 const upkExamsRight = computed(() => {
+  const total = upkExams.value.length;
+  const splitPoint = Math.max(4, Math.ceil(total / 2));
+  // Determine how many rows the right side should have to match left (or minimal 4)
+  // Usually right side length = splitPoint if total > 8, or minimal 4 if total is small.
+  // Actually, standard is to match the left side row count.
+  const limit = splitPoint;
+
   const arr = [];
-  for (let i = 4; i < 8; i++) {
-    arr.push(upkExams.value[i] || null);
+  for (let i = 0; i < limit; i++) {
+    const examIndex = splitPoint + i;
+    // However, if we split by index, right side indices start at `splitPoint`.
+    // But what if total is 9? Split=5. Left=0-4. Right should start at 5.
+    // Right table index 0 => Exam 5.
+    // BUT! Wait. My original logic was "split based on list".
+    // If I have 9 items. Left gets 5. Right gets 4.
+    // If I force right to be length 5, the last one is null. That is correct.
+    arr.push(upkExams.value[splitPoint + i] || null);
   }
   return arr;
 });

@@ -27,6 +27,13 @@
     >
       <template #header-actions>
         <button
+          @click="showImportModal = true"
+          class="bg-white border border-[#602515] text-[#602515] px-4 py-2 rounded-lg font-medium flex items-center gap-2 hover:bg-[#602515] hover:text-white transition-colors mr-2"
+        >
+          <Icon icon="solar:file-send-bold-duotone" />
+          Import Excel
+        </button>
+        <button
           @click="openModal"
           class="bg-[#602515] text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2 hover:bg-[#4a1c10] transition-colors"
         >
@@ -663,6 +670,15 @@
       :type="statusType"
       @close="showStatusModal = false"
     />
+
+    <ImportExamModal
+      :is-open="showImportModal"
+      :classes="classesList"
+      :halaqahs="halaqahList"
+      :examiners="teachersList"
+      @close="showImportModal = false"
+      @success="handleImportSuccess"
+    />
   </div>
 </template>
 
@@ -672,6 +688,7 @@ import { Icon } from "@iconify/vue";
 import DataTable from "@/components/ui/DataTable.vue";
 import ConfirmModal from "@/components/ui/ConfirmModal.vue";
 import StatusModal from "@/components/ui/StatusModal.vue";
+import ImportExamModal from "@/components/tahfidz/ImportExamModal.vue";
 import {
   tahfidzApi,
   studentsApi,
@@ -684,6 +701,7 @@ import {
 const loading = ref(false);
 const saving = ref(false);
 const showModal = ref(false);
+const showImportModal = ref(false);
 const viewMode = ref("table");
 const pagination = ref({
   page: 1,
@@ -1017,6 +1035,11 @@ async function editExam(item) {
 
 function closeModal() {
   showModal.value = false;
+}
+
+function handleImportSuccess(result) {
+  showStatus("Import Berhasil", `${result.message}.`, "success");
+  loadData();
 }
 
 function showStatus(title, message, type = "success") {

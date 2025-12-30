@@ -1456,4 +1456,42 @@ export const tahfidzApi = {
   async deleteExamType(id) {
     return request(`/api/tahfidz/exam-types/${id}`, { method: "DELETE" });
   },
+
+  // Import/Export
+  async downloadExamTemplate(params) {
+    const query = new URLSearchParams(params).toString();
+    const token = getToken();
+    const res = await fetch(`${BASE_URL}/api/tahfidz/exams/template?${query}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) throw new Error("Gagal download template");
+    return res.blob();
+  },
+
+  async importExams(formData) {
+    const token = getToken();
+    const res = await fetch(`${BASE_URL}/api/tahfidz/exams/import`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "Import gagal");
+    return data;
+  },
+
+  async previewImportExams(formData) {
+    const token = getToken();
+    const res = await fetch(
+      `${BASE_URL}/api/tahfidz/exams/import?dryRun=true`,
+      {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      }
+    );
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "Preview gagal");
+    return data;
+  },
 };

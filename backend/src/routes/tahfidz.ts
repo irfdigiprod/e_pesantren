@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import * as XLSX from "xlsx";
 import { db } from "../db";
 import {
   tahfidzDeposits,
@@ -1165,7 +1166,7 @@ app.get("/report-card/:studentId", async (c) => {
     }
     if (semester) {
       // semester is enum in db, assert type or just pass string if compatible
-      examConditions.push(eq(tahfidzExams.semester, semester));
+      examConditions.push(eq(tahfidzExams.semester, semester as any));
     }
 
     const exams = await db
@@ -1386,6 +1387,398 @@ app.get("/report-card/:studentId", async (c) => {
           targetPages: finalTargetPages,
         },
       },
+    });
+  } catch (e: any) {
+    return c.json({ success: false, message: e.message }, 500);
+  }
+});
+
+// GET /exams/template - Download Template Import
+app.get("/exams/template", async (c) => {
+  const category = c.req.query("category") || "Other"; // UPK, UKJ, UA, Suluk
+  const filterType = c.req.query("filterType"); // class | halaqah
+  const filterId = c.req.query("filterId");
+  const year = c.req.query("year") || "";
+  const semester = c.req.query("semester") || "";
+
+  if (!filterType || !filterId) {
+    return c.json(
+      { success: false, message: "Filter (Class/Halaqah) required" },
+      400
+    );
+  }
+
+  try {
+    // 1. Fetch Students
+    let studentList: { id: number; nis: string; name: string }[] = [];
+
+    if (filterType === "class") {
+      const results = await db
+        .select({
+          id: students.id,
+          nis: students.nis,
+          name: students.fullName,
+        })
+        .from(students)
+        .where(
+          and(
+            eq(students.classId, Number(filterId)),
+            eq(students.status, "active")
+          )
+        )
+        .orderBy(asc(students.fullName));
+      studentList = results;
+    } else if (filterType === "halaqah") {
+      const results = await db
+        .select({
+          id: students.id,
+          nis: students.nis,
+          name: students.fullName,
+        })
+        .from(halaqahMembers)
+        .innerJoin(students, eq(halaqahMembers.studentId, students.id))
+        .where(
+          and(
+            eq(halaqahMembers.halaqahId, Number(filterId)),
+            eq(halaqahMembers.status, "active")
+          )
+        )
+        .orderBy(asc(students.fullName));
+      studentList = results;
+    }
+
+    if (studentList.length === 0) {
+      return c.json(
+        { success: false, message: "Tidak ada siswa dalam filter ini" },
+        404
+      );
+    }
+
+    // 2. Prepare Columns based on Category
+    // Common: No, NIS, Nama Santri
+    const headers = ["No", "NIS", "Nama Santri"];
+    const keys = ["no", "nis", "name"];
+
+    // Category specific
+    if (category === "UPK") {
+      headers.push(
+        "Juz (Angka)",
+        "Halaman Mulai",
+        "Halaman Akhir",
+        "Kelancaran (0-100)",
+        "Tajwid (0-100)",
+        "Makhraj (0-100)",
+        "Adab (0-100)",
+        "Catatan"
+      );
+      keys.push(
+        "juz",
+        "startPage",
+        "endPage",
+        "scoreFluency",
+        "scoreTajwid",
+        "scoreMakhraj",
+        "scoreAdab",
+        "notes"
+      );
+    } else if (category === "UKJ") {
+      headers.push(
+        "Juz (Angka)",
+        "Kelancaran (0-100)",
+        "Tajwid (0-100)",
+        "Makhraj (0-100)",
+        "Adab (0-100)",
+        "Catatan"
+      );
+      keys.push(
+        "juz",
+        "scoreFluency",
+        "scoreTajwid",
+        "scoreMakhraj",
+        "scoreAdab",
+        "notes"
+      );
+    } else {
+      // UA, Suluk, Other
+      headers.push(
+        "Nilai Akhir (0-100)",
+        "Keterangan (Lulus/Tidak/Bersyarat)",
+        "Catatan"
+      );
+      keys.push("finalScore", "verdict", "notes");
+    }
+
+    // 3. Create Data Rows
+    const data = studentList.map((s, idx) => {
+      const row: any = {
+        no: idx + 1,
+        nis: s.nis,
+        name: s.name,
+      };
+      // Fill empty slots for users to fill
+      // Using generic logic? ExcelJS is easier for this, but XLSX requires array of arrays or objects.
+      // Array of arrays is best for ordering.
+      return row;
+    });
+
+    // Convert to AOA for XLSX
+    const wsData = [
+      [`Template Import Ujian Tahfidz - ${category}`], // Title
+      [`Tahun: ${year}, Semester: ${semester}`], // Metadata
+      [], // Spacer
+      headers,
+    ];
+
+    data.forEach((row) => {
+      const r = [row.no, row.nis, row.name];
+      // Empty cells for the rest
+      for (let i = 3; i < headers.length; i++) {
+        r.push("");
+      }
+      wsData.push(r);
+    });
+
+    // 4. Generate Workbook
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+    // Set Column Widths (Optional)
+    const wscols = [
+      { wch: 5 }, // No
+      { wch: 15 }, // NIS
+      { wch: 30 }, // Name
+      { wch: 10 }, // Juz/Score
+      { wch: 10 }, // Page/..
+      { wch: 10 },
+      { wch: 10 },
+      { wch: 10 },
+      { wch: 10 },
+      { wch: 10 },
+      { wch: 30 }, // Notes
+    ];
+    ws["!cols"] = wscols;
+
+    XLSX.utils.book_append_sheet(wb, ws, "Template");
+
+    const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
+
+    c.header(
+      "Content-Disposition",
+      `attachment; filename="Template_Exams_${category}_${year.replace(
+        /[^a-zA-Z0-9]/g,
+        ""
+      )}_${semester}.xlsx"`
+    );
+    c.header(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    return c.body(buf);
+  } catch (e: any) {
+    return c.json({ success: false, message: e.message }, 500);
+  }
+});
+
+// POST /exams/import - Import Excel
+app.post("/exams/import", async (c) => {
+  try {
+    const dryRun = c.req.query("dryRun") === "true";
+    const body = await c.req.parseBody();
+    const file = body["file"]; // File param
+    const academicYear = (body["academicYear"] as string) || "";
+    const semester = (body["semester"] || "1") as
+      | "1"
+      | "2"
+      | "ganjil"
+      | "genap";
+    const examinerId = parseInt((body["examinerId"] as string) || "0");
+    const examDateStr = (body["examDate"] as string) || "";
+    const category = (body["category"] as string) || "Other";
+
+    if (!file || !(file instanceof File)) {
+      return c.json({ success: false, message: "File is required" }, 400);
+    }
+
+    if (!dryRun && (!examinerId || !examDateStr)) {
+      // For preview, we might be lenient or just validate strictness same as import
+      // But let's enforce strictness for simplicity
+      return c.json(
+        { success: false, message: "Examiner and Date required" },
+        400
+      );
+    }
+
+    // 1. Read File
+    const arrayBuffer = await file.arrayBuffer();
+    const workbook = XLSX.read(arrayBuffer, { type: "array" });
+    const sheetName = workbook.SheetNames[0];
+    if (!sheetName) {
+      return c.json(
+        { success: false, message: "File Excel kosong atau tidak valid" },
+        400
+      );
+    }
+    const worksheet = workbook.Sheets[sheetName];
+    if (!worksheet) {
+      return c.json({ success: false, message: "Worksheet tidak valid" }, 400);
+    }
+
+    // Convert to JSON
+    const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet, { range: 3 });
+
+    let successCount = 0;
+    let failCount = 0;
+    const errors: { row: number; error: string; nis?: string }[] = [];
+    const validData: any[] = []; // For preview
+
+    const examDate = new Date(examDateStr);
+
+    // 2. Process Rows
+    // Using for loop with index to track row number (jsonData index + 4 + 1 for user friendly row number or just + 5)
+    // Header is row 4 (idx 3). So data starts at row 5 (idx 4).
+    const startRowOffset = 5;
+
+    for (let i = 0; i < jsonData.length; i++) {
+      const row = jsonData[i];
+      const rowNum = i + startRowOffset;
+      const nis = row["NIS"];
+
+      if (!nis) {
+        // Skip empty rows or log error?
+        // errors.push({ row: rowNum, error: "NIS kosong" });
+        continue;
+      }
+
+      try {
+        const student = await db.query.students.findFirst({
+          where: eq(students.nis, String(nis).trim()),
+        });
+
+        if (!student) {
+          failCount++;
+          errors.push({
+            row: rowNum,
+            error: `NIS ${nis} tidak ditemukan`,
+            nis,
+          });
+          continue;
+        }
+
+        const payload: any = {
+          studentId: student.id,
+          examinerId,
+          examDate,
+          examCategory: category as any,
+          examType: `${category} Import`,
+          academicYear,
+          semester: semester as any,
+        };
+
+        let calculatedFinalScore = 0;
+
+        if (category === "UPK") {
+          payload.juz = row["Juz (Angka)"];
+          payload.startPage = row["Halaman Mulai"];
+          payload.endPage = row["Halaman Akhir"];
+          payload.scoreFluency = row["Kelancaran (0-100)"];
+          payload.scoreTajwid = row["Tajwid (0-100)"];
+          payload.scoreMakhraj = row["Makhraj (0-100)"];
+          payload.scoreAdab = row["Adab (0-100)"];
+          payload.notes = row["Catatan"];
+
+          const scores = [
+            payload.scoreFluency,
+            payload.scoreTajwid,
+            payload.scoreMakhraj,
+            payload.scoreAdab,
+          ].map((v) => Number(v) || 0);
+
+          calculatedFinalScore = Math.round(
+            scores.reduce((a, b) => a + b, 0) / 4
+          );
+        } else if (category === "UKJ") {
+          payload.juz = row["Juz (Angka)"];
+          payload.scoreFluency = row["Kelancaran (0-100)"];
+          payload.scoreTajwid = row["Tajwid (0-100)"];
+          payload.scoreMakhraj = row["Makhraj (0-100)"];
+          payload.scoreAdab = row["Adab (0-100)"];
+          payload.notes = row["Catatan"];
+
+          const scores = [
+            payload.scoreFluency,
+            payload.scoreTajwid,
+            payload.scoreMakhraj,
+            payload.scoreAdab,
+          ].map((v) => Number(v) || 0);
+          calculatedFinalScore = Math.round(
+            scores.reduce((a, b) => a + b, 0) / 4
+          );
+        } else {
+          calculatedFinalScore = Number(row["Nilai Akhir (0-100)"]) || 0;
+
+          let rawVerdict =
+            (row["Keterangan (Lulus/Tidak/Bersyarat)"] as string) || "";
+          rawVerdict = rawVerdict.toLowerCase().trim();
+
+          let verdictValue = "fail"; // Default
+          if (rawVerdict.includes("lulus") && !rawVerdict.includes("tidak")) {
+            verdictValue = "pass";
+          } else if (
+            rawVerdict.includes("tidak") ||
+            rawVerdict.includes("gagal")
+          ) {
+            verdictValue = "fail";
+          } else if (rawVerdict.includes("bersyarat")) {
+            verdictValue = "conditional";
+          } else {
+            // Fallback auto verdict logic if text is unknown/empty
+            verdictValue = calculatedFinalScore >= 75 ? "pass" : "fail";
+          }
+
+          payload.verdict = verdictValue;
+          payload.notes = row["Catatan"];
+        }
+
+        payload.finalScore = calculatedFinalScore;
+        if (category === "UPK" || category === "UKJ") {
+          payload.verdict = calculatedFinalScore >= 75 ? "pass" : "fail";
+        }
+
+        // Preview Optimization: Include basic student info in payload for display
+        if (dryRun) {
+          validData.push({
+            ...payload,
+            studentName: student.fullName,
+            nis: student.nis,
+            row: rowNum,
+          });
+        } else {
+          await db.insert(tahfidzExams).values(payload);
+        }
+        successCount++;
+      } catch (err: any) {
+        failCount++;
+        errors.push({ row: rowNum, error: err.message, nis });
+      }
+    }
+
+    if (dryRun) {
+      return c.json({
+        success: true,
+        data: {
+          totalRows: jsonData.length,
+          validRows: successCount,
+          invalidRows: failCount,
+          validData,
+          errors,
+        },
+      });
+    }
+
+    return c.json({
+      success: true,
+      message: `Import selesai. Sukses: ${successCount}, Gagal: ${failCount}`,
+      errors,
     });
   } catch (e: any) {
     return c.json({ success: false, message: e.message }, 500);

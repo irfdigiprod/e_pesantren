@@ -295,7 +295,7 @@ export async function exportTahfidzReportToExcel(data) {
 
   for (let i = 0; i < neededRows; i++) {
     const leftExam = fullUpkExams[i] || {};
-    const rightExam = fullUpkExams[i + 4] || {};
+    const rightExam = fullUpkExams[i + neededRows] || {};
 
     // Left side
     worksheet.getCell(`A${r}`).value = i + 1;
@@ -322,7 +322,7 @@ export async function exportTahfidzReportToExcel(data) {
     addBorder(worksheet.getCell(`J${r}`));
 
     // Right side
-    worksheet.getCell(`M${r}`).value = i + 5;
+    worksheet.getCell(`M${r}`).value = i + 1 + neededRows;
     worksheet.getCell(`M${r}`).alignment = centerStyle;
     addBorder(worksheet.getCell(`M${r}`));
 
