@@ -12,7 +12,7 @@
         class="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-white"
       >
         <h3 class="text-lg font-bold text-slate-800">
-          Sesuaikan Gambar Header
+          {{ title }}
         </h3>
         <button
           @click="close"
@@ -28,7 +28,7 @@
           ref="cropperRef"
           :src="imageSrc"
           :stencil-props="{
-            aspectRatio: 5 / 1,
+            aspectRatio: aspectRatio,
             movable: true,
             resizable: true,
           }"
@@ -49,7 +49,7 @@
               Geser dan zoom untuk menyesuaikan area gambar.
             </p>
             <p class="text-xs mt-1 ml-6">
-              Rasio aspek dikunci pad 5:1 untuk tampilan optimal di Excel.
+              {{ description }}
             </p>
           </div>
           <div class="flex gap-3">
@@ -87,6 +87,18 @@ const props = defineProps({
   imageSrc: {
     type: String,
     default: "",
+  },
+  aspectRatio: {
+    type: Number,
+    default: 5 / 1,
+  },
+  title: {
+    type: String,
+    default: "Sesuaikan Gambar Header",
+  },
+  description: {
+    type: String,
+    default: "Rasio aspek dikunci pad 5:1 untuk tampilan optimal di Excel.",
   },
 });
 

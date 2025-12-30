@@ -11,6 +11,17 @@
       @close="closeModal"
     />
 
+    <!-- USER PROFILE CROPPER -->
+    <ImageCropperModal
+      :is-open="showCropper"
+      :image-src="cropperImage"
+      :aspect-ratio="1"
+      title="Sesuaikan Foto Profil"
+      description="Geser dan zoom untuk menyesuaikan foto. Rasio 1:1."
+      @close="showCropper = false"
+      @crop="handleCrop"
+    />
+
     <div
       v-if="loading"
       class="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-pulse"
@@ -600,6 +611,7 @@ import { useRouter } from "vue-router";
 import { Icon } from "@iconify/vue";
 import StatusModal from "@/components/ui/StatusModal.vue";
 import AddressSelector from "@/components/ui/AddressSelector.vue";
+import ImageCropperModal from "@/components/ui/ImageCropperModal.vue";
 
 // static import datepicker (already installed)
 import { VueDatePicker } from "@vuepic/vue-datepicker";
@@ -675,23 +687,41 @@ function triggerPhotoUpload() {
   photoInput.value?.click();
 }
 
-// Handle photo upload
-async function handlePhotoUpload(event) {
+// Cropper State
+const showCropper = ref(false);
+const cropperImage = ref("");
+
+// Pre-upload: Select file and open cropper
+function handlePhotoUpload(event) {
   const file = event.target.files?.[0];
   if (!file) return;
 
-  // Validate file type
   if (!file.type.startsWith("image/")) {
     alert("Hanya file gambar yang diperbolehkan");
     return;
   }
 
-  // Validate file size (max 5MB)
-  if (file.size > 5 * 1024 * 1024) {
-    alert("Ukuran file maksimal 5MB");
-    return;
-  }
+  // Read file to open in cropper
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    cropperImage.value = e.target.result;
+    showCropper.value = true;
+  };
+  reader.readAsDataURL(file);
 
+  // Reset input so same file can be selected again
+  event.target.value = "";
+}
+
+// Handle Cropped Image
+async function handleCrop(blob) {
+  showCropper.value = false;
+  if (!blob) return;
+  await uploadFile(blob);
+}
+
+// Actual Upload Logic
+async function uploadFile(fileOrBlob) {
   uploadingPhoto.value = true;
   error.value = "";
 
@@ -701,7 +731,9 @@ async function handlePhotoUpload(event) {
 
     // Upload file
     const formData = new FormData();
-    formData.append("file", file);
+    // Ensure filename for blob
+    const filename = "profile_photo.png";
+    formData.append("file", fileOrBlob, filename);
 
     const uploadRes = await fetch(`${base}/api/uploads`, {
       method: "POST",
@@ -749,8 +781,7 @@ async function handlePhotoUpload(event) {
       console.warn("Failed to persist user update", e);
     }
 
-    // Clear file input
-    event.target.value = "";
+    // Clear file input handled in handlePhotoUpload
   } catch (err) {
     error.value = err.message || "Gagal upload foto";
     console.error("Photo upload error:", err);
