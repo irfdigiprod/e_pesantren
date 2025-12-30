@@ -6,7 +6,7 @@
       <div
         class="flex items-center gap-2 px-3 py-1.5 bg-white rounded-full border border-slate-200 shadow-sm text-sm text-slate-600"
       >
-        <Icon icon="lucide:clock" class="w-4 h-4 text-amber-500" />
+        <Icon icon="lucide:clock" class="w-4 h-4 text-amber-400" />
         <span class="font-semibold font-mono">{{ currentTime }}</span>
       </div>
     </div>
@@ -73,7 +73,7 @@
         <!-- Masuk Card -->
         <div class="bg-white rounded-2xl p-4 shadow-sm flex flex-col h-full">
           <div class="flex items-center gap-2 mb-3">
-            <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+            <span class="w-2 h-2 rounded-full bg-amber-400"></span>
             <span class="text-xs text-slate-600 font-medium">Masuk</span>
             <span class="text-xs text-slate-400 ml-auto">{{
               distance !== null ? formatDistance(distance) : "..."
@@ -153,7 +153,7 @@
         <!-- Pulang Card -->
         <div class="bg-white rounded-2xl p-4 shadow-sm flex flex-col h-full">
           <div class="flex items-center gap-2 mb-3">
-            <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+            <span class="w-2 h-2 rounded-full bg-amber-400"></span>
             <span class="text-xs text-slate-600 font-medium">Pulang</span>
             <span class="text-xs text-slate-400 ml-auto">{{
               distance !== null ? formatDistance(distance) : "..."

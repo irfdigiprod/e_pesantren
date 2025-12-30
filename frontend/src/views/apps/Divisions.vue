@@ -100,7 +100,7 @@
           <div class="mt-auto pt-3 border-t">
             <button
               @click="openMembers(item)"
-              class="w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-slate-900 transition-colors text-sm font-medium"
+              class="w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-amber-900 hover:bg-amber-400 text-white hover:text-amber-900 transition-colors text-sm font-medium"
             >
               <Icon icon="solar:users-group-rounded-bold-duotone" />
               Lihat {{ item.memberCount || 0 }} Anggota

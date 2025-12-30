@@ -26,7 +26,7 @@
       <template #header-actions>
         <button
           @click="loadData"
-          class="p-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg transition-colors"
+          class="p-2 bg-amber-900 text-white hover:bg-amber-400 rounded-lg transition-colors"
           title="Refresh"
         >
           <Icon
@@ -200,7 +200,7 @@
       <template #cell-actions="{ item }">
         <button
           @click="openSlip(item)"
-          class="inline-flex items-center gap-1 px-3 py-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-lg text-xs font-medium transition-colors"
+          class="inline-flex items-center gap-1 px-3 py-1.5 bg-amber-900 text-white hover:bg-amber-400 hover:text-amber-900 rounded-lg text-xs font-medium transition-colors"
         >
           <Icon icon="lucide:printer" class="w-3.5 h-3.5" />
           Cetak
@@ -279,7 +279,7 @@
             </div>
             <button
               @click="openSlip(item)"
-              class="p-2 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-lg transition-colors"
+              class="p-2 bg-amber-900 text-white hover:bg-amber-400 hover:text-amber-900 rounded-lg transition-colors"
               title="Cetak Slip"
             >
               <Icon icon="lucide:printer" class="w-5 h-5" />

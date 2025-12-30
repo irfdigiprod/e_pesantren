@@ -22,7 +22,7 @@
       <template #header-actions>
         <button
           @click="showModal = true"
-          class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium text-sm flex items-center gap-2 transition-colors"
+          class="px-4 py-2 bg-amber-900 text-white rounded-lg hover:bg-amber-400 font-medium text-sm flex items-center gap-2 transition-colors"
         >
           <Icon icon="solar:add-circle-bold-duotone" class="w-5 h-5" />
           <span class="hidden sm:inline">Ajukan Izin</span>

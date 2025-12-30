@@ -94,7 +94,7 @@
                 <div class="flex justify-center gap-2">
                   <button
                     @click="openModal(t)"
-                    class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+                    class="p-2 text-amber-900 hover:bg-amber-50 rounded-lg"
                     title="Edit"
                   >
                     <Icon icon="solar:pen-bold" />
@@ -147,7 +147,7 @@
             <div class="flex gap-1">
               <button
                 @click="openModal(t)"
-                class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+                class="p-2 text-amber-900 hover:bg-amber-50 rounded-lg"
               >
                 <Icon icon="solar:pen-bold" />
               </button>
@@ -445,7 +445,7 @@
             <div class="flex gap-1">
               <button
                 @click="openTypeModal(t)"
-                class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+                class="p-2 text-amber-900 hover:bg-amber-50 rounded-lg"
               >
                 <Icon icon="solar:pen-bold" />
               </button>

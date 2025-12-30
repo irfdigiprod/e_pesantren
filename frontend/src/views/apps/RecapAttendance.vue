@@ -15,13 +15,15 @@
         class="flex flex-col md:flex-row md:flex-wrap items-end md:items-center justify-end gap-3 w-full md:w-auto"
       >
         <!-- Filter Mode Toggle -->
-        <div class="flex items-center gap-2 bg-slate-100 p-1 rounded-lg">
+        <div
+          class="flex items-center gap-2 bg-slate-100 p-1 rounded-lg w-full md:w-auto"
+        >
           <button
             @click="filter.useCustomRange = false"
-            class="px-3 py-1.5 text-xs font-medium rounded-md transition-all"
+            class="px-3 py-1.5 text-xs font-medium rounded-md transition-all flex-1 md:flex-none text-center whitespace-nowrap"
             :class="
               !filter.useCustomRange
-                ? 'bg-white shadow text-indigo-600'
+                ? 'bg-white shadow text-amber-900'
                 : 'text-slate-500 hover:text-slate-700'
             "
           >
@@ -29,10 +31,10 @@
           </button>
           <button
             @click="filter.useCustomRange = true"
-            class="px-3 py-1.5 text-xs font-medium rounded-md transition-all"
+            class="px-3 py-1.5 text-xs font-medium rounded-md transition-all flex-1 md:flex-none text-center whitespace-nowrap"
             :class="
               filter.useCustomRange
-                ? 'bg-white shadow text-indigo-600'
+                ? 'bg-white shadow text-amber-900'
                 : 'text-slate-500 hover:text-slate-700'
             "
           >
@@ -41,43 +43,58 @@
         </div>
 
         <!-- Month/Year Selectors (Default Mode) -->
-        <div v-if="!filter.useCustomRange" class="flex gap-2">
-          <select
-            v-model="filter.month"
-            class="px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          >
-            <option v-for="(m, i) in months" :key="i" :value="i + 1">
-              {{ m }}
-            </option>
-          </select>
+        <div
+          v-if="!filter.useCustomRange"
+          class="flex flex-col gap-1 w-full md:w-auto"
+        >
+          <div class="grid grid-cols-2 gap-2">
+            <select
+              v-model="filter.month"
+              class="px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 w-full"
+            >
+              <option v-for="(m, i) in months" :key="i" :value="i + 1">
+                {{ m }}
+              </option>
+            </select>
 
-          <select
-            v-model="filter.year"
-            class="px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            <select
+              v-model="filter.year"
+              class="px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 w-full"
+            >
+              <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
+            </select>
+          </div>
+          <!-- Show active date range for clarity -->
+          <div
+            v-if="activePeriodText"
+            class="text-[10px] text-slate-500 text-right px-1"
           >
-            <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
-          </select>
+            {{ activePeriodText }}
+          </div>
         </div>
 
         <!-- Custom Range Inputs -->
-        <div v-else class="flex gap-2">
+        <div
+          v-else
+          class="grid grid-cols-[1fr_auto_1fr] gap-2 items-center w-full md:w-auto"
+        >
           <input
             type="date"
             v-model="filter.startDate"
-            class="px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 min-w-0"
           />
-          <span class="text-slate-400 self-center">-</span>
+          <span class="text-slate-400 font-medium">-</span>
           <input
             type="date"
             v-model="filter.endDate"
-            class="px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 min-w-0"
           />
         </div>
 
         <!-- Division Filter -->
         <select
           v-model="filter.divisionId"
-          class="px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[120px]"
+          class="px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 min-w-[120px] w-full md:w-auto"
         >
           <option value="">Semua Divisi</option>
           <option v-for="d in divisions" :key="d.id" :value="d.id">
@@ -96,7 +113,7 @@
               class="p-2 rounded-md transition-all flex items-center justify-center"
               :class="
                 viewMode === 'table'
-                  ? 'bg-white shadow text-indigo-600'
+                  ? 'bg-white shadow text-amber-900'
                   : 'text-slate-500 hover:text-slate-700'
               "
               title="Tampilan Tabel"
@@ -108,7 +125,7 @@
               class="p-2 rounded-md transition-all flex items-center justify-center"
               :class="
                 viewMode === 'card'
-                  ? 'bg-white shadow text-indigo-600'
+                  ? 'bg-white shadow text-amber-900'
                   : 'text-slate-500 hover:text-slate-700'
               "
               title="Tampilan Kartu"
@@ -119,7 +136,7 @@
 
           <button
             @click="fetchRecap"
-            class="p-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+            class="p-2 bg-amber-900 text-white rounded-lg hover:bg-amber-400 transition-colors"
             title="Terapkan Filter"
           >
             <Icon
@@ -738,6 +755,25 @@ const dateRange = computed(() => {
     curr.setDate(curr.getDate() + 1);
   }
   return dates;
+});
+
+const activePeriodText = computed(() => {
+  if (recapData.period.start && recapData.period.end) {
+    // Format: 26 November 2025 - 25 Desember 2025
+    // Use specific simple format to save space
+    const start = new Date(recapData.period.start).toLocaleDateString("id-ID", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+    const end = new Date(recapData.period.end).toLocaleDateString("id-ID", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+    return `${start} - ${end}`;
+  }
+  return "";
 });
 
 function isHoliday(dateObj) {

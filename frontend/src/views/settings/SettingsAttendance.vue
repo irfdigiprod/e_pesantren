@@ -65,7 +65,7 @@
               Tentukan titik koordinat pusat untuk validasi lokasi absensi guru.
             </p>
           </div>
-          <div class="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+          <div class="p-2 bg-amber-50 text-amber-900 rounded-lg">
             <Icon icon="lucide:map-pin" class="w-6 h-6" />
           </div>
         </div>
@@ -145,24 +145,24 @@
 
             <!-- Current Location Helper -->
             <div
-              class="bg-blue-50 border border-blue-100 rounded-lg p-4 flex items-start gap-3"
+              class="bg-amber-50 border border-amber-100 rounded-lg p-4 flex items-start gap-3"
             >
               <Icon
                 icon="lucide:info"
-                class="w-5 h-5 text-blue-600 shrink-0 mt-0.5"
+                class="w-5 h-5 text-amber-900 shrink-0 mt-0.5"
               />
               <div class="flex-1">
-                <h4 class="text-sm font-medium text-blue-800">
+                <h4 class="text-sm font-medium text-amber-800">
                   Bantuan Penetapan Lokasi
                 </h4>
-                <p class="text-sm text-blue-600 mt-1 mb-3">
+                <p class="text-sm text-amber-900 mt-1 mb-3">
                   Anda dapat menggunakan lokasi perangkat Anda saat ini sebagai
                   titik pusat absensi.
                 </p>
                 <button
                   type="button"
                   @click="useCurrentLocation"
-                  class="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-md text-sm font-medium transition-colors"
+                  class="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-900 hover:bg-amber-400 text-white rounded-md text-sm font-medium transition-colors"
                 >
                   <Icon
                     v-if="loadingLoc"
@@ -192,7 +192,7 @@
 
               <button
                 type="submit"
-                class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium shadow-sm hover:shadow transition-all flex items-center gap-2"
+                class="px-5 py-2.5 bg-amber-900 hover:bg-amber-400 text-white rounded-lg font-medium shadow-sm hover:shadow transition-all flex items-center gap-2"
               >
                 <Icon icon="lucide:save" class="w-4 h-4" />
                 Simpan Pengaturan
@@ -215,7 +215,7 @@
               Daftar jenis kegiatan yang dapat dipilih saat absensi masuk.
             </p>
           </div>
-          <div class="p-2 bg-amber-50 text-amber-600 rounded-lg">
+          <div class="p-2 bg-amber-50 text-amber-900 rounded-lg">
             <Icon icon="lucide:list-checks" class="w-6 h-6" />
           </div>
         </div>
@@ -234,7 +234,7 @@
               type="button"
               @click="addActivity"
               :disabled="!newActivity.trim()"
-              class="w-full sm:w-auto px-6 py-2.5 bg-amber-600 hover:bg-amber-700 disabled:bg-slate-300 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 whitespace-nowrap"
+              class="w-full sm:w-auto px-6 py-2.5 bg-amber-900 hover:bg-amber-400 disabled:bg-slate-300 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 whitespace-nowrap"
             >
               <Icon icon="lucide:plus" class="w-4 h-4" />
               Tambah
@@ -287,7 +287,7 @@
               akan ditandai merah di tabel absensi.
             </p>
           </div>
-          <div class="p-2 bg-rose-50 text-rose-600 rounded-lg">
+          <div class="p-2 bg-amber-50 text-amber-900 rounded-lg">
             <Icon icon="lucide:calendar-off" class="w-6 h-6" />
           </div>
         </div>
@@ -339,7 +339,7 @@
               perhitungan absensi bulanan.
             </p>
           </div>
-          <div class="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
+          <div class="p-2 bg-amber-50 text-amber-900 rounded-lg">
             <Icon icon="lucide:calendar-range" class="w-6 h-6" />
           </div>
         </div>

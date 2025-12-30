@@ -35,7 +35,7 @@
       <!-- Cell: Grade -->
       <template #cell-grade="{ item }">
         <span
-          class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-50 text-purple-700"
+          class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-900"
         >
           Kelas {{ item.grade }}
         </span>
@@ -96,18 +96,18 @@
           <div class="flex items-start justify-between mb-3">
             <div class="flex items-center gap-3">
               <div
-                class="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center"
+                class="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center"
               >
                 <Icon
                   icon="solar:square-academic-cap-bold-duotone"
-                  class="text-xl text-purple-600"
+                  class="text-xl text-amber-900"
                 />
               </div>
               <div>
                 <h3 class="font-semibold text-slate-800">{{ item.name }}</h3>
                 <div class="flex items-center gap-2 mt-0.5">
                   <span
-                    class="text-xs px-2 py-0.5 rounded-full bg-purple-50 text-purple-600 font-medium"
+                    class="text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-900 font-medium"
                   >
                     Kelas {{ item.grade }}
                   </span>
