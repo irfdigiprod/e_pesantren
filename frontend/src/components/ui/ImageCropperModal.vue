@@ -41,32 +41,39 @@
       </div>
 
       <!-- Footer / Controls -->
-      <div class="p-6 bg-white border-t border-slate-100">
-        <div class="flex items-center justify-between">
-          <div class="text-sm text-slate-500">
-            <p class="flex items-center gap-2">
-              <Icon icon="solar:info-circle-bold" class="text-blue-500" />
-              Geser dan zoom untuk menyesuaikan area gambar.
-            </p>
-            <p class="text-xs mt-1 ml-6">
-              {{ description }}
-            </p>
+      <div class="p-6 bg-white border-t border-slate-100 flex flex-col gap-4">
+        <!-- Instructions -->
+        <div
+          class="text-sm text-slate-500 bg-slate-50 p-3 rounded-lg border border-slate-100"
+        >
+          <p class="flex items-center gap-2 font-medium text-slate-700">
+            <Icon
+              icon="solar:info-circle-bold"
+              class="text-blue-500 shrink-0"
+            />
+            Petunjuk
+          </p>
+          <div class="mt-1 ml-6 text-xs text-slate-500 space-y-1">
+            <p>Geser dan zoom untuk menyesuaikan area gambar.</p>
+            <p>{{ description }}</p>
           </div>
-          <div class="flex gap-3">
-            <button
-              @click="close"
-              class="px-5 py-2.5 rounded-lg border border-slate-200 font-medium text-slate-600 hover:bg-slate-50 transition-colors"
-            >
-              Batal
-            </button>
-            <button
-              @click="cropImage"
-              class="px-5 py-2.5 rounded-lg bg-[#602515] font-medium text-white hover:bg-[#4a1c10] transition-colors flex items-center gap-2 shadow-lg shadow-[#602515]/20"
-            >
-              <Icon icon="solar:scissors-bold" />
-              Potong & Simpan
-            </button>
-          </div>
+        </div>
+
+        <!-- Buttons -->
+        <div class="flex items-center gap-3">
+          <button
+            @click="close"
+            class="flex-1 px-4 py-3 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50 transition-all text-sm"
+          >
+            Batal
+          </button>
+          <button
+            @click="cropImage"
+            class="flex-1 px-4 py-3 rounded-xl bg-[#602515] font-bold text-white hover:bg-[#4a1c10] transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#602515]/20 text-sm whitespace-nowrap"
+          >
+            <Icon icon="solar:scissors-bold" class="text-lg" />
+            Potong & Simpan
+          </button>
         </div>
       </div>
     </div>
