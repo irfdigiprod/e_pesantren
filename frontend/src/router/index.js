@@ -174,23 +174,127 @@ const router = createRouter({
           component: () => import("@/views/apps/tahfidz/TahfidzReports.vue"),
           meta: { title: "Laporan Tahfidz" },
         },
+        // Clinic
         {
-          path: "clinic",
-          name: "MobileClinic",
-          component: () => import("@/views/apps/clinic/Examinations.vue"),
-          meta: { title: "Klinik" },
+          path: "clinic-medicines",
+          name: "MobileMedicines",
+          component: () => import("@/views/apps/clinic/Medicines.vue"),
+          meta: { title: "Obat-obatan" },
         },
+        {
+          path: "clinic-inpatients",
+          name: "MobileInpatients",
+          component: () => import("@/views/apps/clinic/Inpatients.vue"),
+          meta: { title: "Rawat Inap" },
+        },
+        {
+          path: "clinic-examinations",
+          name: "MobileExaminations",
+          component: () => import("@/views/apps/clinic/Examinations.vue"),
+          meta: { title: "Pemeriksaan" },
+        },
+        {
+          path: "clinic", // Keep for backward compat if needed, or redirect
+          redirect: "clinic-examinations",
+        },
+
+        // Analytics
         {
           path: "analytics",
           name: "MobileAnalytics",
           component: () => import("@/views/analytics/AnalyticsOverview.vue"),
-          meta: { title: "Analytics" },
+          meta: { title: "Analytics Overview" },
         },
         {
+          path: "analytics-reports",
+          name: "MobileAnalyticsReports",
+          component: () => import("@/views/analytics/AnalyticsReports.vue"),
+          meta: { title: "Analytics Reports" },
+        },
+
+        // Settings
+        {
           path: "settings",
-          name: "MobileSettings",
+          name: "MobileSettingsGeneral",
           component: () => import("@/views/settings/SettingsGeneral.vue"),
-          meta: { title: "Pengaturan" },
+          meta: { title: "Pengaturan Umum" },
+        },
+        {
+          path: "settings-attendance",
+          name: "MobileSettingsAttendance",
+          component: () => import("@/views/settings/SettingsAttendance.vue"),
+          meta: { title: "Pengaturan Kehadiran" },
+        },
+        {
+          path: "settings-salary",
+          name: "MobileSettingsSalary",
+          component: () => import("@/views/settings/SalarySettings.vue"),
+          meta: { title: "Pengaturan Gaji" },
+        },
+        {
+          path: "settings-salary-grading",
+          name: "MobileSettingsSalaryGrading",
+          component: () => import("@/views/settings/SalaryGrading.vue"),
+          meta: { title: "Komponen Gaji" },
+        },
+        {
+          path: "settings-institution",
+          name: "MobileSettingsInstitution",
+          component: () => import("@/views/settings/SettingsInstitution.vue"),
+          meta: { title: "Identitas Lembaga" },
+        },
+        {
+          path: "settings-information-board",
+          name: "MobileSettingsInfoBoard",
+          component: () =>
+            import("@/views/settings/InformationBoardSettings.vue"),
+          meta: { title: "Papan Informasi" },
+        },
+
+        // Security & About
+        {
+          path: "security-roles",
+          name: "MobileSecurityRoles",
+          component: () => import("@/views/security/SecurityRoles.vue"),
+          meta: { title: "Roles" },
+        },
+        {
+          path: "about",
+          name: "MobileAbout",
+          component: () => import("@/views/About.vue"),
+          meta: { title: "Tentang Aplikasi" },
+        },
+
+        // Additional missing Apps
+        {
+          path: "attendance-recap",
+          name: "MobileAttendanceRecap",
+          component: () => import("@/views/apps/RecapAttendance.vue"),
+          meta: { title: "Rekap Absensi", requiresAdmin: true },
+        },
+        {
+          path: "approvals",
+          name: "MobileApprovals",
+          component: () => import("@/views/apps/PermissionApproval.vue"),
+          meta: { title: "Persetujuan Izin", requiresAdmin: true },
+        },
+        {
+          path: "student-attendance",
+          name: "MobileStudentAttendance",
+          component: () => import("@/views/apps/Attendance.vue"),
+          meta: { title: "Absensi Santri" },
+        },
+        {
+          path: "tahfidz-mading",
+          name: "MobileTahfidzMading",
+          component: () => import("@/views/apps/tahfidz/MadingHalaqah.vue"),
+          meta: { title: "Mading Halaqah" },
+        },
+        {
+          path: "tahfidz-settings",
+          name: "MobileTahfidzSettings",
+          component: () => import("@/views/apps/tahfidz/TahfidzSettings.vue"),
+          meta: { title: "Pengaturan Tahfidz" },
         },
       ],
     },

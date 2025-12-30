@@ -144,135 +144,240 @@ function resetInterval() {
   startSlider();
 }
 
-// Replicating/Flattening items from Sidebar.vue for the grid
-const menuItems = [
-  // Apps
+// Menu items grouped by category (matching Sidebar.vue structure)
+const groupedMenuItems = [
   {
-    label: "Chat",
-    icon: "solar:chat-round-dots-line-duotone",
-    route: "/mobile-dashboard/chat",
+    title: "Apps - Guru",
+    items: [
+      {
+        label: "Absensi Guru",
+        icon: "solar:watch-square-minimalistic-line-duotone",
+        route: "/mobile-dashboard/attendance",
+      },
+      {
+        label: "Data Guru",
+        icon: "solar:users-group-rounded-line-duotone",
+        route: "/mobile-dashboard/teachers",
+      },
+      {
+        label: "Lapor Gaji",
+        icon: "solar:banknote-2-line-duotone",
+        route: "/mobile-dashboard/salary",
+      },
+      {
+        label: "Divisi",
+        icon: "solar:sitemap-line-duotone",
+        route: "/mobile-dashboard/divisions",
+      },
+      {
+        label: "Rekap Absen",
+        icon: "solar:clipboard-list-line-duotone",
+        route: "/mobile-dashboard/attendance-recap",
+        adminOnly: true,
+      },
+      {
+        label: "Izin Saya",
+        icon: "solar:document-add-line-duotone",
+        route: "/mobile-dashboard/permissions",
+      },
+      {
+        label: "Setuju Izin",
+        icon: "solar:check-read-line-duotone",
+        route: "/mobile-dashboard/approvals",
+        adminOnly: true,
+      },
+    ],
   },
   {
-    label: "Profil",
-    icon: "solar:user-circle-line-duotone",
-    route: "/mobile-dashboard/profile",
-  },
-
-  // Guru
-  {
-    label: "Absensi",
-    icon: "solar:square-academic-cap-line-duotone",
-    route: "/mobile-dashboard/attendance",
-  },
-  {
-    label: "Data Guru",
-    icon: "solar:users-group-rounded-line-duotone",
-    route: "/mobile-dashboard/teachers",
-  },
-  {
-    label: "Gaji",
-    icon: "solar:banknote-2-line-duotone",
-    route: "/mobile-dashboard/salary",
-  },
-  {
-    label: "Divisi",
-    icon: "solar:sitemap-line-duotone",
-    route: "/mobile-dashboard/divisions",
+    title: "Apps - Santri",
+    items: [
+      {
+        label: "Data Santri",
+        icon: "solar:user-circle-line-duotone",
+        route: "/mobile-dashboard/students",
+      },
+      {
+        label: "Kamar",
+        icon: "solar:bed-line-duotone",
+        route: "/mobile-dashboard/rooms",
+      },
+      {
+        label: "Prestasi",
+        icon: "solar:cup-star-line-duotone",
+        route: "/mobile-dashboard/rewards",
+      },
+      {
+        label: "Absen Santri",
+        icon: "solar:user-check-line-duotone",
+        route: "/mobile-dashboard/student-attendance",
+      },
+    ],
   },
   {
-    label: "Perizinan",
-    icon: "solar:clipboard-check-line-duotone",
-    route: "/mobile-dashboard/permissions",
-  },
-
-  // Santri
-  {
-    label: "Santri",
-    icon: "solar:user-id-line-duotone",
-    route: "/mobile-dashboard/students",
-  },
-  {
-    label: "Kamar",
-    icon: "solar:bed-line-duotone",
-    route: "/mobile-dashboard/rooms",
-  },
-  {
-    label: "Prestasi",
-    icon: "solar:star-circle-line-duotone",
-    route: "/mobile-dashboard/rewards",
-  },
-
-  // Akademik
-  {
-    label: "Kelas",
-    icon: "solar:blackboard-line-duotone",
-    route: "/mobile-dashboard/classes",
-  },
-  {
-    label: "Mapel",
-    icon: "solar:book-2-line-duotone",
-    route: "/mobile-dashboard/subjects",
+    title: "Akademik",
+    items: [
+      {
+        label: "Kelas",
+        icon: "solar:black-hole-line-duotone",
+        route: "/mobile-dashboard/classes",
+      },
+      {
+        label: "Mapel",
+        icon: "solar:book-2-line-duotone",
+        route: "/mobile-dashboard/subjects",
+      },
+      {
+        label: "Jadwal",
+        icon: "solar:calendar-date-line-duotone",
+        route: "/mobile-dashboard/schedules",
+      },
+      {
+        label: "Nilai",
+        icon: "solar:diploma-verified-line-duotone",
+        route: "/mobile-dashboard/grades",
+      },
+      {
+        label: "Rapor",
+        icon: "solar:document-text-line-duotone",
+        route: "/mobile-dashboard/academic-reports",
+      },
+    ],
   },
   {
-    label: "Jadwal",
-    icon: "solar:calendar-date-line-duotone",
-    route: "/mobile-dashboard/schedules",
+    title: "Tahfidz",
+    items: [
+      {
+        label: "Halaqah",
+        icon: "solar:users-group-two-rounded-line-duotone",
+        route: "/mobile-dashboard/halaqah",
+      },
+      {
+        label: "Mutaba'ah",
+        icon: "solar:book-bookmark-line-duotone",
+        route: "/mobile-dashboard/tahfidz",
+      },
+      {
+        label: "Input",
+        icon: "solar:pen-new-square-line-duotone",
+        route: "/mobile-dashboard/tahfidz-input",
+      },
+      {
+        label: "Ujian",
+        icon: "solar:test-tube-minimalistic-line-duotone",
+        route: "/mobile-dashboard/tahfidz-exams",
+      },
+      {
+        label: "Laporan",
+        icon: "solar:printer-line-duotone",
+        route: "/mobile-dashboard/tahfidz-reports",
+      },
+      {
+        label: "Mading",
+        icon: "solar:blackboard-graph-line-duotone",
+        route: "/mobile-dashboard/tahfidz-mading",
+      },
+      {
+        label: "Pengaturan",
+        icon: "solar:settings-minimalistic-line-duotone",
+        route: "/mobile-dashboard/tahfidz-settings",
+      },
+    ],
   },
   {
-    label: "Nilai",
-    icon: "solar:diploma-verified-line-duotone",
-    route: "/mobile-dashboard/grades",
+    title: "Klinik",
+    items: [
+      {
+        label: "Obat",
+        icon: "solar:pill-line-duotone",
+        route: "/mobile-dashboard/clinic-medicines",
+      },
+      {
+        label: "Rawat Inap",
+        icon: "solar:hospital-line-duotone",
+        route: "/mobile-dashboard/clinic-inpatients",
+      },
+      {
+        label: "Periksa",
+        icon: "solar:stethoscope-line-duotone",
+        route: "/mobile-dashboard/clinic-examinations",
+      },
+    ],
   },
   {
-    label: "Rapor",
-    icon: "solar:document-text-line-duotone",
-    route: "/mobile-dashboard/academic-reports",
-  },
-
-  // Tahfidz
-  {
-    label: "Halaqah",
-    icon: "solar:users-group-two-rounded-line-duotone",
-    route: "/mobile-dashboard/halaqah",
-  },
-  {
-    label: "Mutaba'ah",
-    icon: "solar:book-bookmark-line-duotone",
-    route: "/mobile-dashboard/tahfidz",
+    title: "Analytics",
+    items: [
+      {
+        label: "Overview",
+        icon: "solar:graph-line-duotone",
+        route: "/mobile-dashboard/analytics",
+      },
+      {
+        label: "Reports",
+        icon: "solar:diagram-up-line-duotone",
+        route: "/mobile-dashboard/analytics-reports",
+      },
+    ],
   },
   {
-    label: "Input",
-    icon: "solar:pen-new-square-line-duotone",
-    route: "/mobile-dashboard/tahfidz-input",
+    title: "Pengaturan",
+    items: [
+      {
+        label: "Umum",
+        icon: "solar:settings-line-duotone",
+        route: "/mobile-dashboard/settings",
+      },
+      {
+        label: "Kehadiran",
+        icon: "solar:watch-square-minimalistic-line-duotone",
+        route: "/mobile-dashboard/settings-attendance",
+      },
+      {
+        label: "Gaji",
+        icon: "solar:banknote-2-line-duotone",
+        route: "/mobile-dashboard/settings-salary",
+      },
+      {
+        label: "Komp. Gaji",
+        icon: "solar:wallet-money-line-duotone",
+        route: "/mobile-dashboard/settings-salary-grading",
+      },
+      {
+        label: "Lembaga",
+        icon: "solar:buildings-2-line-duotone",
+        route: "/mobile-dashboard/settings-institution",
+      },
+      {
+        label: "Info Board",
+        icon: "solar:gallery-wide-line-duotone",
+        route: "/mobile-dashboard/settings-information-board",
+      },
+    ],
   },
   {
-    label: "Ujian",
-    icon: "solar:test-tube-minimalistic-line-duotone",
-    route: "/mobile-dashboard/tahfidz-exams",
-  },
-  {
-    label: "Laporan",
-    icon: "solar:file-check-line-duotone",
-    route: "/mobile-dashboard/tahfidz-reports",
-  },
-
-  // Others
-  {
-    label: "Klinik",
-    icon: "solar:stethoscope-line-duotone",
-    route: "/mobile-dashboard/clinic",
-  },
-  {
-    label: "Analytics",
-    icon: "solar:chart-square-line-duotone",
-    route: "/mobile-dashboard/analytics",
-  },
-
-  // Settings
-  {
-    label: "Settings",
-    icon: "solar:settings-line-duotone",
-    route: "/mobile-dashboard/settings",
+    title: "Lainnya",
+    items: [
+      {
+        label: "Chat",
+        icon: "solar:chat-round-dots-line-duotone",
+        route: "/mobile-dashboard/chat",
+      },
+      {
+        label: "Roles",
+        icon: "solar:lock-password-line-duotone",
+        route: "/mobile-dashboard/security-roles",
+      },
+      {
+        label: "Tentang",
+        icon: "solar:info-circle-line-duotone",
+        route: "/mobile-dashboard/about",
+      },
+      {
+        label: "Log Out",
+        icon: "solar:logout-2-line-duotone",
+        route: "/login",
+        isLogout: true,
+      },
+    ],
   },
 ];
 
@@ -305,11 +410,6 @@ const navigate = (path) => {
         <div
           class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"
         ></div>
-      </div>
-
-      <!-- Content Overlay -->
-      <div class="absolute bottom-4 left-4 z-20 text-white pointer-events-none">
-        <p class="text-xs font-medium opacity-90">Information Board</p>
       </div>
 
       <!-- Indicators -->
@@ -367,24 +467,37 @@ const navigate = (path) => {
 
     <!-- Grid Menu -->
     <!-- Grid 5 columns as requested -->
-    <div class="grid grid-cols-5 gap-y-6 gap-x-2">
-      <button
-        v-for="(item, index) in menuItems"
-        :key="index"
-        @click="navigate(item.route)"
-        class="flex flex-col items-center gap-2 group"
+    <!-- Groups -->
+    <div v-for="group in groupedMenuItems" :key="group.title" class="mb-6">
+      <h3
+        class="text-sm font-bold text-slate-400 mb-3 px-1 tracking-wider text-[10px]"
       >
-        <div
-          class="w-12 h-12 rounded-2xl bg-white border border-slate-100 shadow-sm flex items-center justify-center text-[#602515] group-active:scale-95 transition-all duration-200 group-active:bg-[#f8ae19] group-active:text-white group-active:border-[#f8ae19]"
+        {{ group.title }}
+      </h3>
+      <div class="grid grid-cols-5 gap-y-4 gap-x-2">
+        <button
+          v-for="(item, index) in group.items"
+          :key="index"
+          @click="navigate(item.route)"
+          class="flex flex-col items-center gap-1.5 group w-full"
         >
-          <Icon :icon="item.icon" class="text-2xl" />
-        </div>
-        <span
-          class="text-[10px] text-center text-slate-600 font-medium leading-tight line-clamp-2 px-1"
-        >
-          {{ item.label }}
-        </span>
-      </button>
+          <div
+            class="w-11 h-11 rounded-xl border border-slate-100 shadow-sm flex items-center justify-center text-xl transition-all duration-200 group-active:scale-95"
+            :class="
+              item.isLogout
+                ? 'bg-red-50 text-red-500 border-red-100 group-active:bg-red-500 group-active:text-white'
+                : 'bg-white text-[#602515] group-active:bg-[#f8ae19] group-active:text-white group-active:border-[#f8ae19]'
+            "
+          >
+            <Icon :icon="item.icon" />
+          </div>
+          <span
+            class="text-[9px] text-center text-slate-600 font-medium leading-tight line-clamp-2 px-0.5"
+          >
+            {{ item.label }}
+          </span>
+        </button>
+      </div>
     </div>
   </div>
 </template>

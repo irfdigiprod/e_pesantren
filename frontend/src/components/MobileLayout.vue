@@ -30,16 +30,6 @@ const navItems = [
     route: "/mobile-dashboard/chat",
   },
   {
-    label: "Siswa",
-    icon: "solar:user-circle-line-duotone",
-    route: "/mobile-dashboard/students",
-  },
-  {
-    label: "Tahfidz",
-    icon: "solar:book-bookmark-line-duotone",
-    route: "/mobile-dashboard/tahfidz-input",
-  },
-  {
     label: "Absensi",
     icon: "solar:square-academic-cap-line-duotone",
     route: "/mobile-dashboard/attendance",
@@ -48,6 +38,16 @@ const navItems = [
     label: "Izin",
     icon: "solar:clipboard-check-line-duotone",
     route: "/mobile-dashboard/permissions",
+  },
+  {
+    label: "Tahfidz",
+    icon: "solar:book-bookmark-line-duotone",
+    route: "/mobile-dashboard/tahfidz-input", // Or regular tahfidz dashboard? user said 'tahfidz'
+  },
+  {
+    label: "Tentang",
+    icon: "solar:info-circle-line-duotone",
+    route: "/mobile-dashboard/about",
   },
 ];
 
