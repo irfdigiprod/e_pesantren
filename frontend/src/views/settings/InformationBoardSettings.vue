@@ -1,10 +1,33 @@
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, reactive } from "vue";
 import { Icon } from "@iconify/vue";
+import ImageCropperModal from "@/components/ui/ImageCropperModal.vue";
+import ConfirmModal from "@/components/ui/ConfirmModal.vue";
+import StatusModal from "@/components/ui/StatusModal.vue";
 
 const images = ref([]);
 const loading = ref(false);
 const uploading = ref(false);
+
+const showCropper = ref(false);
+const cropperImageSrc = ref("");
+
+// Modal States
+const statusModal = reactive({
+  isOpen: false,
+  type: "success",
+  title: "",
+  message: "",
+});
+
+const confirmModal = reactive({
+  isOpen: false,
+  title: "Konfirmasi Hapus",
+  message: "Apakah Anda yakin ingin menghapus gambar ini?",
+  type: "danger",
+  loading: false,
+  itemId: null,
+});
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 
@@ -31,15 +54,30 @@ async function fetchImages() {
   }
 }
 
-async function handleFileUpload(e) {
+function handleFileSelect(e) {
   const file = e.target.files[0];
   if (!file) return;
 
   if (images.value.length >= 7) {
-    alert("Maksimal 7 gambar.");
+    showStatus("error", "Batas Maksimal", "Maksimal 7 gambar diperbolehkan.");
+    e.target.value = "";
     return;
   }
 
+  cropperImageSrc.value = URL.createObjectURL(file);
+  showCropper.value = true;
+  e.target.value = "";
+}
+
+async function handleCrop(blob) {
+  showCropper.value = false;
+  if (!blob) return;
+
+  const file = new File([blob], "slider-cropped.png", { type: "image/png" });
+  await uploadImage(file);
+}
+
+async function uploadImage(file) {
   uploading.value = true;
   try {
     const token = localStorage.getItem("token");
@@ -54,7 +92,6 @@ async function handleFileUpload(e) {
       body: formData,
     });
     const upJson = await upRes.json();
-
     if (!upJson.success) throw new Error(upJson.message);
     const filePath = upJson.data.filePath;
 
@@ -70,27 +107,56 @@ async function handleFileUpload(e) {
 
     if (saveRes.ok) {
       await fetchImages();
+      showStatus("success", "Berhasil", "Gambar berhasil ditambahkan.");
+    } else {
+      throw new Error("Gagal menyimpan data gambar.");
     }
   } catch (e) {
-    alert("Gagal upload: " + e.message);
+    showStatus("error", "Gagal Upload", e.message);
   } finally {
     uploading.value = false;
-    e.target.value = ""; // reset input
   }
 }
 
-async function deleteImage(id) {
-  if (!confirm("Hapus gambar ini?")) return;
+// Trigger Delete Confirmation
+function confirmDelete(id) {
+  confirmModal.itemId = id;
+  confirmModal.isOpen = true;
+}
+
+// Execute Delete
+async function handleDelete() {
+  confirmModal.loading = true;
   try {
     const token = localStorage.getItem("token");
-    await fetch(`${API_BASE}/api/information-board/${id}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    await fetchImages();
+    const res = await fetch(
+      `${API_BASE}/api/information-board/${confirmModal.itemId}`,
+      {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+    const json = await res.json();
+
+    if (json.success) {
+      await fetchImages();
+      confirmModal.isOpen = false;
+      showStatus("success", "Berhasil", "Gambar berhasil dihapus.");
+    } else {
+      throw new Error(json.message);
+    }
   } catch (e) {
-    alert("Gagal hapus");
+    showStatus("error", "Gagal Hapus", e.message || "Terjadi kesalahan.");
+  } finally {
+    confirmModal.loading = false;
   }
+}
+
+function showStatus(type, title, message) {
+  statusModal.type = type;
+  statusModal.title = title;
+  statusModal.message = message;
+  statusModal.isOpen = true;
 }
 
 onMounted(() => {
@@ -129,7 +195,7 @@ onMounted(() => {
           class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"
         ></div>
         <button
-          @click="deleteImage(img.id)"
+          @click="confirmDelete(img.id)"
           class="absolute top-2 right-2 bg-white text-rose-500 w-8 h-8 flex items-center justify-center rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-all hover:bg-rose-50 hover:scale-110"
           title="Hapus"
         >
@@ -157,10 +223,44 @@ onMounted(() => {
           type="file"
           class="hidden"
           accept="image/*"
-          @change="handleFileUpload"
+          @change="handleFileSelect"
           :disabled="uploading"
         />
       </label>
     </div>
+
+    <!-- Cropper Modal -->
+    <ImageCropperModal
+      v-if="showCropper"
+      :isOpen="showCropper"
+      :imageSrc="cropperImageSrc"
+      :aspectRatio="3 / 1"
+      title="Sesuaikan Gambar Slider"
+      description="Rasio dikunci pada 3:1 untuk tampilan optimal di dashboard."
+      @close="showCropper = false"
+      @crop="handleCrop"
+    />
+
+    <!-- Confirm Delete Modal -->
+    <ConfirmModal
+      :isOpen="confirmModal.isOpen"
+      :title="confirmModal.title"
+      :message="confirmModal.message"
+      :type="confirmModal.type"
+      :loading="confirmModal.loading"
+      confirmText="Ya, Hapus"
+      cancelText="Batal"
+      @confirm="handleDelete"
+      @cancel="confirmModal.isOpen = false"
+    />
+
+    <!-- Status Modal -->
+    <StatusModal
+      :isOpen="statusModal.isOpen"
+      :type="statusModal.type"
+      :title="statusModal.title"
+      :message="statusModal.message"
+      @close="statusModal.isOpen = false"
+    />
   </div>
 </template>

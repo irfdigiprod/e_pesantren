@@ -3,6 +3,7 @@ import { db } from "../db";
 import { informationBoard } from "../db/schema/information-board";
 import { eq, desc, count } from "drizzle-orm";
 import { authMiddleware } from "../middleware/auth";
+import { broadcastToAll } from "../websocket";
 
 const route = new Hono();
 
@@ -31,7 +32,7 @@ route.post("/", authMiddleware, async (c) => {
     // Check count
     const [result] = await db.select({ count: count() }).from(informationBoard);
 
-    if (result.count >= 7) {
+    if (result && result.count >= 7) {
       return c.json(
         {
           success: false,
@@ -43,6 +44,10 @@ route.post("/", authMiddleware, async (c) => {
     }
 
     await db.insert(informationBoard).values({ imageUrl });
+
+    // Broadcast update
+    broadcastToAll({ type: "information_board_updated", data: {} });
+
     return c.json({ success: true, message: "Image added" });
   } catch (e) {
     console.error(e);
@@ -58,6 +63,10 @@ route.delete("/:id", authMiddleware, async (c) => {
       return c.json({ success: false, message: "Invalid ID" }, 400);
 
     await db.delete(informationBoard).where(eq(informationBoard.id, id));
+
+    // Broadcast update
+    broadcastToAll({ type: "information_board_updated", data: {} });
+
     return c.json({ success: true, message: "Image deleted" });
   } catch (e) {
     return c.json({ success: false, message: "Failed to delete image" }, 500);

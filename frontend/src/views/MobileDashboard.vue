@@ -58,11 +58,17 @@ onMounted(() => {
   fetchCurrent();
   fetchInfoBoard();
   window.addEventListener("user-updated", onUserUpdated);
+
+  // Real-time updates for slider
+  sliderUnsubscribe = wsClient.on("information_board_updated", () => {
+    fetchInfoBoard();
+  });
 });
 
 onUnmounted(() => {
   window.removeEventListener("user-updated", onUserUpdated);
   if (slideInterval) clearInterval(slideInterval);
+  if (sliderUnsubscribe) sliderUnsubscribe();
 });
 
 /* ============================
@@ -70,11 +76,13 @@ onUnmounted(() => {
    ============================ */
 // Import useSwipe from vueuse
 import { useSwipe } from "@vueuse/core";
+import { wsClient } from "@/services/websocket";
 
 const slides = ref([]);
 const activeSlide = ref(0);
 let slideInterval = null;
 const sliderRef = ref(null); // Reference for swipe container
+let sliderUnsubscribe = null;
 
 const { direction, isSwiping } = useSwipe(sliderRef, {
   threshold: 30, // threshold for swipe detection
@@ -279,7 +287,7 @@ const navigate = (path) => {
     <div
       v-if="slides.length > 0"
       ref="sliderRef"
-      class="mb-6 relative h-44 rounded-2xl overflow-hidden shadow-md group touch-pan-y"
+      class="mb-6 relative w-full aspect-[3/1] rounded-2xl overflow-hidden shadow-md group touch-pan-y"
     >
       <!-- Slides -->
       <div

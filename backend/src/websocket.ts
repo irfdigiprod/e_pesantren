@@ -80,6 +80,22 @@ export function broadcastToUser(userId: number, message: object) {
 // Alias for broadcastToConversation
 export const broadcastToGroup = broadcastToConversation;
 
+// Send to all connected clients
+export function broadcastToAll(message: object) {
+  const data = JSON.stringify(message);
+  connectedClients.forEach((clients) => {
+    clients.forEach((ws) => {
+      try {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(data);
+        }
+      } catch (error) {
+        console.error("[WS] Failed to broadcast to client:", error);
+      }
+    });
+  });
+}
+
 // Send to all participants of a conversation
 export async function broadcastToConversation(
   conversationId: number,
