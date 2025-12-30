@@ -318,7 +318,7 @@
                 >
                   <img
                     v-if="item.student.avatar"
-                    :src="item.student.avatar"
+                    :src="getPhotoUrl(item.student.avatar)"
                     class="w-full h-full object-cover"
                   />
                   <Icon
@@ -1502,6 +1502,15 @@ async function processDepositSubmission() {
   } finally {
     saving.value = false;
   }
+}
+
+function getPhotoUrl(path) {
+  if (!path) return null;
+  const base = import.meta.env.VITE_API_BASE_URL || "";
+  if (path.startsWith("http")) return path;
+  if (path.startsWith("uploads/")) return `${base}/api/${path}`;
+  if (path.startsWith("/uploads/")) return `${base}/api${path}`;
+  return path;
 }
 
 onMounted(() => {
