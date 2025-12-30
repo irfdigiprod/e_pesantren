@@ -11,6 +11,7 @@ import {
   settingsApi,
   authApi,
 } from "@/services/api.js";
+import UserDropdownMenu from "./UserDropdownMenu.vue";
 
 const emit = defineEmits(["toggle-sidebar"]);
 const router = useRouter();
@@ -714,48 +715,14 @@ function goSettings() {
           </button>
 
           <!-- Dropdown -->
-          <transition name="fade-slide">
-            <div
-              v-if="showMenu"
-              class="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-lg py-2 z-50"
-            >
-              <button
-                @click="goProfile"
-                class="w-full text-left px-4 py-2 text-sm hover:bg-slate-100 flex items-center gap-2 text-slate-700"
-              >
-                <Icon
-                  icon="solar:user-circle-line-duotone"
-                  class="text-lg text-slate-500"
-                />
-                Profile
-              </button>
-              <button
-                @click="goSettings"
-                class="w-full text-left px-4 py-2 text-sm hover:bg-slate-100 flex items-center gap-2 text-slate-700"
-              >
-                <Icon
-                  icon="solar:settings-line-duotone"
-                  class="text-lg text-slate-500"
-                />
-                Settings
-              </button>
-              <div class="h-px bg-slate-100 my-1"></div>
-              <button
-                @click="logout"
-                class="w-full text-left px-4 py-2 text-sm text-rose-600 hover:bg-rose-50 flex items-center gap-2"
-              >
-                <Icon icon="solar:logout-2-line-duotone" class="text-lg" />
-                Logout
-              </button>
-            </div>
-          </transition>
-
-          <!-- klik di luar tutup menu -->
-          <div
-            v-if="showMenu"
-            class="fixed inset-0 z-40"
-            @click="closeMenu"
-          ></div>
+          <UserDropdownMenu
+            :show="showMenu"
+            :user="user"
+            position-class="absolute right-0 mt-2"
+            @close="closeMenu"
+            @profile="goProfile"
+            @logout="logout"
+          />
         </div>
       </div>
     </div>

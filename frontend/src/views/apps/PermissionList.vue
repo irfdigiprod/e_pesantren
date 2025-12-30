@@ -140,10 +140,23 @@
         </span>
       </template>
 
+      <!-- Cell: Attachment -->
+      <template #cell-attachment="{ item }">
+        <button
+          v-if="item.attachment"
+          @click="openAttachment(item.attachment)"
+          class="p-2 bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-lg transition-colors"
+          title="Lihat Lampiran"
+        >
+          <Icon icon="solar:paperclip-bold-duotone" class="w-4 h-4" />
+        </button>
+        <span v-else class="text-slate-400 text-xs">-</span>
+      </template>
+
       <!-- Card Item View (Responsive Grid) -->
       <template #card-item="{ item }">
         <div
-          class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 hover:shadow-md transition-shadow h-full flex flex-col"
+          class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 hover:shadow-md transition-shadow h-full flex flex-col relative"
         >
           <div class="flex items-start justify-between gap-3 mb-3">
             <div class="flex items-center gap-2">
@@ -194,6 +207,20 @@
               <span class="font-bold text-rose-800">Alasan Penolakan:</span>
               {{ item.rejectionReason }}
             </div>
+          </div>
+
+          <!-- Attachment Link (Card) -->
+          <div
+            v-if="item.attachment"
+            class="mt-3 pt-3 border-t border-slate-50 flex justify-end"
+          >
+            <button
+              @click="openAttachment(item.attachment)"
+              class="px-3 py-1.5 bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-lg transition-colors text-sm font-medium flex items-center gap-1"
+            >
+              <Icon icon="solar:paperclip-bold-duotone" class="w-4 h-4" />
+              Lampiran
+            </button>
           </div>
         </div>
       </template>
@@ -403,6 +430,46 @@
       :message="statusModal.message"
       @close="closeStatusModal"
     />
+
+    <!-- Attachment Viewer Modal -->
+    <Teleport to="body">
+      <transition
+        enter-active-class="transition duration-200 ease-out"
+        enter-from-class="opacity-0"
+        enter-to-class="opacity-100"
+        leave-active-class="transition duration-150 ease-in"
+        leave-from-class="opacity-100"
+        leave-to-class="opacity-0"
+      >
+        <div
+          v-if="attachmentModal.show"
+          class="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center p-4"
+        >
+          <!-- Close Button -->
+          <button
+            @click="attachmentModal.show = false"
+            class="absolute top-4 right-4 z-20 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors"
+          >
+            <Icon icon="solar:close-circle-bold" class="w-8 h-8" />
+          </button>
+
+          <!-- Image Viewer -->
+          <img
+            v-if="isImageAttachment"
+            :src="attachmentFullUrl"
+            alt="Lampiran"
+            class="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
+          />
+
+          <!-- PDF Viewer -->
+          <iframe
+            v-else
+            :src="attachmentFullUrl"
+            class="w-full h-[90vh] max-w-4xl rounded-lg bg-white shadow-2xl"
+          ></iframe>
+        </div>
+      </transition>
+    </Teleport>
   </div>
 </template>
 
@@ -438,6 +505,7 @@ const columns = [
   { field: "type", label: "Jenis", sortable: true },
   { field: "startDate", label: "Tanggal", sortable: true },
   { field: "reason", label: "Alasan", sortable: false },
+  { field: "attachment", label: "Bukti", sortable: false },
   { field: "status", label: "Status", sortable: true },
   { field: "createdAt", label: "Dibuat", sortable: true, align: "right" },
 ];
@@ -490,6 +558,38 @@ function statusIcon(status) {
   if (status === "approved") return "solar:check-circle-bold";
   if (status === "rejected") return "solar:close-circle-bold";
   return "solar:clock-circle-bold";
+}
+
+// Attachment Modal Logic
+const attachmentModal = reactive({
+  show: false,
+  url: "",
+});
+
+const BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  (import.meta.env.DEV ? "http://localhost:3000" : "");
+
+const attachmentFullUrl = computed(() => {
+  if (!attachmentModal.url) return "";
+  if (attachmentModal.url.startsWith("http")) return attachmentModal.url;
+  return `${BASE_URL}${attachmentModal.url}`;
+});
+
+const isImageAttachment = computed(() => {
+  const url = attachmentModal.url.toLowerCase();
+  return (
+    url.endsWith(".jpg") ||
+    url.endsWith(".jpeg") ||
+    url.endsWith(".png") ||
+    url.endsWith(".gif") ||
+    url.endsWith(".webp")
+  );
+});
+
+function openAttachment(url) {
+  attachmentModal.url = url;
+  attachmentModal.show = true;
 }
 
 // Client-side Filtering & Pagination

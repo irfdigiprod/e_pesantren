@@ -9,6 +9,7 @@ import {
   usersApi,
   authApi,
 } from "@/services/api.js";
+import UserDropdownMenu from "./layout/UserDropdownMenu.vue";
 
 const router = useRouter();
 const route = useRoute();
@@ -480,45 +481,14 @@ onUnmounted(() => {
           />
         </button>
 
-        <transition name="fade-slide">
-          <div
-            v-if="showMenu"
-            class="fixed right-4 top-[60px] w-48 bg-white border border-slate-100 rounded-xl shadow-xl py-1 z-[110] origin-top-right"
-          >
-            <div class="px-4 py-2 border-b border-slate-50 mb-1">
-              <p class="text-sm font-bold text-slate-800 truncate">
-                {{ username }}
-              </p>
-              <p class="text-xs text-emerald-500 font-medium">Online</p>
-            </div>
-            <button
-              @click="goProfile"
-              class="w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 flex items-center gap-2"
-            >
-              <Icon
-                icon="solar:user-circle-line-duotone"
-                class="text-lg opacity-70"
-              />
-              Profile
-            </button>
-            <button
-              @click="logout"
-              class="w-full text-left px-4 py-2 text-sm text-rose-600 hover:bg-rose-50 flex items-center gap-2"
-            >
-              <Icon
-                icon="solar:logout-2-line-duotone"
-                class="text-lg opacity-70"
-              />
-              Logout
-            </button>
-          </div>
-        </transition>
-
-        <div
-          v-if="showMenu"
-          class="fixed inset-0 z-40"
-          @click="closeMenu"
-        ></div>
+        <UserDropdownMenu
+          :show="showMenu"
+          :user="user"
+          position-class="fixed right-4 top-[60px]"
+          @close="closeMenu"
+          @profile="goProfile"
+          @logout="logout"
+        />
       </div>
     </div>
   </div>

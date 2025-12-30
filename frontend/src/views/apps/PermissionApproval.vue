@@ -274,12 +274,12 @@
           <!-- Action Buttons for Pending -->
           <div
             v-if="item.status === 'pending'"
-            class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100"
+            class="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-slate-100"
           >
             <button
               v-if="item.attachment"
               @click="openAttachment(item.attachment)"
-              class="px-3 py-1.5 bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-lg transition-colors text-sm font-medium flex items-center gap-1"
+              class="flex-1 min-w-[100px] px-3 py-1.5 bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-lg transition-colors text-sm font-medium flex items-center justify-center gap-1"
             >
               <Icon icon="solar:paperclip-bold-duotone" class="w-4 h-4" />
               Lampiran
@@ -287,7 +287,7 @@
             <button
               @click="updateStatus(item.id, 'approved')"
               :disabled="processing === item.id"
-              class="px-3 py-1.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-lg transition-colors text-sm font-medium flex items-center gap-1"
+              class="flex-1 min-w-[100px] px-3 py-1.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-lg transition-colors text-sm font-medium flex items-center justify-center gap-1"
             >
               <Icon
                 v-if="processing === item.id"
@@ -300,7 +300,7 @@
             <button
               @click="updateStatus(item.id, 'rejected')"
               :disabled="processing === item.id"
-              class="px-3 py-1.5 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-lg transition-colors text-sm font-medium flex items-center gap-1"
+              class="flex-1 min-w-[100px] px-3 py-1.5 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-lg transition-colors text-sm font-medium flex items-center justify-center gap-1"
             >
               <Icon
                 v-if="processing !== item.id"
