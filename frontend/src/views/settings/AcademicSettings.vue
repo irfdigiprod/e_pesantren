@@ -13,18 +13,21 @@
       <h2
         class="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2"
       >
-        <Icon icon="solar:calendar-bold" class="text-blue-600" />
+        <Icon icon="solar:calendar-bold" class="text-[#602515]" />
         Tahun Pelajaran
       </h2>
 
       <!-- Add New Year -->
       <div class="mb-4">
+        <p v-if="yearError" class="text-xs text-red-500 mb-2">
+          {{ yearError }}
+        </p>
         <div class="flex flex-col sm:flex-row gap-2">
           <input
             v-model="newYear"
             type="text"
             placeholder="2025-2026"
-            class="flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            class="flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#602515]/30 focus:border-[#602515]"
             :class="yearError ? 'border-red-400' : 'border-slate-300'"
             @keyup.enter="addYear"
             @input="validateYearInput"
@@ -32,7 +35,7 @@
           <button
             @click="addYear"
             :disabled="!newYear || loading || !!yearError"
-            class="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            class="w-full sm:w-auto px-4 py-2 bg-[#602515] text-white rounded-lg hover:bg-[#4a1c10] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             <Icon icon="solar:add-circle-bold" />
             Tambah
@@ -40,9 +43,6 @@
         </div>
         <p class="text-xs text-slate-500 mt-1">
           Format: YYYY-YYYY (contoh: 2025-2026)
-        </p>
-        <p v-if="yearError" class="text-xs text-red-500 mt-1">
-          {{ yearError }}
         </p>
       </div>
 
@@ -54,7 +54,7 @@
           class="flex items-center justify-between p-3 rounded-lg border transition-colors"
           :class="
             y.isActive
-              ? 'bg-green-50 border-green-300'
+              ? 'bg-[#602515]/5 border-[#602515]/30'
               : 'bg-slate-50 border-slate-200'
           "
         >
@@ -62,7 +62,7 @@
             <span class="font-medium text-slate-800">{{ y.year }}</span>
             <span
               v-if="y.isActive"
-              class="px-2 py-0.5 text-xs font-medium bg-green-500 text-white rounded-full"
+              class="px-2 py-0.5 text-xs font-medium bg-[#602515] text-white rounded-full"
             >
               Aktif
             </span>
@@ -71,7 +71,7 @@
             <button
               v-if="!y.isActive"
               @click="setActiveYear(y.year)"
-              class="px-3 py-1.5 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200"
+              class="px-3 py-1.5 text-sm bg-[#602515]/10 text-[#602515] rounded-lg hover:bg-[#602515]/20"
             >
               Set Aktif
             </button>
@@ -95,7 +95,7 @@
       <h2
         class="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2"
       >
-        <Icon icon="solar:calendar-date-bold" class="text-purple-600" />
+        <Icon icon="solar:calendar-date-bold" class="text-[#602515]" />
         Semester Aktif
       </h2>
 
@@ -107,12 +107,12 @@
           class="p-4 rounded-xl border-2 transition-colors text-center"
           :class="
             s.isActive
-              ? 'bg-purple-50 border-purple-500 text-purple-700'
-              : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-purple-300'
+              ? 'bg-[#602515]/5 border-[#602515] text-[#602515]'
+              : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-[#602515]/50'
           "
         >
           <div class="text-lg font-semibold">{{ s.name }}</div>
-          <div v-if="s.isActive" class="text-xs mt-1 text-purple-500">
+          <div v-if="s.isActive" class="text-xs mt-1 text-[#602515]">
             <Icon icon="solar:check-circle-bold" class="inline" />
             Semester Aktif
           </div>
@@ -121,11 +121,11 @@
     </div>
 
     <!-- Current Active Display -->
-    <div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
-      <div class="text-sm text-blue-600 font-medium mb-1">
+    <div class="mt-6 p-4 bg-[#602515]/5 border border-[#602515]/20 rounded-xl">
+      <div class="text-sm text-[#602515] font-medium mb-1">
         Setting Aktif Saat Ini:
       </div>
-      <div class="text-lg font-bold text-blue-800">
+      <div class="text-lg font-bold text-[#602515]">
         {{ activeYear }} - Semester {{ activeSemesterName }}
       </div>
     </div>
