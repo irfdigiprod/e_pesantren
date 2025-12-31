@@ -77,33 +77,6 @@
         </div>
       </template>
 
-      <!-- Debug Info (Temporary) -->
-      <template #description>
-        <div
-          v-if="currentSubject"
-          class="mt-2 p-2 bg-slate-50 border border-slate-200 rounded text-xs text-slate-600 font-mono"
-        >
-          <div class="flex items-center gap-4">
-            <span
-              >Subject: <strong>{{ currentSubject.name }}</strong></span
-            >
-            <span
-              >KKM DB: <strong>{{ currentSubject.kkm }}</strong></span
-            >
-            <span
-              >Detected KKM: <strong>{{ currentKkm }}</strong></span
-            >
-            <span
-              >Rules Matched:
-              <strong
-                :class="activeRuleCount > 0 ? 'text-green-600' : 'text-red-500'"
-                >{{ activeRuleCount }} rules</strong
-              ></span
-            >
-          </div>
-        </div>
-      </template>
-
       <!-- Custom Cells for Inputs -->
       <template #cell-dailyScore="{ item }">
         <input
@@ -220,6 +193,19 @@ const activeRules = computed(() => {
 });
 
 const activeRuleCount = computed(() => activeRules.value.length);
+
+// Watch for missing rules
+watch(
+  () => currentSubject.value,
+  (newVal) => {
+    if (newVal && activeRuleCount.value === 0) {
+      statusModal.type = "error";
+      statusModal.title = "Aturan KKM Tidak Ditemukan";
+      statusModal.message = `Mapel ini memiliki KKM ${currentKkm.value}, namun belum ada aturan predikat untuk KKM tersebut. Silakan buat aturan untuk KKM ${currentKkm.value} di Pengaturan Akademik.`;
+      statusModal.open = true;
+    }
+  }
+);
 
 const statusModal = reactive({
   open: false,
