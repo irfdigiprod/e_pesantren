@@ -120,38 +120,196 @@
 
     <!-- Grading Rules Section -->
     <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-6">
-      <h2
-        class="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2"
+      <div
+        class="mb-4 flex flex-col sm:flex-row gap-4 sm:items-center justify-between"
       >
-        <Icon icon="solar:diploma-verified-bold" class="text-[#602515]" />
-        Aturan Penilaian & Predikat
-      </h2>
-
-      <!-- List of KKM Configs -->
-      <div v-if="gradingRules.length" class="space-y-6">
-        <div
-          v-for="(config, kkmIndex) in gradingRules"
-          :key="kkmIndex"
-          class="bg-slate-50 border border-slate-200 rounded-lg p-4"
+        <h2
+          class="text-lg font-semibold text-slate-800 flex items-center gap-2"
         >
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="font-medium text-slate-800 flex items-center gap-2">
-              <span class="bg-[#602515] text-white px-2 py-0.5 rounded text-sm"
-                >KKM {{ config.kkm }}</span
-              >
-              <span class="text-sm text-slate-500"
-                >(Digunakan untuk mapel dengan KKM {{ config.kkm }})</span
-              >
-            </h3>
-            <button
-              @click="removeKkmConfig(kkmIndex)"
-              class="text-red-500 hover:text-red-700 text-sm"
-            >
-              Hapus Aturan
-            </button>
-          </div>
+          <Icon icon="solar:diploma-verified-bold" class="text-[#602515]" />
+          Aturan Penilaian & Predikat
+        </h2>
 
-          <!-- Rules Table -->
+        <!-- Mode Toggle -->
+        <div class="flex bg-slate-100 p-1 rounded-lg">
+          <button
+            @click="gradingRules.mode = 'SPECIFIC'"
+            class="px-3 py-1.5 text-xs font-medium rounded-md transition-all"
+            :class="
+              gradingRules.mode === 'SPECIFIC'
+                ? 'bg-white text-[#602515] shadow-sm'
+                : 'text-slate-500 hover:text-slate-700'
+            "
+          >
+            Per KKM (Spesifik)
+          </button>
+          <button
+            @click="gradingRules.mode = 'GLOBAL'"
+            class="px-3 py-1.5 text-xs font-medium rounded-md transition-all"
+            :class="
+              gradingRules.mode === 'GLOBAL'
+                ? 'bg-white text-[#602515] shadow-sm'
+                : 'text-slate-500 hover:text-slate-700'
+            "
+          >
+            Samakan Semua (Global)
+          </button>
+        </div>
+      </div>
+
+      <!-- Specific Mode: List of KKM Configs -->
+      <div v-if="gradingRules.mode === 'SPECIFIC'" class="space-y-6">
+        <div
+          v-if="gradingRules.specificRules && gradingRules.specificRules.length"
+        >
+          <div
+            v-for="(config, kkmIndex) in gradingRules.specificRules"
+            :key="kkmIndex"
+            class="bg-slate-50 border border-slate-200 rounded-lg p-4 mb-4"
+          >
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="font-medium text-slate-800 flex items-center gap-2">
+                <span
+                  class="bg-[#602515] text-white px-2 py-0.5 rounded text-sm"
+                  >KKM {{ config.kkm }}</span
+                >
+                <span class="text-sm text-slate-500"
+                  >(Digunakan untuk mapel dengan KKM {{ config.kkm }})</span
+                >
+              </h3>
+              <button
+                @click="removeKkmConfig(kkmIndex)"
+                class="text-red-500 hover:text-red-700 text-sm"
+              >
+                Hapus Aturan
+              </button>
+            </div>
+
+            <!-- Rules Table (Reusable Block logic would be better but keeping inline for simplicity) -->
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm text-left">
+                <thead class="text-xs text-slate-500 uppercase bg-slate-100">
+                  <tr>
+                    <th class="px-3 py-2">Predikat</th>
+                    <th class="px-3 py-2">Predikat (Arab)</th>
+                    <th class="px-3 py-2">Min</th>
+                    <th class="px-3 py-2">Max</th>
+                    <th class="px-3 py-2">Keterangan (ID)</th>
+                    <th class="px-3 py-2">Keterangan (AR)</th>
+                    <th class="px-3 py-2 w-10"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="(rule, rIndex) in config.rules"
+                    :key="rIndex"
+                    class="bg-white border-b hover:bg-slate-50"
+                  >
+                    <td class="px-3 py-2">
+                      <input
+                        v-model="rule.predicate"
+                        type="text"
+                        class="w-16 px-2 py-1 border rounded text-center font-bold"
+                      />
+                    </td>
+                    <td class="px-3 py-2">
+                      <input
+                        v-model="rule.predicateAr"
+                        type="text"
+                        dir="rtl"
+                        class="w-16 px-2 py-1 border rounded text-center font-akkurat-arabic"
+                      />
+                    </td>
+                    <td class="px-3 py-2">
+                      <input
+                        v-model.number="rule.min"
+                        type="number"
+                        class="w-16 px-2 py-1 border rounded text-center"
+                      />
+                    </td>
+                    <td class="px-3 py-2">
+                      <input
+                        v-model.number="rule.max"
+                        type="number"
+                        class="w-16 px-2 py-1 border rounded text-center"
+                      />
+                    </td>
+                    <td class="px-3 py-2">
+                      <input
+                        v-model="rule.descriptionId"
+                        type="text"
+                        class="w-full px-2 py-1 border rounded"
+                        placeholder="Sangat Baik"
+                      />
+                    </td>
+                    <td class="px-3 py-2">
+                      <input
+                        v-model="rule.descriptionAr"
+                        type="text"
+                        class="w-full px-2 py-1 border rounded text-right font-akkurat-arabic"
+                        placeholder="ممتاز"
+                      />
+                    </td>
+                    <td class="px-3 py-2 text-center">
+                      <button
+                        @click="removeRuleRow(config.rules, rIndex)"
+                        class="text-red-500 hover:text-red-700"
+                        title="Hapus baris"
+                      >
+                        <Icon
+                          icon="solar:trash-bin-trash-bold"
+                          class="w-4 h-4"
+                        />
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <div class="mt-2 text-center">
+                <button
+                  @click="addRuleRow(config.rules)"
+                  class="text-[#602515] hover:underline text-sm flex items-center justify-center gap-1 mx-auto"
+                >
+                  <Icon icon="solar:add-circle-bold" />
+                  Tambah Baris Aturan
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div v-else class="text-center py-6 text-slate-400 italic">
+          Belum ada aturan penilaian spesifik. Tambahkan KKM.
+        </div>
+      </div>
+
+      <!-- Actions for Specific Mode (Add KKM) -->
+      <div
+        v-if="gradingRules.mode === 'SPECIFIC'"
+        class="mt-4 flex flex-wrap gap-3"
+      >
+        <div class="flex items-center gap-2">
+          <input
+            v-model.number="newKkmValue"
+            type="number"
+            class="w-20 px-3 py-2 border rounded-lg"
+            placeholder="KKM"
+          />
+          <button
+            @click="addKkmConfig"
+            :disabled="!newKkmValue"
+            class="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 disabled:opacity-50"
+          >
+            + Tambah Aturan KKM
+          </button>
+        </div>
+      </div>
+
+      <!-- Global Mode: Single Table -->
+      <div v-if="gradingRules.mode === 'GLOBAL'" class="space-y-6">
+        <div class="bg-slate-50 border border-slate-200 rounded-lg p-4">
+          <h3 class="font-medium text-slate-800 mb-4">
+            Aturan Global (Berlaku untuk semua mapel)
+          </h3>
           <div class="overflow-x-auto">
             <table class="w-full text-sm text-left">
               <thead class="text-xs text-slate-500 uppercase bg-slate-100">
@@ -167,7 +325,7 @@
               </thead>
               <tbody>
                 <tr
-                  v-for="(rule, rIndex) in config.rules"
+                  v-for="(rule, rIndex) in gradingRules.globalRules"
                   :key="rIndex"
                   class="bg-white border-b hover:bg-slate-50"
                 >
@@ -218,7 +376,7 @@
                   </td>
                   <td class="px-3 py-2 text-center">
                     <button
-                      @click="removeRuleRow(config, rIndex)"
+                      @click="removeRuleRow(gradingRules.globalRules, rIndex)"
                       class="text-red-500 hover:text-red-700"
                       title="Hapus baris"
                     >
@@ -228,11 +386,9 @@
                 </tr>
               </tbody>
             </table>
-
-            <!-- Add Row Button -->
             <div class="mt-2 text-center">
               <button
-                @click="addRuleRow(config)"
+                @click="addRuleRow(gradingRules.globalRules)"
                 class="text-[#602515] hover:underline text-sm flex items-center justify-center gap-1 mx-auto"
               >
                 <Icon icon="solar:add-circle-bold" />
@@ -243,30 +399,8 @@
         </div>
       </div>
 
-      <div v-else class="text-center py-6 text-slate-400 italic">
-        Belum ada aturan penilaian.
-      </div>
-
-      <!-- Actions -->
-      <div class="mt-4 flex flex-wrap gap-3">
-        <div class="flex items-center gap-2">
-          <input
-            v-model.number="newKkmValue"
-            type="number"
-            class="w-20 px-3 py-2 border rounded-lg"
-            placeholder="KKM"
-          />
-          <button
-            @click="addKkmConfig"
-            :disabled="!newKkmValue"
-            class="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 disabled:opacity-50"
-          >
-            + Tambah Aturan KKM
-          </button>
-        </div>
-
-        <div class="flex-1"></div>
-
+      <!-- General Save Button -->
+      <div class="flex justify-end mt-4">
         <button
           @click="saveGradingRules"
           :disabled="savingRules"
@@ -331,7 +465,12 @@ const activeYear = ref("");
 const activeSemester = ref("");
 
 // Grading Rules State
-const gradingRules = ref([]);
+// Grading Rules State
+const gradingRules = ref({
+  mode: "SPECIFIC",
+  globalRules: [],
+  specificRules: [],
+});
 const newKkmValue = ref("");
 const savingRules = ref(false);
 
@@ -371,7 +510,11 @@ async function loadData() {
     semesters.value = semestersRes.data || [];
     activeYear.value = activeRes.data?.academicYear || "";
     activeSemester.value = activeRes.data?.semester || "";
-    gradingRules.value = rulesRes.data || [];
+    gradingRules.value = rulesRes.data || {
+      mode: "SPECIFIC",
+      globalRules: [],
+      specificRules: [],
+    };
   } catch (e) {
     console.error("Failed to load academic settings:", e);
   } finally {
@@ -484,13 +627,18 @@ async function addKkmConfig() {
   if (!kkm) return;
 
   // Check unique
-  if (gradingRules.value.find((r) => r.kkm === kkm)) {
+  if (
+    gradingRules.value.specificRules &&
+    gradingRules.value.specificRules.find((r) => r.kkm === kkm)
+  ) {
     showStatus("Gagal", `Aturan untuk KKM ${kkm} sudah ada!`, "error");
     return;
   }
 
+  if (!gradingRules.value.specificRules) gradingRules.value.specificRules = [];
+
   // Default Template
-  gradingRules.value.push({
+  gradingRules.value.specificRules.push({
     kkm,
     rules: [
       {
@@ -536,12 +684,12 @@ async function addKkmConfig() {
 
 function removeKkmConfig(index) {
   if (confirm("Hapus aturan penilaian ini?")) {
-    gradingRules.value.splice(index, 1);
+    gradingRules.value.specificRules.splice(index, 1);
   }
 }
 
-function addRuleRow(config) {
-  config.rules.push({
+function addRuleRow(rulesArray) {
+  rulesArray.push({
     min: 0,
     max: 0,
     predicate: "",
@@ -551,8 +699,8 @@ function addRuleRow(config) {
   });
 }
 
-function removeRuleRow(config, rIndex) {
-  config.rules.splice(rIndex, 1);
+function removeRuleRow(rulesArray, rIndex) {
+  rulesArray.splice(rIndex, 1);
 }
 
 async function saveGradingRules() {

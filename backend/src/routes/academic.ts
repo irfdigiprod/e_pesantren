@@ -1021,23 +1021,14 @@ academicRoute.put(
 
       let letterGrade: string | undefined;
       let predicate: string | undefined;
+      let letterGradeAr: string | undefined;
+
       if (averageScore !== undefined) {
-        if (averageScore >= 90) {
-          letterGrade = "A";
-          predicate = "Sangat Baik";
-        } else if (averageScore >= 80) {
-          letterGrade = "B";
-          predicate = "Baik";
-        } else if (averageScore >= 70) {
-          letterGrade = "C";
-          predicate = "Cukup";
-        } else if (averageScore >= 60) {
-          letterGrade = "D";
-          predicate = "Kurang";
-        } else {
-          letterGrade = "E";
-          predicate = "Sangat Kurang";
-        }
+        const subId = existing.subjectId; // Use existing subject ID
+        const result = await calculateGrade(averageScore, subId);
+        letterGrade = result.letterGrade;
+        predicate = result.predicate;
+        letterGradeAr = result.letterGradeAr;
       }
 
       await db
@@ -1154,24 +1145,19 @@ academicRoute.post(
 
           let letterGrade: string | undefined;
           let predicate: string | undefined;
+          let letterGradeAr: string | undefined;
 
           if (averageScore !== undefined) {
-            if (averageScore >= 90) {
-              letterGrade = "A";
-              predicate = "Sangat Baik";
-            } else if (averageScore >= 80) {
-              letterGrade = "B";
-              predicate = "Baik";
-            } else if (averageScore >= 70) {
-              letterGrade = "C";
-              predicate = "Cukup";
-            } else if (averageScore >= 60) {
-              letterGrade = "D";
-              predicate = "Kurang";
-            } else {
-              letterGrade = "E";
-              predicate = "Sangat Kurang";
-            }
+            // Bulk Import Context doesn't always have explicit subjectId per item if it's mixed?
+            // Usually bulk is per class/subject.
+            // Check usage of bulkGradeSchema. The input `items` usually has subjectId.
+            // Wait, bulkGradeSchema usually sends subjectId.
+            // Let's assume item.subjectId exists.
+
+            const result = await calculateGrade(averageScore, item.subjectId);
+            letterGrade = result.letterGrade;
+            predicate = result.predicate;
+            letterGradeAr = result.letterGradeAr;
           }
 
           // Upsert Logic
@@ -1208,9 +1194,15 @@ academicRoute.post(
               .update(grades)
               .set({
                 ...restItem,
+                studentId: restItem.studentId,
+                subjectId: restItem.subjectId,
+                academicYear: restItem.academicYear,
+                semester: restItem.semester,
+                notes: restItem.notes,
                 ...scores,
                 averageScore: averageScore ? String(averageScore) : null,
                 letterGrade,
+                letterGradeAr,
                 predicate,
               })
               .where(eq(grades.id, existing.id));
@@ -1223,11 +1215,16 @@ academicRoute.post(
                 where: eq(students.id, item.studentId),
               });
               await tx.insert(grades).values({
-                ...restItem,
+                studentId: restItem.studentId,
+                subjectId: restItem.subjectId,
+                academicYear: restItem.academicYear,
+                semester: restItem.semester,
+                notes: restItem.notes,
                 ...scores,
                 classId: student?.classId,
                 averageScore: averageScore ? String(averageScore) : null,
                 letterGrade,
+                letterGradeAr,
                 predicate,
               });
               results.inserted++;
@@ -1425,7 +1422,472 @@ academicRoute.put(
   }
 );
 
+// Helper to get setting
+async function getSetting(key: string): Promise<string | null> {
+  const { settings } = await import("../db/schema/settings");
+  const result = await db.query.settings.findFirst({
+    where: eq(settings.key, key),
+  });
+  return result?.value || null;
+}
+
+// Helper to get Arabic Grade
+const getArabicGrade = (letter: string) => {
+  const map: Record<string, string> = {
+    A: "أ",
+    B: "ب",
+    C: "ج",
+    D: "د",
+    E: "هـ",
+    "A+": "أ+",
+    "B+": "ب+",
+    "C+": "ج+", // Just in case
+    "D+": "د+",
+  };
+  return map[letter] || "هـ";
+};
+
+// Helper: Calculate Grade based on Rules
+async function calculateGrade(
+  score: number,
+  subjectId: number
+): Promise<{ letterGrade: string; predicate: string; letterGradeAr: string }> {
+  const rulesJson = await getSetting("grading_rules");
+
+  // Default Fallback
+  let letterGrade = "E";
+  let predicate = "Sangat Kurang";
+  let letterGradeAr = "هـ";
+
+  if (!rulesJson) {
+    if (score >= 90) {
+      letterGrade = "A";
+      predicate = "Sangat Baik";
+      letterGradeAr = "أ";
+    } else if (score >= 80) {
+      letterGrade = "B";
+      predicate = "Baik";
+      letterGradeAr = "ب";
+    } else if (score >= 70) {
+      letterGrade = "C";
+      predicate = "Cukup";
+      letterGradeAr = "ج";
+    } else if (score >= 60) {
+      letterGrade = "D";
+      predicate = "Kurang";
+      letterGradeAr = "د";
+    }
+    return { letterGrade, predicate, letterGradeAr };
+  }
+
+  const parsed = JSON.parse(rulesJson);
+  let activeRules: any[] = [];
+
+  // Determine which rules to use
+  if (Array.isArray(parsed)) {
+    // Legacy Format (Specific Rules only, assume implicitly)
+    // Actually legacy might just be an array of rules??
+    // Let's assume parsed is [ { kkm: 75, rules: [...] }, ... ] OR just rules??
+    // Based on academic-settings.ts, legacy was likely just SpecificRules array or maybe just unsupported.
+    // The previous frontend implementation implies it supports `school_grading_settings` vs `grading_rules`
+    // Let's check the structure returned by `grading-rules` endpoint in `academic-settings.ts`
+    // It returns { mode, globalRules, specificRules }
+    // If invalid/missing, it returns default global rules.
+    activeRules = []; // Logic below handles this
+  }
+
+  // Handle New Structure
+  const setting = Array.isArray(parsed)
+    ? { mode: "SPECIFIC", globalRules: [], specificRules: parsed }
+    : parsed;
+
+  let rulesToApply: any[] = [];
+
+  if (setting.mode === "GLOBAL") {
+    rulesToApply = setting.globalRules;
+  } else {
+    // SPECIFIC Mode: Need Subject KKM
+    const subject = await db.query.subjects.findFirst({
+      where: eq(subjects.id, subjectId),
+    });
+
+    // KKM from subject or default 75
+    // Make sure we parse KKM correctly (it's decimal string)
+    const kkm = subject?.kkm ? parseFloat(String(subject.kkm)) : 75;
+
+    const specific = setting.specificRules?.find((r: any) => r.kkm === kkm);
+
+    if (specific) {
+      rulesToApply = specific.rules;
+    } else {
+      // Fallback if no specific rule for this KKM found?
+      // Maybe fall back to a default set or closest KKM?
+      // Frontend typically handles this by showing "No Rules".
+      // Here we might fallback to Global or Hardcoded.
+      rulesToApply = setting.globalRules;
+    }
+  }
+
+  // Find matching rule
+  const match = rulesToApply.find((r: any) => score >= r.min && score <= r.max);
+  if (match) {
+    letterGrade = match.predicate; // e.g. "A" or "A+"
+    predicate = match.descriptionId; // e.g. "Sangat Baik"
+    letterGradeAr = match.predicateAr || getArabicGrade(match.predicate);
+  }
+
+  return { letterGrade, predicate, letterGradeAr };
+}
+
 // ============ IMPORT SUBJECTS ============
+
+// ============ IMPORT GRADES ============
+
+// Preview import grades from Excel
+academicRoute.post(
+  "/grades/import/preview",
+  requireRole("admin", "teacher", "staff"),
+  async (c) => {
+    try {
+      const formData = await c.req.formData();
+      const file = formData.get("file") as File;
+
+      if (!file) {
+        return c.json({ success: false, message: "No file uploaded" }, 400);
+      }
+
+      // Check file type
+      const allowedTypes = [
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "application/vnd.ms-excel",
+      ];
+      if (
+        !allowedTypes.includes(file.type) &&
+        !file.name.endsWith(".xlsx") &&
+        !file.name.endsWith(".xls")
+      ) {
+        return c.json(
+          {
+            success: false,
+            message:
+              "Invalid file type. Please upload an Excel file (.xlsx or .xls)",
+          },
+          400
+        );
+      }
+
+      // Parse Excel file
+      const XLSX = await import("xlsx");
+      const buffer = await file.arrayBuffer();
+      const workbook = XLSX.read(buffer, { type: "array" });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const data = XLSX.utils.sheet_to_json(worksheet) as any[];
+
+      if (!data || data.length === 0) {
+        return c.json(
+          {
+            success: false,
+            message: "Excel file is empty or has no data rows",
+          },
+          400
+        );
+      }
+
+      // Column Map
+      const columnMapping: { [key: string]: string } = {
+        NIS: "nis",
+        "Nama Lengkap": "name", // Optional verification
+        "Nama Santri": "name",
+        "Nilai Harian": "dailyScore",
+        Daily: "dailyScore",
+        Harian: "dailyScore",
+        "Nilai Tugas": "homeworkScore",
+        Task: "homeworkScore",
+        Tugas: "homeworkScore",
+        "Nilai UTS": "midtermScore",
+        UTS: "midtermScore",
+        Midterm: "midtermScore",
+        "Nilai UAS": "finalScore",
+        UAS: "finalScore",
+        Final: "finalScore",
+        "Nilai Praktek": "practiceScore",
+        Practice: "practiceScore",
+        Praktek: "practiceScore",
+        Lainnya: "otherScore", // Optional
+      };
+
+      const preview = {
+        totalRows: data.length,
+        validRows: 0,
+        invalidRows: 0,
+        errors: [] as { row: number; nis: string; error: string }[],
+        validData: [] as any[],
+      };
+
+      // Import Students Schema for verification
+      const { students } = await import("../db/schema/students");
+
+      // Bulk fetch students for performance? For pre-optim we can check individually or fetch all in class?
+      // Ideally we should filter by class provided in Context if possible, but Excel usually contains multiple rows.
+      // Let's rely on NIS lookup.
+      const allStudents = await db.query.students.findMany(); // Could be large? Maybe optimize later.
+      const studentMap = new Map(allStudents.map((s) => [s.nis, s]));
+
+      for (let i = 0; i < data.length; i++) {
+        const row = data[i];
+        const rowNumber = i + 2;
+
+        try {
+          const rawData: any = {};
+          // Normalize Keys
+          for (const [key, field] of Object.entries(columnMapping)) {
+            // Case insensitive match
+            const foundKey = Object.keys(row).find(
+              (k) => k.toLowerCase() === key.toLowerCase()
+            );
+            if (foundKey) {
+              rawData[field] = row[foundKey];
+            }
+          }
+
+          // Must have NIS
+          if (!rawData.nis) {
+            throw new Error("NIS wajib diisi");
+          }
+
+          // Verify Student
+          const student = studentMap.get(String(rawData.nis));
+          if (!student) {
+            throw new Error(`Santri dengan NIS ${rawData.nis} tidak ditemukan`);
+          }
+
+          // Validate Scores (0-100)
+          const scores = [
+            "dailyScore",
+            "homeworkScore",
+            "midtermScore",
+            "finalScore",
+            "practiceScore",
+          ];
+          for (const s of scores) {
+            if (
+              rawData[s] !== undefined &&
+              rawData[s] !== null &&
+              rawData[s] !== ""
+            ) {
+              const val = Number(rawData[s]);
+              if (isNaN(val) || val < 0 || val > 100) {
+                throw new Error(`Nilai ${s} tidak valid (0-100)`);
+              }
+              rawData[s] = val;
+            } else {
+              delete rawData[s]; // Remove empty
+            }
+          }
+
+          preview.validRows++;
+          preview.validData.push({
+            row: rowNumber,
+            studentId: student.id,
+            studentName: student.fullName,
+            ...rawData,
+          });
+        } catch (err: any) {
+          preview.invalidRows++;
+          preview.errors.push({
+            row: rowNumber,
+            nis: row.NIS || row.nis || "-",
+            error: err.message,
+          });
+        }
+      }
+
+      return c.json({ success: true, data: preview });
+    } catch (error: any) {
+      console.error("Preview grade import error:", error);
+      return c.json({ success: false, message: error.message }, 500);
+    }
+  }
+);
+
+// Import grades from Excel
+academicRoute.post(
+  "/grades/import",
+  requireRole("admin", "teacher", "staff"),
+  async (c) => {
+    try {
+      const formData = await c.req.formData();
+      const file = formData.get("file") as File;
+
+      // Extract Context
+      // Although we can't reliably get these from simple FormData without appending them,
+      // let's assume the frontend Appends them to formData as well!
+      // Or we infer from the request parameters?
+      // Since ImportModal uses a generic wrapper, we need to ensure our frontend wrapper appends these fields.
+      const classId = formData.get("classId");
+      const subjectId = formData.get("subjectId");
+      const academicYear = formData.get("academicYear");
+      const semester = formData.get("semester");
+
+      if (!file) return c.json({ success: false, message: "No file" }, 400);
+      if (!classId || !subjectId || !academicYear || !semester) {
+        return c.json(
+          {
+            success: false,
+            message: "Missing context (class/subject/year/semester)",
+          },
+          400
+        );
+      }
+
+      const XLSX = await import("xlsx");
+      const buffer = await file.arrayBuffer();
+      const workbook = XLSX.read(buffer, { type: "array" });
+      const sheetName = workbook.SheetNames[0];
+      const data = XLSX.utils.sheet_to_json(
+        workbook.Sheets[sheetName]
+      ) as any[];
+
+      const results = { success: 0, failed: 0, errors: [] as any[] };
+
+      // Helper for grade calc
+      const { students } = await import("../db/schema/students");
+      // Fetch students in this class for validation scope, preventing cross-class entry by mistake?
+      // Or just global lookup. Let's do class lookup to be safe.
+      const classStudents = await db.query.students.findMany({
+        where: eq(students.classId, Number(classId)),
+      });
+      const studentMap = new Map(classStudents.map((s) => [s.nis, s]));
+      // Also map by ID just in case needed
+      const studentIdMap = new Map(classStudents.map((s) => [s.id, s]));
+
+      const columnMapping: { [key: string]: string } = {
+        NIS: "nis",
+        "Nilai Harian": "dailyScore",
+        Daily: "dailyScore",
+        Harian: "dailyScore",
+        "Nilai Tugas": "homeworkScore",
+        Task: "homeworkScore",
+        Tugas: "homeworkScore",
+        "Nilai UTS": "midtermScore",
+        UTS: "midtermScore",
+        Midterm: "midtermScore",
+        "Nilai UAS": "finalScore",
+        UAS: "finalScore",
+        Final: "finalScore",
+        "Nilai Praktek": "practiceScore",
+        Practice: "practiceScore",
+        Praktek: "practiceScore",
+      };
+
+      for (let i = 0; i < data.length; i++) {
+        const row = data[i];
+        const rowNumber = i + 2;
+
+        try {
+          const rawData: any = {};
+          for (const [key, field] of Object.entries(columnMapping)) {
+            const foundKey = Object.keys(row).find(
+              (k) => k.toLowerCase() === key.toLowerCase()
+            );
+            if (foundKey) rawData[field] = row[foundKey];
+          }
+
+          if (!rawData.nis) throw new Error("NIS missing");
+          const student = studentMap.get(String(rawData.nis));
+          if (!student)
+            throw new Error(
+              `Student with NIS ${rawData.nis} not found in this class`
+            );
+
+          // Calculate Meta
+          const scores = [];
+          if (rawData.dailyScore) scores.push(Number(rawData.dailyScore));
+          if (rawData.homeworkScore) scores.push(Number(rawData.homeworkScore));
+          if (rawData.midtermScore) scores.push(Number(rawData.midtermScore));
+          if (rawData.finalScore) scores.push(Number(rawData.finalScore));
+          if (rawData.practiceScore) scores.push(Number(rawData.practiceScore));
+
+          const averageScore =
+            scores.length > 0
+              ? scores.reduce((a, b) => a + b, 0) / scores.length
+              : undefined;
+
+          let letterGrade: string | undefined;
+          let predicate: string | undefined;
+          let letterGradeAr: string | undefined;
+
+          if (averageScore !== undefined) {
+            const result = await calculateGrade(
+              averageScore,
+              Number(subjectId)
+            );
+            letterGrade = result.letterGrade;
+            predicate = result.predicate;
+            letterGradeAr = result.letterGradeAr;
+          }
+
+          // Check Existing
+          const existing = await db.query.grades.findFirst({
+            where: and(
+              eq(grades.studentId, student.id),
+              eq(grades.subjectId, Number(subjectId)),
+              eq(grades.academicYear, String(academicYear)),
+              eq(grades.semester, Number(semester))
+            ),
+          });
+
+          const updatePayload = {
+            dailyScore: rawData.dailyScore ? String(rawData.dailyScore) : null,
+            homeworkScore: rawData.homeworkScore
+              ? String(rawData.homeworkScore)
+              : null,
+            midtermScore: rawData.midtermScore
+              ? String(rawData.midtermScore)
+              : null,
+            finalScore: rawData.finalScore ? String(rawData.finalScore) : null,
+            practiceScore: rawData.practiceScore
+              ? String(rawData.practiceScore)
+              : null,
+            averageScore: averageScore ? String(averageScore) : null,
+            letterGrade,
+            letterGradeAr,
+            predicate,
+          };
+
+          if (existing) {
+            await db
+              .update(grades)
+              .set(updatePayload)
+              .where(eq(grades.id, existing.id));
+          } else {
+            // Only insert if valid scores exist
+            if (scores.length > 0) {
+              await db.insert(grades).values({
+                studentId: student.id,
+                classId: Number(classId),
+                subjectId: Number(subjectId),
+                academicYear: String(academicYear),
+                semester: Number(semester),
+                ...updatePayload,
+              });
+            }
+          }
+          results.success++;
+        } catch (e: any) {
+          results.failed++;
+          results.errors.push({ row: rowNumber, error: e.message });
+        }
+      }
+
+      return c.json({ success: true, data: results });
+    } catch (error: any) {
+      console.error("Import grades error:", error);
+      return c.json({ success: false, message: error.message }, 500);
+    }
+  }
+);
 
 // Preview import subjects from Excel
 academicRoute.post(

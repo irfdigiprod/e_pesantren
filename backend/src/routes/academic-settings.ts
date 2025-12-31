@@ -113,7 +113,7 @@ app.delete("/academic-years/:year", async (c) => {
     // If deleted year was active, set first remaining as active
     const activeYear = await getSetting("active_academic_year");
     if (activeYear === yearToDelete && years.length > 0) {
-      await setSetting("active_academic_year", years[0]);
+      await setSetting("active_academic_year", years[0] as string);
     }
 
     return c.json({
@@ -181,46 +181,72 @@ app.put("/semesters/:id/active", async (c) => {
 app.get("/grading-rules", async (c) => {
   try {
     const rules = await getSetting("grading_rules");
-    // Default structure if empty
-    const defaultRules = [
+
+    // Default Global Rules Template
+    const defaultGlobalRules = [
       {
-        kkm: 75,
-        rules: [
-          {
-            min: 92,
-            max: 100,
-            predicate: "A",
-            descriptionId: "Sangat Baik",
-            descriptionAr: "Mumtaz",
-          },
-          {
-            min: 84,
-            max: 91,
-            predicate: "B",
-            descriptionId: "Baik",
-            descriptionAr: "Jayyid Jiddan",
-          },
-          {
-            min: 75,
-            max: 83,
-            predicate: "C",
-            descriptionId: "Cukup",
-            descriptionAr: "Jayyid",
-          },
-          {
-            min: 0,
-            max: 74,
-            predicate: "D",
-            descriptionId: "Kurang",
-            descriptionAr: "Maqbul",
-          },
-        ],
+        min: 92,
+        max: 100,
+        predicate: "A",
+        predicateAr: "ممتاز",
+        descriptionId: "Sangat Baik",
+        descriptionAr: "Mumtaz",
+      },
+      {
+        min: 84,
+        max: 91,
+        predicate: "B",
+        predicateAr: "جيد جدا",
+        descriptionId: "Baik",
+        descriptionAr: "Jayyid Jiddan",
+      },
+      {
+        min: 75,
+        max: 83,
+        predicate: "C",
+        predicateAr: "جيد",
+        descriptionId: "Cukup",
+        descriptionAr: "Jayyid",
+      },
+      {
+        min: 0,
+        max: 74,
+        predicate: "D",
+        predicateAr: "مقبول",
+        descriptionId: "Kurang",
+        descriptionAr: "Maqbul",
       },
     ];
 
+    if (!rules) {
+      return c.json({
+        success: true,
+        data: {
+          mode: "SPECIFIC",
+          globalRules: defaultGlobalRules,
+          specificRules: [], // Empty initially
+        },
+      });
+    }
+
+    const parsed = JSON.parse(rules);
+
+    // Migration: If it's an array (Legacy), wrap it
+    if (Array.isArray(parsed)) {
+      return c.json({
+        success: true,
+        data: {
+          mode: "SPECIFIC",
+          globalRules: defaultGlobalRules,
+          specificRules: parsed,
+        },
+      });
+    }
+
+    // Return as is if already new format
     return c.json({
       success: true,
-      data: rules ? JSON.parse(rules) : defaultRules,
+      data: parsed,
     });
   } catch (e: any) {
     return c.json({ success: false, message: e.message }, 500);
@@ -228,21 +254,25 @@ app.get("/grading-rules", async (c) => {
 });
 
 // POST /grading-rules - Save grading rules
-const gradingRulesSchema = z.array(
-  z.object({
-    kkm: z.number().min(0).max(100),
-    rules: z.array(
-      z.object({
-        min: z.number().min(0).max(100),
-        max: z.number().min(0).max(100),
-        predicate: z.string(),
-        predicateAr: z.string().optional(),
-        descriptionId: z.string(),
-        descriptionAr: z.string(),
-      })
-    ),
-  })
-);
+const ruleSchema = z.object({
+  min: z.number().min(0).max(100),
+  max: z.number().min(0).max(100),
+  predicate: z.string(),
+  predicateAr: z.string().optional(),
+  descriptionId: z.string(),
+  descriptionAr: z.string(),
+});
+
+const gradingRulesSchema = z.object({
+  mode: z.enum(["SPECIFIC", "GLOBAL"]),
+  globalRules: z.array(ruleSchema),
+  specificRules: z.array(
+    z.object({
+      kkm: z.number().min(0).max(100),
+      rules: z.array(ruleSchema),
+    })
+  ),
+});
 
 app.post(
   "/grading-rules",

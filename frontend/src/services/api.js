@@ -797,6 +797,28 @@ export const academicApi = {
   async saveGradesBulk(data) {
     return request("/api/academic/grades/bulk", { method: "POST", body: data });
   },
+  async importGradesPreview(formData) {
+    const token = getToken();
+    const res = await fetch(`${BASE_URL}/api/academic/grades/import/preview`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.message || "Preview failed");
+    return data;
+  },
+  async importGrades(formData) {
+    const token = getToken();
+    const res = await fetch(`${BASE_URL}/api/academic/grades/import`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.message || "Import failed");
+    return data;
+  },
 
   // Reports
   async getReports(params = {}) {

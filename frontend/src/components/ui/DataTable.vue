@@ -84,7 +84,7 @@
             />
           </div>
 
-          <div class="relative">
+          <div class="relative" v-if="!hideFilter">
             <button
               @click="showFilters = !showFilters"
               class="flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-200 text-sm text-slate-600 hover:bg-slate-50 transition-colors"
@@ -108,6 +108,8 @@
               <slot name="filters" :close="() => (showFilters = false)"></slot>
             </div>
           </div>
+
+          <slot name="toolbar-actions"></slot>
         </div>
       </div>
 
@@ -342,6 +344,10 @@ const props = defineProps({
   filterButtonLabel: {
     type: String,
     default: "Filters",
+  },
+  hideFilter: {
+    type: Boolean,
+    default: false,
   },
 });
 

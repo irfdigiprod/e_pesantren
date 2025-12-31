@@ -96,6 +96,7 @@ export const grades = mysqlTable("grades", {
   practiceScore: decimal("practice_score", { precision: 5, scale: 2 }),
   averageScore: decimal("average_score", { precision: 5, scale: 2 }),
   letterGrade: varchar("letter_grade", { length: 5 }), // A, B, C, D, E
+  letterGradeAr: varchar("letter_grade_ar", { length: 10 }), // أ, ب, ج, د, هـ
   predicate: varchar("predicate", { length: 50 }), // Sangat Baik, Baik, Cukup, Kurang
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow(),
