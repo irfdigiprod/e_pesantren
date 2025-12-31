@@ -31,12 +31,12 @@ const navItems = [
   },
   {
     label: "Absensi",
-    icon: "solar:square-academic-cap-line-duotone",
+    icon: "solar:map-point-school-line-duotone",
     route: "/mobile-dashboard/attendance",
   },
   {
     label: "Izin",
-    icon: "solar:clipboard-check-line-duotone",
+    icon: "solar:user-hand-up-line-duotone",
     route: "/mobile-dashboard/permissions",
   },
   {

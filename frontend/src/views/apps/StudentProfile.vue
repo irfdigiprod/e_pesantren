@@ -509,7 +509,7 @@
 
               <div class="flex flex-wrap gap-3">
                 <button
-                  @click="$router.push('/apps/students')"
+                  @click="goBackToList"
                   class="px-5 py-2.5 rounded-xl text-sm font-medium bg-white/10 hover:bg-white/20 transition-colors border border-white/10 flex items-center gap-2"
                 >
                   <Icon icon="solar:arrow-left-bold" />
@@ -909,7 +909,7 @@
 
 <script setup>
 import { ref, reactive, onMounted, computed } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { useRouter, useRoute } from "vue-router";
 import { Icon } from "@iconify/vue";
 import { studentsApi, parentsApi } from "@/services/api";
 import StatusModal from "@/components/ui/StatusModal.vue";
@@ -1389,6 +1389,14 @@ async function saveParent() {
     parentEditModal.error = err.message || "Terjadi kesalahan saat menyimpan";
   } finally {
     parentEditModal.saving = false;
+  }
+}
+
+function goBackToList() {
+  if (route.path.startsWith("/mobile-dashboard")) {
+    router.push("/mobile-dashboard/students");
+  } else {
+    router.push("/apps/students");
   }
 }
 </script>

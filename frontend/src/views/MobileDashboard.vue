@@ -151,7 +151,7 @@ const groupedMenuItems = [
     items: [
       {
         label: "Absensi Guru",
-        icon: "solar:watch-square-minimalistic-line-duotone",
+        icon: "solar:map-point-school-line-duotone",
         route: "/mobile-dashboard/attendance",
       },
       {
@@ -166,7 +166,7 @@ const groupedMenuItems = [
       },
       {
         label: "Divisi",
-        icon: "solar:sitemap-line-duotone",
+        icon: "solar:floor-lamp-line-duotone",
         route: "/mobile-dashboard/divisions",
       },
       {
@@ -177,12 +177,12 @@ const groupedMenuItems = [
       },
       {
         label: "Izin Saya",
-        icon: "solar:document-add-line-duotone",
+        icon: "solar:user-hand-up-line-duotone",
         route: "/mobile-dashboard/permissions",
       },
       {
         label: "Setuju Izin",
-        icon: "solar:check-read-line-duotone",
+        icon: "solar:bill-check-line-duotone",
         route: "/mobile-dashboard/approvals",
         adminOnly: true,
       },
@@ -198,7 +198,7 @@ const groupedMenuItems = [
       },
       {
         label: "Kamar",
-        icon: "solar:bed-line-duotone",
+        icon: "solar:sleeping-line-duotone",
         route: "/mobile-dashboard/rooms",
       },
       {
@@ -218,7 +218,7 @@ const groupedMenuItems = [
     items: [
       {
         label: "Kelas",
-        icon: "solar:black-hole-line-duotone",
+        icon: "solar:ruler-pen-line-duotone",
         route: "/mobile-dashboard/classes",
       },
       {
@@ -263,17 +263,17 @@ const groupedMenuItems = [
       },
       {
         label: "Ujian",
-        icon: "solar:test-tube-minimalistic-line-duotone",
+        icon: "solar:revote-line-duotone",
         route: "/mobile-dashboard/tahfidz-exams",
       },
       {
-        label: "Laporan",
-        icon: "solar:printer-line-duotone",
+        label: "Rapor",
+        icon: "solar:document-text-line-duotone",
         route: "/mobile-dashboard/tahfidz-reports",
       },
       {
         label: "Mading",
-        icon: "solar:blackboard-graph-line-duotone",
+        icon: "solar:presentation-graph-line-duotone",
         route: "/mobile-dashboard/tahfidz-mading",
       },
       {
@@ -370,12 +370,6 @@ const groupedMenuItems = [
         label: "Tentang",
         icon: "solar:info-circle-line-duotone",
         route: "/mobile-dashboard/about",
-      },
-      {
-        label: "Log Out",
-        icon: "solar:logout-2-line-duotone",
-        route: "/login",
-        isLogout: true,
       },
     ],
   },

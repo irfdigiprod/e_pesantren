@@ -66,6 +66,12 @@ const router = createRouter({
           meta: { title: "Data Santri" },
         },
         {
+          path: "students/:id",
+          name: "MobileStudentProfile",
+          component: () => import("@/views/apps/StudentProfile.vue"),
+          meta: { title: "Profil Santri" },
+        },
+        {
           path: "tahfidz",
           name: "MobileTahfidz",
           component: () => import("@/views/apps/tahfidz/TahfidzDashboard.vue"),

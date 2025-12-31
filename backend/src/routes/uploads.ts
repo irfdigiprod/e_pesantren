@@ -127,7 +127,10 @@ uploads.post("/", authMiddleware, async (c) => {
     });
   } catch (error) {
     console.error("Upload error:", error);
-    return c.json({ success: false, message: "Upload failed" }, 500);
+    return c.json(
+      { success: false, message: `Upload failed: ${(error as Error).message}` },
+      500
+    );
   }
 });
 
@@ -202,6 +205,10 @@ uploads.get("/:type/:filename", async (c) => {
 uploads.delete("/:type/:filename", authMiddleware, async (c) => {
   try {
     const { type, filename } = c.req.param();
+
+    if (!type || !filename) {
+      return c.json({ success: false, message: "Missing parameters" }, 400);
+    }
 
     if (!["image", "document", "audio", "video"].includes(type)) {
       return c.json({ success: false, message: "Invalid file type" }, 400);

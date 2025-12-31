@@ -668,7 +668,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from "vue";
-import { useRouter } from "vue-router";
+import { useRouter, useRoute } from "vue-router";
 import { studentsApi } from "@/services/api.js";
 import { Icon } from "@iconify/vue";
 import ConfirmModal from "@/components/ui/ConfirmModal.vue";
@@ -678,6 +678,7 @@ import StatusModal from "@/components/ui/StatusModal.vue";
 import AddressSelector from "@/components/ui/AddressSelector.vue";
 
 const router = useRouter();
+const route = useRoute();
 
 /* ---------- Config ---------- */
 // Columns Configuration for DataTable
@@ -1237,7 +1238,11 @@ function confirmCancel() {
 
 function openView(item) {
   // Navigate to StudentProfile page
-  router.push(`/apps/students/${item.id}`);
+  if (route.path.startsWith("/mobile-dashboard")) {
+    router.push(`/mobile-dashboard/students/${item.id}`);
+  } else {
+    router.push(`/apps/students/${item.id}`);
+  }
 }
 
 function viewClose() {

@@ -346,14 +346,8 @@ async function handleFileChange(event) {
 
   uploading.value = true;
   try {
-    const formData = new FormData();
-    formData.append("file", file);
-
     // Use existing uploads API
-    // Function needs to be added to api.js first, but assuming typical usage:
-    // Or directly call axios if api.js method not present yet.
-    // Let's implement uploadsApi.upload(formData) in api.js next.
-    const res = await uploadsApi.upload(formData);
+    const res = await uploadsApi.upload(file);
 
     if (res.success) {
       // The existing backend returns data.url as /api/uploads/image/...

@@ -1,6 +1,6 @@
 <!-- src/views/About.vue -->
 <template>
-  <div class="max-w-4xl mx-auto pb-12">
+  <div class="p-2 max-w-4xl mx-auto pb-12">
     <!-- Header -->
     <div class="mb-8">
       <h1 class="text-2xl font-bold text-slate-800">Tentang Aplikasi</h1>
@@ -53,7 +53,7 @@
         >
           <div class="flex items-center gap-4">
             <div
-              class="w-16 h-16 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center overflow-hidden"
+              class="w-16 h-16 rounded-xl bg-white flex items-center justify-center overflow-hidden"
             >
               <img
                 v-if="logoUrl"
