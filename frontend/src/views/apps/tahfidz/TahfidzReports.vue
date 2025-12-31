@@ -425,7 +425,7 @@
                     <td
                       class="border border-slate-300 px-1 py-1 bg-slate-50 font-medium text-center"
                     >
-                      Predikat
+                      Pred.
                     </td>
                     <td
                       v-for="j in 21"
@@ -501,7 +501,7 @@
                     <td
                       class="border border-slate-300 px-1 py-1 bg-slate-50 font-medium text-center"
                     >
-                      Predikat
+                      Pred.
                     </td>
                     <td
                       v-for="j in 9"
@@ -553,7 +553,7 @@
                       <th
                         class="border border-slate-300 px-1 text-center align-middle"
                       >
-                        Juz
+                        Juz ke
                       </th>
                     </tr>
                     <!-- Data Rows -->
@@ -575,7 +575,14 @@
                       >
                         {{ m.halaman }}
                       </td>
-                      <td class="border border-slate-300 px-1 align-middle">
+                      <td
+                        class="border border-slate-300 px-1 text-center align-middle"
+                        :class="{
+                          'text-[6pt]': m.juz.length > 15,
+                          'text-[7pt]': m.juz.length > 10 && m.juz.length <= 15,
+                          'text-[8pt]': m.juz.length > 5 && m.juz.length <= 10,
+                        }"
+                      >
                         {{ m.juz }}
                       </td>
                     </tr>

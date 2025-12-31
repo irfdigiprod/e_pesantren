@@ -30,6 +30,7 @@ import {
 } from "drizzle-orm";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
+import { getJuzFromPage, getJuzFromSurah } from "../utils/quran-mapping";
 
 const app = new Hono();
 
@@ -1191,6 +1192,7 @@ app.get("/report-card/:studentId", async (c) => {
 
     // 4. Get Cumulative Hafalan (Total Pages)
     // Logic from daily-summary
+    // Update: Filter by Academic Year & Semester Date Range
     const ziyadah = await db
       .select()
       .from(tahfidzDeposits)
@@ -1307,13 +1309,36 @@ app.get("/report-card/:studentId", async (c) => {
       target = allTargets[0] || { targetPages: 50, level: "Default" };
 
     // 7. Calculate Mading Data (Monthly Ziyadah)
+    // Filter Ziyadah by Academic Year & Semester
+    const years = academicYear.split(/[-/]/).map(Number);
+    let startDate: Date;
+    let endDate: Date;
+    const isGenap =
+      String(semester).toLowerCase().includes("2") ||
+      String(semester).toLowerCase().includes("genap");
+
+    if (isGenap) {
+      const year = years[1] || years[0] + 1;
+      startDate = new Date(`${year}-01-01`);
+      endDate = new Date(`${year}-06-30`);
+    } else {
+      const year = years[0];
+      startDate = new Date(`${year}-07-01`);
+      endDate = new Date(`${year}-12-31`);
+    }
+
+    const madingZiyadah = ziyadah.filter((d) => {
+      const date = new Date(d.depositDate);
+      return date >= startDate && date <= endDate;
+    });
+
     // Group by Month-Year
     const madingMap = new Map<
       string,
       { month: number; year: number; pages: number; juzSet: Set<number> }
     >();
 
-    ziyadah.forEach((d) => {
+    madingZiyadah.forEach((d) => {
       const date = new Date(d.depositDate);
       const key = `${date.getFullYear()}-${date.getMonth()}`;
       if (!madingMap.has(key)) {
@@ -1331,7 +1356,22 @@ app.get("/report-card/:studentId", async (c) => {
       else if (d.pageNumber) p = 1;
       entry.pages += p;
 
-      if (d.juz) entry.juzSet.add(d.juz);
+      // Infer Juz logic
+      if (d.juz) {
+        entry.juzSet.add(d.juz);
+      } else if (d.startPage) {
+        // Try page
+        const derived = getJuzFromPage(d.startPage);
+        if (derived > 0) entry.juzSet.add(derived);
+      } else if (d.startSurah) {
+        // Try surah
+        const derived = getJuzFromSurah(d.startSurah);
+        if (derived > 0) entry.juzSet.add(derived);
+      } else if (d.pageNumber) {
+        // Legacy page
+        const derived = getJuzFromPage(d.pageNumber);
+        if (derived > 0) entry.juzSet.add(derived);
+      }
     });
 
     const monthNames = [
@@ -1350,11 +1390,34 @@ app.get("/report-card/:studentId", async (c) => {
     ];
 
     // Convert to array and sort
+    // Helper to format Juz set into compact ranges
+    const formatJuzRanges = (juzSet: Set<number>): string => {
+      if (juzSet.size === 0) return "-";
+      const sorted = Array.from(juzSet).sort((a, b) => a - b);
+      if (sorted.length === 1) return String(sorted[0]);
+
+      const ranges: string[] = [];
+      let start = sorted[0];
+      let end = sorted[0];
+
+      for (let i = 1; i < sorted.length; i++) {
+        if (sorted[i] === end + 1) {
+          end = sorted[i];
+        } else {
+          ranges.push(start === end ? String(start) : `${start}-${end}`);
+          start = sorted[i];
+          end = sorted[i];
+        }
+      }
+      ranges.push(start === end ? String(start) : `${start}-${end}`);
+      return ranges.join(", ");
+    };
+
     const madingData = Array.from(madingMap.values())
       .map((m) => ({
         bulan: monthNames[m.month],
         halaman: Number(m.pages.toFixed(2)),
-        juz: m.juzSet.size > 0 ? `${Array.from(m.juzSet).join(", ")}` : "-", // Just listing juz involved
+        juz: formatJuzRanges(m.juzSet),
       }))
       // Sort by time? The map iteration order is not guaranteed, but usually insertion order.
       // Better to sort by month index if needed, but for now relying on DB order (though filtered separately).
