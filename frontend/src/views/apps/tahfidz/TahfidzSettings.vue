@@ -1,5 +1,5 @@
 <template>
-  <div class="max-w-4xl mx-auto pb-12">
+  <div class="p-2 max-w-4xl mx-auto pb-12">
     <!-- Header -->
     <div class="mb-6">
       <h1 class="text-2xl font-bold text-slate-800">Pengaturan Tahfidz</h1>
