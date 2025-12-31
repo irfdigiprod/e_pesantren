@@ -218,204 +218,206 @@
     </DataTable>
 
     <!-- Modal Form -->
-    <div
-      v-if="modal.show"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4"
-    >
+    <Teleport to="body">
       <div
-        class="bg-white w-full max-w-lg rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+        v-if="modal.show"
+        class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4"
       >
         <div
-          class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50"
+          class="bg-white w-full max-w-lg rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
         >
-          <h3 class="font-bold text-lg text-slate-800">
-            {{ modal.mode === "create" ? "Tambah" : "Edit" }} Mata Pelajaran
-          </h3>
-          <button
-            @click="closeModal"
-            class="text-slate-400 hover:text-slate-600"
-          >
-            <Icon icon="solar:close-circle-bold" class="w-6 h-6" />
-          </button>
-        </div>
-
-        <div class="p-6 overflow-y-auto space-y-4">
-          <!-- Kode (Auto) -->
           <div
-            v-if="form.code"
-            class="bg-slate-50 p-3 rounded-lg border border-slate-200"
+            class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50"
           >
-            <label class="text-xs font-bold text-slate-500 uppercase"
-              >Kode Mapel</label
+            <h3 class="font-bold text-lg text-slate-800">
+              {{ modal.mode === "create" ? "Tambah" : "Edit" }} Mata Pelajaran
+            </h3>
+            <button
+              @click="closeModal"
+              class="text-slate-400 hover:text-slate-600"
             >
-            <div class="font-mono text-slate-700 font-bold">
-              {{ form.code }}
-            </div>
-            <div class="text-[10px] text-slate-400 mt-1">
-              Kode digenerate otomatis
-            </div>
+              <Icon icon="solar:close-circle-bold" class="w-6 h-6" />
+            </button>
           </div>
 
-          <!-- Names -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-slate-700 mb-1"
-                >Nama (Indonesia) <span class="text-red-500">*</span></label
-              >
-              <input
-                v-model="form.name"
-                class="w-full px-3 py-2 border border-slate-200 rounded-lg outline-none focus:border-[#602515] focus:ring-1 focus:ring-[#602515]"
-                placeholder="Contoh: Matematika"
-              />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-slate-700 mb-1"
-                >Nama (Arab)</label
-              >
-              <input
-                v-model="form.nameAr"
-                class="w-full px-3 py-2 border border-slate-200 rounded-lg outline-none focus:border-[#602515] focus:ring-1 focus:ring-[#602515] text-right font-arabic"
-                placeholder="الرياضيات"
-                dir="rtl"
-              />
-            </div>
-          </div>
-
-          <!-- KKM & Category -->
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-slate-700 mb-1"
-                >KKM</label
-              >
-              <input
-                v-model="form.kkm"
-                type="number"
-                min="0"
-                max="100"
-                class="w-full px-3 py-2 border border-slate-200 rounded-lg outline-none focus:border-[#602515]"
-              />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-slate-700 mb-1"
-                >Kategori</label
-              >
-              <select
-                v-model="form.category"
-                class="w-full px-3 py-2 border border-slate-200 rounded-lg outline-none focus:border-[#602515]"
-              >
-                <option value="">-- Pilih --</option>
-                <option value="Diniyah">Diniyah (Agama)</option>
-                <option value="Umum">Umum</option>
-                <option value="Tahfidz">Tahfidz</option>
-                <option value="Bahasa">Bahasa</option>
-                <option value="Mulok">Muatan Lokal</option>
-              </select>
-            </div>
-          </div>
-
-          <!-- Grades Checklist -->
-          <div>
-            <label class="block text-sm font-medium text-slate-700 mb-2"
-              >Tingkat Kelas</label
-            >
+          <div class="p-6 overflow-y-auto space-y-4">
+            <!-- Kode (Auto) -->
             <div
-              v-if="availableGrades.length === 0"
-              class="text-sm text-slate-500 italic"
+              v-if="form.code"
+              class="bg-slate-50 p-3 rounded-lg border border-slate-200"
             >
-              Tidak ada data kelas ditemukan.
-            </div>
-            <div class="grid grid-cols-3 gap-2">
-              <label
-                v-for="grade in availableGrades"
-                :key="grade"
-                class="flex items-center gap-2 p-2 border rounded-lg cursor-pointer hover:bg-slate-50 transition-colors"
-                :class="
-                  form.grades.includes(grade)
-                    ? 'border-[#602515] bg-[#602515]/5'
-                    : 'border-slate-200'
-                "
+              <label class="text-xs font-bold text-slate-500 uppercase"
+                >Kode Mapel</label
               >
+              <div class="font-mono text-slate-700 font-bold">
+                {{ form.code }}
+              </div>
+              <div class="text-[10px] text-slate-400 mt-1">
+                Kode digenerate otomatis
+              </div>
+            </div>
+
+            <!-- Names -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1"
+                  >Nama (Indonesia) <span class="text-red-500">*</span></label
+                >
                 <input
-                  type="checkbox"
-                  :value="grade"
-                  v-model="form.grades"
-                  class="rounded text-[#602515] focus:ring-[#602515]"
+                  v-model="form.name"
+                  class="w-full px-3 py-2 border border-slate-200 rounded-lg outline-none focus:border-[#602515] focus:ring-1 focus:ring-[#602515]"
+                  placeholder="Contoh: Matematika"
                 />
-                <span class="text-sm font-medium">Kelas {{ grade }}</span>
-              </label>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1"
+                  >Nama (Arab)</label
+                >
+                <input
+                  v-model="form.nameAr"
+                  class="w-full px-3 py-2 border border-slate-200 rounded-lg outline-none focus:border-[#602515] focus:ring-1 focus:ring-[#602515] text-right font-arabic"
+                  placeholder="الرياضيات"
+                  dir="rtl"
+                />
+              </div>
             </div>
-            <p class="text-xs text-slate-400 mt-2">
-              Pilih kelas yang mempelajari mapel ini.
-            </p>
-          </div>
 
-          <!-- Urutan & Deskripsi -->
-          <div class="grid grid-cols-2 gap-4">
+            <!-- KKM & Category -->
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1"
+                  >KKM</label
+                >
+                <input
+                  v-model="form.kkm"
+                  type="number"
+                  min="0"
+                  max="100"
+                  class="w-full px-3 py-2 border border-slate-200 rounded-lg outline-none focus:border-[#602515]"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1"
+                  >Kategori</label
+                >
+                <select
+                  v-model="form.category"
+                  class="w-full px-3 py-2 border border-slate-200 rounded-lg outline-none focus:border-[#602515]"
+                >
+                  <option value="">-- Pilih --</option>
+                  <option value="Diniyah">Diniyah (Agama)</option>
+                  <option value="Umum">Umum</option>
+                  <option value="Tahfidz">Tahfidz</option>
+                  <option value="Bahasa">Bahasa</option>
+                  <option value="Mulok">Muatan Lokal</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Grades Checklist -->
             <div>
-              <label class="block text-sm font-medium text-slate-700 mb-1"
-                >Urutan Rapor</label
+              <label class="block text-sm font-medium text-slate-700 mb-2"
+                >Tingkat Kelas</label
               >
-              <input
-                v-model="form.sortOrder"
-                type="number"
-                class="w-full px-3 py-2 border border-slate-200 rounded-lg outline-none focus:border-[#602515]"
-                placeholder="1"
-              />
+              <div
+                v-if="availableGrades.length === 0"
+                class="text-sm text-slate-500 italic"
+              >
+                Tidak ada data kelas ditemukan.
+              </div>
+              <div class="grid grid-cols-3 gap-2">
+                <label
+                  v-for="grade in availableGrades"
+                  :key="grade"
+                  class="flex items-center gap-2 p-2 border rounded-lg cursor-pointer hover:bg-slate-50 transition-colors"
+                  :class="
+                    form.grades.includes(grade)
+                      ? 'border-[#602515] bg-[#602515]/5'
+                      : 'border-slate-200'
+                  "
+                >
+                  <input
+                    type="checkbox"
+                    :value="grade"
+                    v-model="form.grades"
+                    class="rounded text-[#602515] focus:ring-[#602515]"
+                  />
+                  <span class="text-sm font-medium">Kelas {{ grade }}</span>
+                </label>
+              </div>
+              <p class="text-xs text-slate-400 mt-2">
+                Pilih kelas yang mempelajari mapel ini.
+              </p>
+            </div>
+
+            <!-- Urutan & Deskripsi -->
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1"
+                  >Urutan Rapor</label
+                >
+                <input
+                  v-model="form.sortOrder"
+                  type="number"
+                  class="w-full px-3 py-2 border border-slate-200 rounded-lg outline-none focus:border-[#602515]"
+                  placeholder="1"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1"
+                  >Jml Jam (SKS)</label
+                >
+                <input
+                  v-model="form.creditHours"
+                  type="number"
+                  min="0"
+                  class="w-full px-3 py-2 border border-slate-200 rounded-lg outline-none focus:border-[#602515]"
+                  placeholder="2"
+                />
+              </div>
             </div>
             <div>
               <label class="block text-sm font-medium text-slate-700 mb-1"
-                >Jml Jam (SKS)</label
+                >Deskripsi</label
               >
-              <input
-                v-model="form.creditHours"
-                type="number"
-                min="0"
+              <textarea
+                v-model="form.description"
+                rows="2"
                 class="w-full px-3 py-2 border border-slate-200 rounded-lg outline-none focus:border-[#602515]"
-                placeholder="2"
-              />
+              ></textarea>
             </div>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1"
-              >Deskripsi</label
+
+            <!-- Errors -->
+            <div
+              v-if="modal.error"
+              class="bg-red-50 text-red-600 text-sm p-3 rounded-lg flex items-center gap-2"
             >
-            <textarea
-              v-model="form.description"
-              rows="2"
-              class="w-full px-3 py-2 border border-slate-200 rounded-lg outline-none focus:border-[#602515]"
-            ></textarea>
+              <Icon icon="solar:danger-triangle-bold" />
+              {{ modal.error }}
+            </div>
           </div>
 
-          <!-- Errors -->
           <div
-            v-if="modal.error"
-            class="bg-red-50 text-red-600 text-sm p-3 rounded-lg flex items-center gap-2"
+            class="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3"
           >
-            <Icon icon="solar:danger-triangle-bold" />
-            {{ modal.error }}
+            <button
+              @click="closeModal"
+              class="px-4 py-2 text-slate-600 font-medium hover:bg-slate-200 rounded-lg transition-colors border border-slate-200 bg-white"
+            >
+              Batal
+            </button>
+            <button
+              @click="submitForm"
+              :disabled="saving"
+              class="px-4 py-2 bg-[#602515] text-white font-medium rounded-lg hover:bg-[#4a1c10] transition-colors disabled:opacity-50 flex items-center gap-2"
+            >
+              <Icon v-if="saving" icon="svg-spinners:ring-resize" />
+              {{ saving ? "Menyimpan..." : "Simpan Mapel" }}
+            </button>
           </div>
-        </div>
-
-        <div
-          class="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3"
-        >
-          <button
-            @click="closeModal"
-            class="px-4 py-2 text-slate-600 font-medium hover:bg-slate-200 rounded-lg transition-colors border border-slate-200 bg-white"
-          >
-            Batal
-          </button>
-          <button
-            @click="submitForm"
-            :disabled="saving"
-            class="px-4 py-2 bg-[#602515] text-white font-medium rounded-lg hover:bg-[#4a1c10] transition-colors disabled:opacity-50 flex items-center gap-2"
-          >
-            <Icon v-if="saving" icon="svg-spinners:ring-resize" />
-            {{ saving ? "Menyimpan..." : "Simpan Mapel" }}
-          </button>
         </div>
       </div>
-    </div>
+    </Teleport>
 
     <!-- Confirm Dialog -->
     <ConfirmModal

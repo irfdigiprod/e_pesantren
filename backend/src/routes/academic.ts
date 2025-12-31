@@ -23,6 +23,56 @@ import {
   updateReportSchema,
 } from "../validators/academic";
 
+// Helper to check for duplicate subjects with overlapping grades
+// Returns object with isDuplicate boolean and message details if any
+async function checkDuplicateSubject(
+  name: string,
+  gradesStr: string | null | undefined,
+  excludeId?: number
+) {
+  // Find all subjects with same name (limit to reasonable amount if needed, but names are usually unique-ish)
+  const candidates = await db.query.subjects.findMany({
+    where: eq(subjects.name, name),
+  });
+
+  for (const sub of candidates) {
+    if (excludeId && sub.id === excludeId) continue;
+
+    // Parse grades
+    let g1: number[] = [];
+    try {
+      g1 = sub.grades ? JSON.parse(sub.grades) : [];
+    } catch {
+      g1 = [];
+    }
+
+    let g2: number[] = [];
+    try {
+      g2 = gradesStr ? JSON.parse(gradesStr) : [];
+    } catch {
+      g2 = [];
+    }
+
+    if (!Array.isArray(g1)) g1 = [];
+    if (!Array.isArray(g2)) g2 = [];
+
+    // Overlap logic:
+    // If g1 is empty OR g2 is empty => Means "All Grades", so it overlaps with everything.
+    // If both have values => Check intersection.
+    const isOverlap =
+      g1.length === 0 || g2.length === 0 || g1.some((x: any) => g2.includes(x));
+
+    if (isOverlap) {
+      const g1Str = g1.length === 0 ? "Semua Kelas" : `Kelas ${g1.join(", ")}`;
+      return {
+        isDuplicate: true,
+        message: `Mata pelajaran '${name}' sudah ada untuk ${g1Str}`,
+      };
+    }
+  }
+  return { isDuplicate: false };
+}
+
 const academicRoute = new Hono();
 
 // Apply auth to all routes
@@ -499,7 +549,16 @@ academicRoute.post(
     try {
       const data = c.req.valid("json");
 
-      const result = await db.insert(subjects).values(data);
+      // VALIDATE: Check duplicate subject name + grade overlap
+      const dupCheck = await checkDuplicateSubject(data.name, data.grades);
+      if (dupCheck.isDuplicate) {
+        return c.json({ success: false, message: dupCheck.message }, 400);
+      }
+
+      const result = await db.insert(subjects).values({
+        ...data,
+        kkm: String(data.kkm),
+      });
 
       const newSubject = await db.query.subjects.findFirst({
         where: eq(subjects.id, Number(result[0].insertId)),
@@ -530,9 +589,36 @@ academicRoute.put(
       const id = parseInt(c.req.param("id"));
       const data = c.req.valid("json");
 
+      // VALIDATE: Check duplicate subject name + grade overlap (exclude current id)
+      if (data.name) {
+        // We need to fetch existing subject first to know its grades if not provided in update?
+        // Actually update usually provides full payload or partial.
+        // If partial name provided but grades not, we should check against existing grades?
+        // Simplification: Ask client to provide both or fetch existing here.
+        const existing = await db.query.subjects.findFirst({
+          where: eq(subjects.id, id),
+        });
+        if (!existing)
+          return c.json({ success: false, message: "Subject not found" }, 404);
+
+        const gradesToCheck =
+          data.grades !== undefined ? data.grades : existing.grades;
+        const dupCheck = await checkDuplicateSubject(
+          data.name,
+          gradesToCheck,
+          id
+        );
+        if (dupCheck.isDuplicate) {
+          return c.json({ success: false, message: dupCheck.message }, 400);
+        }
+      }
+
       await db
         .update(subjects)
-        .set({ ...data })
+        .set({
+          ...data,
+          kkm: data.kkm ? String(data.kkm) : undefined,
+        })
         .where(eq(subjects.id, id));
 
       const updated = await db.query.subjects.findFirst({
@@ -1215,9 +1301,17 @@ academicRoute.post(
         validRows: 0,
         invalidRows: 0,
         duplicateCode: 0, // Stats for duplicate entries
+        duplicateName: 0, // Stats for overlapping name
         errors: [] as { row: number; code: string; error: string }[],
         validData: [] as any[],
       };
+
+      // Internal cache to check duplicates within the Excel file itself
+      // Map: Name -> Array of { row, grades: number[] }
+      const internalCache = new Map<
+        string,
+        { row: number; grades: number[] }[]
+      >();
 
       for (let i = 0; i < data.length; i++) {
         const row = data[i];
@@ -1241,23 +1335,27 @@ academicRoute.post(
           }
 
           // Parse Grades: "1,2,3" -> JSON string "[1,2,3]"
+          let parsedGrades: number[] = [];
           if (subjectData.grades) {
             const gStr = String(subjectData.grades);
             const gArr = gStr
               .split(",")
               .map((s) => Number(s.trim()))
               .filter((n) => !isNaN(n));
+            parsedGrades = gArr;
             if (gArr.length > 0) {
               subjectData.grades = JSON.stringify(gArr);
             } else {
               if (!isNaN(Number(subjectData.grades))) {
-                subjectData.grades = JSON.stringify([
-                  Number(subjectData.grades),
-                ]);
+                const val = Number(subjectData.grades);
+                parsedGrades = [val];
+                subjectData.grades = JSON.stringify([val]);
               } else {
                 subjectData.grades = "[]";
               }
             }
+          } else {
+            subjectData.grades = "[]"; // Default to empty array if no grades specified
           }
 
           // Check Duplicates by Code
@@ -1269,6 +1367,41 @@ academicRoute.post(
               preview.duplicateCode++;
               throw new Error(`Kode mapel '${subjectData.code}' sudah ada`);
             }
+          }
+
+          // CHECK DUPLICATE BY NAME & GRADE OVERLAP (DB)
+          const dupDB = await checkDuplicateSubject(
+            subjectData.name,
+            subjectData.grades
+          );
+          if (dupDB.isDuplicate) {
+            preview.duplicateName++;
+            throw new Error(dupDB.message!);
+          }
+
+          // CHECK DUPLICATE WITHIN FILE
+          if (internalCache.has(subjectData.name)) {
+            const cachedEntries = internalCache.get(subjectData.name)!;
+            for (const entry of cachedEntries) {
+              // Overlap logic
+              const g1 = entry.grades;
+              const g2 = parsedGrades;
+              const isOverlap =
+                g1.length === 0 ||
+                g2.length === 0 ||
+                g1.some((x) => g2.includes(x));
+              if (isOverlap) {
+                preview.duplicateName++;
+                throw new Error(
+                  `Duplikat dengan baris ${entry.row} (Nama & Kelas bertabrakan)`
+                );
+              }
+            }
+            cachedEntries.push({ row: rowNumber, grades: parsedGrades });
+          } else {
+            internalCache.set(subjectData.name, [
+              { row: rowNumber, grades: parsedGrades },
+            ]);
           }
 
           preview.validRows++;
@@ -1336,6 +1469,10 @@ academicRoute.post(
       };
 
       const results = { success: 0, failed: 0, errors: [] as any[] };
+      const internalCache = new Map<
+        string,
+        { row: number; grades: number[] }[]
+      >();
 
       for (let i = 0; i < data.length; i++) {
         const row = data[i];
@@ -1350,19 +1487,24 @@ academicRoute.post(
           if (!rawData.name) throw new Error("Nama wajib diisi");
 
           // Process Grades
+          let parsedGrades: number[] = [];
           if (rawData.grades) {
             const gStr = String(rawData.grades);
             const gArr = gStr
               .split(",")
               .map((s) => Number(s.trim()))
               .filter((n) => !isNaN(n));
+            parsedGrades = gArr;
             if (gArr.length > 0) {
               rawData.grades = JSON.stringify(gArr);
             } else if (!isNaN(Number(rawData.grades))) {
+              parsedGrades = [Number(rawData.grades)];
               rawData.grades = JSON.stringify([Number(rawData.grades)]);
             } else {
               rawData.grades = "[]";
             }
+          } else {
+            rawData.grades = "[]";
           }
 
           // Check Duplicate Code
@@ -1380,6 +1522,39 @@ academicRoute.post(
               .replace(/[^A-Z]/g, "X");
             const random = Math.floor(1000 + Math.random() * 9000);
             rawData.code = `${prefix}-${random}`;
+          }
+
+          // CHECK DUPLICATE BY NAME & GRADE OVERLAP (DB)
+          const dupDB = await checkDuplicateSubject(
+            rawData.name,
+            rawData.grades
+          );
+          if (dupDB.isDuplicate) {
+            throw new Error(dupDB.message!);
+          }
+
+          // CHECK DUPLICATE WITHIN FILE
+          if (internalCache.has(rawData.name)) {
+            const cachedEntries = internalCache.get(rawData.name)!;
+            for (const entry of cachedEntries) {
+              // Overlap logic
+              const g1 = entry.grades;
+              const g2 = parsedGrades;
+              const isOverlap =
+                g1.length === 0 ||
+                g2.length === 0 ||
+                g1.some((x) => g2.includes(x));
+              if (isOverlap) {
+                throw new Error(
+                  `Duplikat dengan baris ${entry.row} (Nama & Kelas bertabrakan)`
+                );
+              }
+            }
+            cachedEntries.push({ row: rowNumber, grades: parsedGrades });
+          } else {
+            internalCache.set(rawData.name, [
+              { row: rowNumber, grades: parsedGrades },
+            ]);
           }
 
           await db.insert(subjects).values({
