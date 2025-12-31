@@ -1,0 +1,180 @@
+import { Hono } from "hono";
+import { db } from "../db";
+import { settings } from "../db/schema";
+import { eq } from "drizzle-orm";
+import { z } from "zod";
+import { zValidator } from "@hono/zod-validator";
+
+const app = new Hono();
+
+// Helper to get setting value
+async function getSetting(key: string): Promise<string | null> {
+  const result = await db.query.settings.findFirst({
+    where: eq(settings.key, key),
+  });
+  return result?.value || null;
+}
+
+// Helper to set setting value
+async function setSetting(key: string, value: string): Promise<void> {
+  const existing = await db.query.settings.findFirst({
+    where: eq(settings.key, key),
+  });
+  if (existing) {
+    await db.update(settings).set({ value }).where(eq(settings.key, key));
+  } else {
+    await db.insert(settings).values({ key, value });
+  }
+}
+
+// GET /active - Get current active academic year & semester
+app.get("/active", async (c) => {
+  try {
+    const activeYear = await getSetting("active_academic_year");
+    const activeSemester = await getSetting("active_semester");
+
+    return c.json({
+      success: true,
+      data: {
+        academicYear: activeYear || "2024-2025",
+        semester: activeSemester || "1",
+      },
+    });
+  } catch (e: any) {
+    return c.json({ success: false, message: e.message }, 500);
+  }
+});
+
+// GET /academic-years - List all academic years
+app.get("/academic-years", async (c) => {
+  try {
+    const yearsJson = await getSetting("academic_years");
+    const years = yearsJson ? JSON.parse(yearsJson) : [];
+    const activeYear = await getSetting("active_academic_year");
+
+    return c.json({
+      success: true,
+      data: years.map((y: string) => ({
+        year: y,
+        isActive: y === activeYear,
+      })),
+    });
+  } catch (e: any) {
+    return c.json({ success: false, message: e.message }, 500);
+  }
+});
+
+// POST /academic-years - Add new academic year
+const addYearSchema = z.object({
+  year: z.string().regex(/^\d{4}-\d{4}$/, "Format: YYYY-YYYY"),
+});
+
+app.post("/academic-years", zValidator("json", addYearSchema), async (c) => {
+  try {
+    const { year } = c.req.valid("json");
+    const yearsJson = await getSetting("academic_years");
+    const years: string[] = yearsJson ? JSON.parse(yearsJson) : [];
+
+    if (years.includes(year)) {
+      return c.json(
+        { success: false, message: "Tahun pelajaran sudah ada" },
+        400
+      );
+    }
+
+    years.push(year);
+    years.sort().reverse(); // Newest first
+    await setSetting("academic_years", JSON.stringify(years));
+
+    // If this is the first year, set it as active
+    if (years.length === 1) {
+      await setSetting("active_academic_year", year);
+    }
+
+    return c.json({
+      success: true,
+      message: "Tahun pelajaran berhasil ditambahkan",
+    });
+  } catch (e: any) {
+    return c.json({ success: false, message: e.message }, 500);
+  }
+});
+
+// DELETE /academic-years/:year - Delete academic year
+app.delete("/academic-years/:year", async (c) => {
+  try {
+    const yearToDelete = c.req.param("year");
+    const yearsJson = await getSetting("academic_years");
+    let years: string[] = yearsJson ? JSON.parse(yearsJson) : [];
+
+    years = years.filter((y) => y !== yearToDelete);
+    await setSetting("academic_years", JSON.stringify(years));
+
+    // If deleted year was active, set first remaining as active
+    const activeYear = await getSetting("active_academic_year");
+    if (activeYear === yearToDelete && years.length > 0) {
+      await setSetting("active_academic_year", years[0]);
+    }
+
+    return c.json({
+      success: true,
+      message: "Tahun pelajaran berhasil dihapus",
+    });
+  } catch (e: any) {
+    return c.json({ success: false, message: e.message }, 500);
+  }
+});
+
+// PUT /academic-years/:year/active - Set active academic year
+app.put("/academic-years/:year/active", async (c) => {
+  try {
+    const year = c.req.param("year");
+    await setSetting("active_academic_year", year);
+
+    return c.json({
+      success: true,
+      message: "Tahun pelajaran aktif berhasil diubah",
+    });
+  } catch (e: any) {
+    return c.json({ success: false, message: e.message }, 500);
+  }
+});
+
+// GET /semesters - Get semesters with active status
+app.get("/semesters", async (c) => {
+  try {
+    const activeSemester = await getSetting("active_semester");
+
+    return c.json({
+      success: true,
+      data: [
+        {
+          id: "1",
+          name: "Ganjil",
+          isActive: activeSemester === "1" || !activeSemester,
+        },
+        { id: "2", name: "Genap", isActive: activeSemester === "2" },
+      ],
+    });
+  } catch (e: any) {
+    return c.json({ success: false, message: e.message }, 500);
+  }
+});
+
+// PUT /semesters/:id/active - Set active semester
+app.put("/semesters/:id/active", async (c) => {
+  try {
+    const semesterId = c.req.param("id");
+    if (semesterId !== "1" && semesterId !== "2") {
+      return c.json({ success: false, message: "Semester tidak valid" }, 400);
+    }
+
+    await setSetting("active_semester", semesterId);
+
+    return c.json({ success: true, message: "Semester aktif berhasil diubah" });
+  } catch (e: any) {
+    return c.json({ success: false, message: e.message }, 500);
+  }
+});
+
+export default app;

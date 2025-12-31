@@ -399,8 +399,13 @@
                     class="w-full px-3 py-2 border rounded-lg focus:ring-2 ring-[#602515]/20 outline-none"
                     required
                   >
-                    <option value="2024-2025">2024-2025</option>
-                    <option value="2025-2026">2025-2026</option>
+                    <option
+                      v-for="y in academicYears"
+                      :key="y.year"
+                      :value="y.year"
+                    >
+                      {{ y.year }}{{ y.isActive ? " (Aktif)" : "" }}
+                    </option>
                   </select>
                 </div>
                 <div>
@@ -412,8 +417,13 @@
                     class="w-full px-3 py-2 border rounded-lg focus:ring-2 ring-[#602515]/20 outline-none"
                     required
                   >
-                    <option value="ganjil">Ganjil</option>
-                    <option value="genap">Genap</option>
+                    <option
+                      v-for="s in semesters"
+                      :key="s.id"
+                      :value="s.name.toLowerCase()"
+                    >
+                      {{ s.name }}{{ s.isActive ? " (Aktif)" : "" }}
+                    </option>
                   </select>
                 </div>
                 <div class="space-y-3">
@@ -696,6 +706,7 @@ import {
   authApi,
   academicApi,
   halaqahApi,
+  academicSettingsApi,
 } from "@/services/api";
 
 const loading = ref(false);
@@ -715,6 +726,8 @@ const studentsList = ref([]);
 const teachersList = ref([]);
 const classesList = ref([]);
 const halaqahList = ref([]);
+const academicYears = ref([]);
+const semesters = ref([]);
 const filteredStudents = ref([]);
 const studentSearch = ref("");
 const showStudentDropdown = ref(false);
@@ -1149,7 +1162,25 @@ async function submitExam() {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   loadData();
+  // Load academic settings for form dropdowns
+  try {
+    const [yearsRes, semsRes, activeRes] = await Promise.all([
+      academicSettingsApi.getAcademicYears(),
+      academicSettingsApi.getSemesters(),
+      academicSettingsApi.getActive(),
+    ]);
+    academicYears.value = yearsRes.data || [];
+    semesters.value = semsRes.data || [];
+    // Set form defaults to active values
+    form.academicYear =
+      activeRes.data?.academicYear ||
+      academicYears.value[0]?.year ||
+      "2024-2025";
+    form.semester = activeRes.data?.semester === "2" ? "genap" : "ganjil";
+  } catch (e) {
+    console.error("Failed to load academic settings:", e);
+  }
 });
 </script>

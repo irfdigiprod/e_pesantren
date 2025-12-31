@@ -351,6 +351,11 @@ const groupedMenuItems = [
         icon: "solar:gallery-wide-line-duotone",
         route: "/mobile-dashboard/settings-information-board",
       },
+      {
+        label: "Akademik",
+        icon: "solar:calendar-line-duotone",
+        route: "/mobile-dashboard/settings-academic",
+      },
     ],
   },
   {

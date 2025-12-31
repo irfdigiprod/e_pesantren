@@ -66,8 +66,13 @@
                 v-model="academicYear"
                 class="w-full px-3 py-2 border rounded-lg focus:ring-2 ring-[#602515]/20 outline-none"
               >
-                <option value="2025-2026">2025-2026</option>
-                <option value="2024-2025">2024-2025</option>
+                <option
+                  v-for="y in academicYears"
+                  :key="y.year"
+                  :value="y.year"
+                >
+                  {{ y.year }}{{ y.isActive ? " (Aktif)" : "" }}
+                </option>
               </select>
             </div>
 
@@ -80,8 +85,13 @@
                 v-model="semester"
                 class="w-full px-3 py-2 border rounded-lg focus:ring-2 ring-[#602515]/20 outline-none"
               >
-                <option value="GANJIL">Ganjil</option>
-                <option value="GENAP">Genap</option>
+                <option
+                  v-for="s in semesters"
+                  :key="s.id"
+                  :value="s.name.toUpperCase()"
+                >
+                  {{ s.name }}{{ s.isActive ? " (Aktif)" : "" }}
+                </option>
               </select>
             </div>
           </div>
@@ -845,7 +855,7 @@
 import { ref, reactive, computed, onMounted, watch } from "vue";
 import { Icon } from "@iconify/vue";
 import { useElementSize } from "@vueuse/core";
-import { studentsApi, tahfidzApi } from "@/services/api";
+import { studentsApi, tahfidzApi, academicSettingsApi } from "@/services/api";
 import { exportTahfidzReportToExcel } from "@/services/exports/tahfidzReportExporter";
 
 const loading = ref(false);
@@ -872,8 +882,12 @@ const reportStyle = computed(() => ({
 /* ---------- State ---------- */
 const showDropdown = ref(false);
 const searchQuery = ref("");
-const academicYear = ref("2025-2026");
-const semester = ref("GANJIL");
+const academicYear = ref("");
+const semester = ref("");
+
+// Dynamic dropdown options from Academic Settings
+const academicYears = ref([]);
+const semesters = ref([]);
 
 const filteredStudents = ref([]);
 const allStudents = ref([]);
@@ -1231,8 +1245,28 @@ function handlePrint() {
 }
 
 // --- LIFECYCLE ---
-onMounted(() => {
+onMounted(async () => {
   loadStudents();
+  // Load academic settings for dropdowns
+  try {
+    const [yearsRes, semsRes, activeRes] = await Promise.all([
+      academicSettingsApi.getAcademicYears(),
+      academicSettingsApi.getSemesters(),
+      academicSettingsApi.getActive(),
+    ]);
+    academicYears.value = yearsRes.data || [];
+    semesters.value = semsRes.data || [];
+    // Set default to active values
+    academicYear.value =
+      activeRes.data?.academicYear ||
+      academicYears.value[0]?.year ||
+      "2024-2025";
+    semester.value = activeRes.data?.semester === "2" ? "GENAP" : "GANJIL";
+  } catch (e) {
+    console.error("Failed to load academic settings:", e);
+    academicYear.value = "2024-2025";
+    semester.value = "GANJIL";
+  }
 });
 </script>
 

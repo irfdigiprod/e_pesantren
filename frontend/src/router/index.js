@@ -256,6 +256,12 @@ const router = createRouter({
             import("@/views/settings/InformationBoardSettings.vue"),
           meta: { title: "Papan Informasi" },
         },
+        {
+          path: "settings-academic",
+          name: "MobileSettingsAcademic",
+          component: () => import("@/views/settings/AcademicSettings.vue"),
+          meta: { title: "Pengaturan Akademik" },
+        },
 
         // Security & About
         {
@@ -604,6 +610,11 @@ const router = createRouter({
           name: "InformationBoardSettings",
           component: () =>
             import("@/views/settings/InformationBoardSettings.vue"),
+        },
+        {
+          path: "settings/academic",
+          name: "AcademicSettings",
+          component: () => import("@/views/settings/AcademicSettings.vue"),
         },
         {
           path: "about",

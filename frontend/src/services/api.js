@@ -1495,3 +1495,53 @@ export const tahfidzApi = {
     return data;
   },
 };
+
+// ============================================
+// ACADEMIC SETTINGS API
+// ============================================
+
+export const academicSettingsApi = {
+  // Get active academic year and semester
+  getActive() {
+    return request("/api/academic-settings/active");
+  },
+
+  // Get all academic years
+  getAcademicYears() {
+    return request("/api/academic-settings/academic-years");
+  },
+
+  // Add new academic year
+  addAcademicYear(year) {
+    return request("/api/academic-settings/academic-years", {
+      method: "POST",
+      body: { year },
+    });
+  },
+
+  // Delete academic year
+  deleteAcademicYear(year) {
+    return request(`/api/academic-settings/academic-years/${year}`, {
+      method: "DELETE",
+    });
+  },
+
+  // Set active academic year
+  setActiveAcademicYear(year) {
+    return request(`/api/academic-settings/academic-years/${year}/active`, {
+      method: "PUT",
+    });
+  },
+
+  // Get semesters
+  getSemesters() {
+    return request("/api/academic-settings/semesters");
+  },
+
+  // Set active semester
+  setActiveSemester(semesterId) {
+    return request(`/api/academic-settings/semesters/${semesterId}/active`, {
+      method: "PUT",
+    });
+  },
+};

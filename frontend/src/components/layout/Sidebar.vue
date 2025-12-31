@@ -166,6 +166,11 @@ const submenuByMain = {
         icon: "solar:gallery-wide-line-duotone",
         route: "/settings/information-board",
       },
+      {
+        label: "Pengaturan Akademik",
+        icon: "solar:calendar-line-duotone",
+        route: "/settings/academic",
+      },
     ],
   },
 

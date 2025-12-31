@@ -25,6 +25,7 @@ import salaryGradesRoute from "./salary-grades";
 import tahfidzRoute from "./tahfidz";
 import wilayahRoute from "./wilayah";
 import informationBoardRoute from "./information-board";
+import academicSettingsRoute from "./academic-settings";
 
 export {
   authRoute,
@@ -53,4 +54,5 @@ export {
   tahfidzRoute,
   wilayahRoute,
   informationBoardRoute,
+  academicSettingsRoute,
 };

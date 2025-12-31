@@ -30,6 +30,7 @@ import {
   tahfidzRoute,
   wilayahRoute,
   informationBoardRoute,
+  academicSettingsRoute,
 } from "./routes";
 
 import {
@@ -110,6 +111,7 @@ app.route("/api/salary-grades", salaryGradesRoute);
 app.route("/api/tahfidz", tahfidzRoute);
 app.route("/api/wilayah", wilayahRoute);
 app.route("/api/information-board", informationBoardRoute);
+app.route("/api/academic-settings", academicSettingsRoute);
 
 // 404 handler
 app.notFound((c) => {
