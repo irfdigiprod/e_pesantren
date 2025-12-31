@@ -1,5 +1,5 @@
 <template>
-  <div class="max-w-7xl mx-auto pb-12">
+  <div class="p-2 max-w-7xl mx-auto pb-12">
     <!-- Header -->
     <div class="mb-6">
       <h1 class="text-2xl font-bold text-slate-800">Laporan & Sertifikat</h1>
@@ -136,659 +136,703 @@
         </div>
 
         <!-- Report Area -->
-        <div
-          v-else
-          id="report-area"
-          class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm text-slate-800"
-          style="font-family: Arial, sans-serif"
-        >
-          <!-- HEADER IMAGE -->
-          <div class="mb-4">
-            <img
-              v-if="headerImageUrl"
-              :src="headerImageUrl"
-              alt="Header Rapor Tahfidz"
-              class="w-full h-auto"
-            />
+        <div v-else class="w-full">
+          <div ref="reportContainer" class="w-full overflow-hidden">
             <div
-              v-else
-              class="w-full h-32 flex items-center justify-center bg-slate-50 border border-slate-200 border-dashed rounded-lg text-slate-400 font-medium italic"
+              id="report-area"
+              class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm text-slate-800 origin-top-left transition-transform duration-200"
+              :style="reportStyle"
             >
-              Upload Gambar Kop di pengaturan tahfidz
-            </div>
-          </div>
-
-          <!-- TITLE -->
-          <div class="text-center mb-6">
-            <h3 class="text-lg font-bold uppercase">
-              RAPOR TAHFIZH SEMESTER {{ semester }}
-            </h3>
-            <p class="font-medium">Tahun Ajaran {{ academicYear }}</p>
-          </div>
-
-          <!-- STUDENT INFO -->
-          <div class="grid grid-cols-2 gap-4 mb-6 text-sm">
-            <table class="border-collapse">
-              <tr>
-                <td
-                  class="border border-slate-300 px-3 py-1 bg-slate-50 font-medium w-24"
+              <!-- HEADER IMAGE -->
+              <div class="mb-4">
+                <img
+                  v-if="headerImageUrl"
+                  :src="headerImageUrl"
+                  alt="Header Rapor Tahfidz"
+                  class="w-full h-auto"
+                />
+                <div
+                  v-else
+                  class="w-full h-32 flex items-center justify-center bg-slate-50 border border-slate-200 border-dashed rounded-lg text-slate-400 font-medium italic"
                 >
-                  Nama
-                </td>
-                <td class="border border-slate-300 px-3 py-1 font-bold">
-                  {{ student.fullName }}
-                </td>
-              </tr>
-              <tr>
-                <td
-                  class="border border-slate-300 px-3 py-1 bg-slate-50 font-medium"
-                >
-                  Halaqoh
-                </td>
-                <td class="border border-slate-300 px-3 py-1">
-                  {{ student.halaqah || "-" }}
-                </td>
-              </tr>
-            </table>
-            <table class="border-collapse">
-              <tr>
-                <td
-                  class="border border-slate-300 px-3 py-1 bg-slate-50 font-medium w-24"
-                >
-                  NISN
-                </td>
-                <td class="border border-slate-300 px-3 py-1">
-                  {{ student.nis || "-" }}
-                </td>
-              </tr>
-              <tr>
-                <td
-                  class="border border-slate-300 px-3 py-1 bg-slate-50 font-medium"
-                >
-                  Kelas
-                </td>
-                <td class="border border-slate-300 px-3 py-1">
-                  {{ student.className || "-" }}
-                </td>
-              </tr>
-            </table>
-          </div>
-
-          <!-- UPK SECTION -->
-          <div class="mb-6">
-            <h4 class="text-center font-bold mb-3">Ujian Pekanan (UPK)</h4>
-            <div class="grid grid-cols-2 gap-4 text-xs">
-              <!-- Left Table -->
-              <table class="w-full border-collapse">
-                <thead>
-                  <tr class="bg-slate-50">
-                    <th
-                      class="border border-slate-300 px-2 py-1 text-center w-8"
-                    >
-                      No
-                    </th>
-                    <th class="border border-slate-300 px-2 py-1 text-center">
-                      Kode
-                    </th>
-                    <th class="border border-slate-300 px-2 py-1 text-center">
-                      Halaman
-                    </th>
-                    <th class="border border-slate-300 px-2 py-1 text-center">
-                      Nilai
-                    </th>
-                    <th class="border border-slate-300 px-2 py-1 text-center">
-                      Predikat
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr
-                    v-for="(exam, idx) in upkExamsLeft"
-                    :key="'upk-left-' + idx"
-                  >
-                    <td class="border border-slate-300 px-2 py-1 text-center">
-                      {{ idx + 1 }}
-                    </td>
-                    <td class="border border-slate-300 px-2 py-1 text-center">
-                      {{ getExamCode(exam) }}
-                    </td>
-                    <td class="border border-slate-300 px-2 py-1 text-center">
-                      {{ getPageRange(exam) }}
-                    </td>
-                    <td class="border border-slate-300 px-2 py-1 text-center">
-                      {{ exam?.finalScore || "-" }}
-                    </td>
-                    <td class="border border-slate-300 px-2 py-1 text-center">
-                      {{ getPredicate(exam?.finalScore) }}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-              <!-- Right Table -->
-              <table class="w-full border-collapse">
-                <thead>
-                  <tr class="bg-slate-50">
-                    <th
-                      class="border border-slate-300 px-2 py-1 text-center w-8"
-                    >
-                      No
-                    </th>
-                    <th class="border border-slate-300 px-2 py-1 text-center">
-                      Kode
-                    </th>
-                    <th class="border border-slate-300 px-2 py-1 text-center">
-                      Halaman
-                    </th>
-                    <th class="border border-slate-300 px-2 py-1 text-center">
-                      Nilai
-                    </th>
-                    <th class="border border-slate-300 px-2 py-1 text-center">
-                      Predikat
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr
-                    v-for="(exam, idx) in upkExamsRight"
-                    :key="'upk-right-' + idx"
-                  >
-                    <td class="border border-slate-300 px-2 py-1 text-center">
-                      {{ idx + 1 + upkExamsLeft.length }}
-                    </td>
-                    <td class="border border-slate-300 px-2 py-1 text-center">
-                      {{ getExamCode(exam) }}
-                    </td>
-                    <td class="border border-slate-300 px-2 py-1 text-center">
-                      {{ getPageRange(exam) }}
-                    </td>
-                    <td class="border border-slate-300 px-2 py-1 text-center">
-                      {{ exam?.finalScore || "-" }}
-                    </td>
-                    <td class="border border-slate-300 px-2 py-1 text-center">
-                      {{ getPredicate(exam?.finalScore) }}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            <!-- UPK Summary -->
-            <div class="grid grid-cols-2 gap-4 mt-2 text-sm">
-              <table class="border-collapse">
-                <tr>
-                  <td
-                    class="border border-slate-300 px-3 py-1 bg-slate-50 font-medium"
-                  >
-                    Nilai
-                  </td>
-                  <td
-                    class="border border-slate-300 px-3 py-1 text-center font-bold"
-                  >
-                    {{ avgUPK }}
-                  </td>
-                </tr>
-              </table>
-              <table class="border-collapse">
-                <tr>
-                  <td
-                    class="border border-slate-300 px-3 py-1 bg-slate-50 font-medium"
-                  >
-                    Predikat
-                  </td>
-                  <td
-                    class="border border-slate-300 px-3 py-1 text-center font-bold"
-                  >
-                    {{ getPredicate(avgUPK) }}
-                  </td>
-                </tr>
-              </table>
-            </div>
-          </div>
-
-          <!-- UKJ SECTION -->
-          <div class="mb-6">
-            <h4 class="text-center font-bold mb-3">Ujian Kenaikan Juz (UKJ)</h4>
-            <!-- Single UKJ Table with 22 columns for perfect alignment -->
-            <table
-              class="w-full border-collapse text-xs"
-              style="table-layout: fixed"
-            >
-              <colgroup>
-                <col style="width: 50px" />
-                <!-- Label column -->
-                <col v-for="i in 21" :key="'col-' + i" />
-                <!-- 21 juz columns -->
-              </colgroup>
-              <!-- Row 1: Juz 1-21 -->
-              <tr>
-                <td
-                  class="border border-slate-300 px-1 py-1 bg-slate-50 font-medium text-center"
-                >
-                  Juz
-                </td>
-                <td
-                  v-for="j in 21"
-                  :key="'juz1-' + j"
-                  class="border border-slate-300 px-1 py-1 text-center"
-                >
-                  {{ j }}
-                </td>
-              </tr>
-              <!-- Row 2: Nilai 1-21 -->
-              <tr>
-                <td
-                  class="border border-slate-300 px-1 py-1 bg-slate-50 font-medium text-center"
-                >
-                  Nilai
-                </td>
-                <td
-                  v-for="j in 21"
-                  :key="'nilai1-' + j"
-                  class="border border-slate-300 px-1 py-1 text-center"
-                >
-                  {{ getUkjScore(j) }}
-                </td>
-              </tr>
-              <!-- Row 3: Predikat 1-21 -->
-              <tr>
-                <td
-                  class="border border-slate-300 px-1 py-1 bg-slate-50 font-medium text-center"
-                >
-                  Predikat
-                </td>
-                <td
-                  v-for="j in 21"
-                  :key="'pred1-' + j"
-                  class="border border-slate-300 px-1 py-1 text-center"
-                >
-                  {{ getUkjPredicate(j) }}
-                </td>
-              </tr>
-              <!-- Spacer row for visual separation -->
-              <tr>
-                <td colspan="22" class="border-0 h-3"></td>
-              </tr>
-              <!-- Row 4: Juz 22-30 (cols 1-9) + empty col 10 + Rincian Juz (cols 11-21) -->
-              <tr>
-                <td
-                  class="border border-slate-300 px-1 py-1 bg-slate-50 font-medium text-center"
-                >
-                  Juz
-                </td>
-                <td
-                  v-for="j in 9"
-                  :key="'juz2-' + j"
-                  class="border border-slate-300 px-1 py-1 text-center"
-                >
-                  {{ j + 21 }}
-                </td>
-                <td class="border-0"></td>
-                <!-- col 10 empty -->
-                <td
-                  colspan="5"
-                  class="border border-slate-300 px-2 py-1 bg-slate-50 font-medium"
-                >
-                  Rincian Juz
-                </td>
-                <td
-                  colspan="6"
-                  class="border border-slate-300 px-2 py-1 text-center"
-                >
-                  {{ rincianJuz }}
-                </td>
-              </tr>
-              <!-- Row 5: Nilai 22-30 + Nilai summary -->
-              <tr>
-                <td
-                  class="border border-slate-300 px-1 py-1 bg-slate-50 font-medium text-center"
-                >
-                  Nilai
-                </td>
-                <td
-                  v-for="j in 9"
-                  :key="'nilai2-' + j"
-                  class="border border-slate-300 px-1 py-1 text-center"
-                >
-                  {{ getUkjScore(j + 21) }}
-                </td>
-                <td class="border-0"></td>
-                <td
-                  colspan="5"
-                  class="border border-slate-300 px-2 py-1 bg-slate-50 font-medium"
-                >
-                  Nilai
-                </td>
-                <td
-                  colspan="6"
-                  class="border border-slate-300 px-2 py-1 text-center font-bold"
-                >
-                  {{ avgUKJ }}
-                </td>
-              </tr>
-              <!-- Row 6: Predikat 22-30 + Predikat summary -->
-              <tr>
-                <td
-                  class="border border-slate-300 px-1 py-1 bg-slate-50 font-medium text-center"
-                >
-                  Predikat
-                </td>
-                <td
-                  v-for="j in 9"
-                  :key="'pred2-' + j"
-                  class="border border-slate-300 px-1 py-1 text-center"
-                >
-                  {{ getUkjPredicate(j + 21) }}
-                </td>
-                <td class="border-0"></td>
-                <td
-                  colspan="5"
-                  class="border border-slate-300 px-2 py-1 bg-slate-50 font-medium"
-                >
-                  Predikat
-                </td>
-                <td
-                  colspan="6"
-                  class="border border-slate-300 px-2 py-1 text-center"
-                >
-                  {{ getPredicate(avgUKJ) }}
-                </td>
-              </tr>
-            </table>
-          </div>
-
-          <!-- FOOTER TABLES -->
-          <div class="grid grid-cols-12 gap-4 mb-6 text-xs">
-            <!-- Mading Hafalan -->
-            <div class="col-span-5">
-              <h5 class="text-center font-bold mb-2">Mading Hafalan</h5>
-              <table class="w-full border-collapse">
-                <!-- Column Headers -->
-                <tr class="bg-slate-50 h-7">
-                  <th
-                    class="border border-slate-300 px-1 text-center align-middle"
-                  >
-                    No
-                  </th>
-                  <th
-                    class="border border-slate-300 px-1 text-center align-middle"
-                  >
-                    Bulan
-                  </th>
-                  <th
-                    class="border border-slate-300 px-1 text-center align-middle"
-                  >
-                    Jumlah Halaman
-                  </th>
-                  <th
-                    class="border border-slate-300 px-1 text-center align-middle"
-                  >
-                    Juz
-                  </th>
-                </tr>
-                <!-- Data Rows -->
-                <tr
-                  v-for="(m, idx) in madingData"
-                  :key="'mading-' + idx"
-                  class="h-7"
-                >
-                  <td
-                    class="border border-slate-300 px-1 text-center align-middle"
-                  >
-                    {{ idx + 1 }}
-                  </td>
-                  <td class="border border-slate-300 px-1 align-middle">
-                    {{ m.bulan }}
-                  </td>
-                  <td
-                    class="border border-slate-300 px-1 text-center align-middle"
-                  >
-                    {{ m.halaman }}
-                  </td>
-                  <td class="border border-slate-300 px-1 align-middle">
-                    {{ m.juz }}
-                  </td>
-                </tr>
-              </table>
-            </div>
-            <!-- Total Hafalan -->
-            <div class="col-span-4">
-              <!-- Spacer to align with Mading Hafalan title -->
-              <h5 class="text-center font-bold mb-2 opacity-0 select-none">
-                Spacer
-              </h5>
-              <table class="w-full border-collapse">
-                <!-- Merged Header Row -->
-                <tr class="h-7">
-                  <td
-                    colspan="2"
-                    class="border border-slate-300 px-2 text-center font-bold bg-slate-100 align-middle"
-                  >
-                    Total Hafalan
-                  </td>
-                </tr>
-                <tr class="h-7">
-                  <td
-                    class="border border-slate-300 px-2 bg-slate-50 font-medium align-middle"
-                  >
-                    Target Minimal
-                  </td>
-                  <td
-                    class="border border-slate-300 px-2 text-center align-middle"
-                  >
-                    {{ targetHafalan || 50 }}
-                  </td>
-                </tr>
-                <tr class="h-7">
-                  <td
-                    class="border border-slate-300 px-2 bg-slate-50 font-medium align-middle"
-                  >
-                    Jumlah Halaman
-                  </td>
-                  <td
-                    class="border border-slate-300 px-2 text-center align-middle"
-                  >
-                    {{ totalHafalan }}
-                  </td>
-                </tr>
-                <tr class="h-7">
-                  <td
-                    class="border border-slate-300 px-2 bg-slate-50 font-medium align-middle"
-                  >
-                    Jumlah Juz
-                  </td>
-                  <td
-                    class="border border-slate-300 px-2 text-center align-middle"
-                  >
-                    {{ jumlahJuz }}
-                  </td>
-                </tr>
-                <tr class="h-7">
-                  <td
-                    class="border border-slate-300 px-2 bg-slate-50 font-medium align-middle"
-                  >
-                    Keterangan
-                  </td>
-                  <td
-                    class="border border-slate-300 px-2 text-center font-bold text-[7pt] align-middle"
-                  >
-                    {{ keteranganHafalan }}
-                  </td>
-                </tr>
-              </table>
-            </div>
-            <!-- Kehadiran -->
-            <div class="col-span-3">
-              <!-- Spacer to align with Mading Hafalan title -->
-              <h5 class="text-center font-bold mb-2 opacity-0 select-none">
-                Spacer
-              </h5>
-              <table class="w-full border-collapse">
-                <!-- Merged Header Row -->
-                <tr class="h-7">
-                  <td
-                    colspan="3"
-                    class="border border-slate-300 px-2 text-center font-bold bg-slate-100 align-middle"
-                  >
-                    Kehadiran
-                  </td>
-                </tr>
-                <tr class="h-7">
-                  <td
-                    class="border border-slate-300 px-2 bg-slate-50 font-medium align-middle"
-                  >
-                    Sakit
-                  </td>
-                  <td
-                    class="border border-slate-300 px-2 text-center align-middle"
-                  >
-                    {{ attendance.sakit }}
-                  </td>
-                  <td
-                    class="border border-slate-300 px-2 bg-slate-50 font-medium align-middle"
-                  >
-                    JPL
-                  </td>
-                </tr>
-                <tr class="h-7">
-                  <td
-                    class="border border-slate-300 px-2 bg-slate-50 font-medium align-middle"
-                  >
-                    Izin
-                  </td>
-                  <td
-                    class="border border-slate-300 px-2 text-center align-middle"
-                  >
-                    {{ attendance.izin }}
-                  </td>
-                  <td
-                    class="border border-slate-300 px-2 bg-slate-50 font-medium align-middle"
-                  >
-                    JPL
-                  </td>
-                </tr>
-                <tr class="h-7">
-                  <td
-                    class="border border-slate-300 px-2 bg-slate-50 font-medium align-middle"
-                  >
-                    Alpa
-                  </td>
-                  <td
-                    class="border border-slate-300 px-2 text-center align-middle"
-                  >
-                    {{ attendance.alpha }}
-                  </td>
-                  <td
-                    class="border border-slate-300 px-2 bg-slate-50 font-medium align-middle"
-                  >
-                    JPL
-                  </td>
-                </tr>
-              </table>
-            </div>
-          </div>
-
-          <!-- CATATAN & NILAI AKHIR -->
-          <div class="grid grid-cols-4 gap-4 mb-6 text-sm">
-            <div class="col-span-3 flex flex-col">
-              <h5 class="font-bold mb-2">Catatan</h5>
-              <div
-                class="border border-slate-300 p-3 h-full text-xs whitespace-pre-line"
-              >
-                {{ notes || "-" }}
+                  Upload Gambar Kop di pengaturan tahfidz
+                </div>
               </div>
-            </div>
-            <div>
-              <h5 class="font-bold mb-2 text-center">Total Nilai Akhir</h5>
-              <table class="w-full border-collapse text-xs">
-                <tr>
-                  <td
-                    class="border border-slate-300 px-2 py-1 bg-slate-50 font-medium"
-                  >
-                    UPK
-                  </td>
-                  <td class="border border-slate-300 px-2 py-1 text-center">
-                    {{ avgUPK }}
-                  </td>
-                </tr>
-                <tr>
-                  <td
-                    class="border border-slate-300 px-2 py-1 bg-slate-50 font-medium"
-                  >
-                    UKJ
-                  </td>
-                  <td class="border border-slate-300 px-2 py-1 text-center">
-                    {{ avgUKJ }}
-                  </td>
-                </tr>
-                <tr>
-                  <td
-                    class="border border-slate-300 px-2 py-1 bg-slate-50 font-medium"
-                  >
-                    UA
-                  </td>
-                  <td class="border border-slate-300 px-2 py-1 text-center">
-                    {{ uaScore || "-" }}
-                  </td>
-                </tr>
-                <tr>
-                  <td
-                    class="border border-slate-300 px-2 py-1 bg-slate-50 font-medium"
-                  >
-                    Suluk
-                  </td>
-                  <td class="border border-slate-300 px-2 py-1 text-center">
-                    {{ sulukScore }}
-                  </td>
-                </tr>
-                <tr>
-                  <td
-                    class="border border-slate-300 px-2 py-1 bg-slate-50 font-bold"
-                  >
-                    Nilai Akhir
-                  </td>
-                  <td
-                    class="border border-slate-300 px-2 py-1 text-center font-bold"
-                  >
-                    {{ finalScore }}
-                  </td>
-                </tr>
-                <!-- Merged Predicate Row -->
-                <tr>
-                  <td
-                    colspan="2"
-                    class="border border-slate-300 p-2 text-center font-bold"
-                  >
-                    {{ tercapaiLabel }}
-                  </td>
-                </tr>
-              </table>
-            </div>
-          </div>
 
-          <!-- SIGNATURES -->
-          <div class="grid grid-cols-3 gap-4 mt-8 text-xs text-center">
-            <div>
-              <p>Mengetahui,</p>
-              <p>Orang tua</p>
-              <div class="h-20"></div>
-              <p class="">( ............................... )</p>
-            </div>
-            <div>
-              <p>Mengetahui,</p>
-              <p>Ketua Bagian Tahfidz</p>
-              <div class="h-20"></div>
-              <p class="font-bold">
-                {{ tahfidzHeadNameDisplay }}
-              </p>
-            </div>
-            <div>
-              <p>{{ settings.cityName || "..........." }}, {{ currentDate }}</p>
-              <p>Wali Kelas</p>
-              <div class="h-20"></div>
-              <p class="font-bold">
-                {{
-                  student.homeroomTeacher || "..............................."
-                }}
-              </p>
+              <!-- TITLE -->
+              <div class="text-center mb-6">
+                <h3 class="text-lg font-bold uppercase">
+                  RAPOR TAHFIZH SEMESTER {{ semester }}
+                </h3>
+                <p class="font-medium">Tahun Ajaran {{ academicYear }}</p>
+              </div>
+
+              <!-- STUDENT INFO -->
+              <div class="grid grid-cols-2 gap-4 mb-6 text-sm">
+                <table class="border-collapse">
+                  <tr>
+                    <td
+                      class="border border-slate-300 px-3 py-1 bg-slate-50 font-medium w-24"
+                    >
+                      Nama
+                    </td>
+                    <td class="border border-slate-300 px-3 py-1 font-bold">
+                      {{ student.fullName }}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td
+                      class="border border-slate-300 px-3 py-1 bg-slate-50 font-medium"
+                    >
+                      Halaqoh
+                    </td>
+                    <td class="border border-slate-300 px-3 py-1">
+                      {{ student.halaqah || "-" }}
+                    </td>
+                  </tr>
+                </table>
+                <table class="border-collapse">
+                  <tr>
+                    <td
+                      class="border border-slate-300 px-3 py-1 bg-slate-50 font-medium w-24"
+                    >
+                      NISN
+                    </td>
+                    <td class="border border-slate-300 px-3 py-1">
+                      {{ student.nis || "-" }}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td
+                      class="border border-slate-300 px-3 py-1 bg-slate-50 font-medium"
+                    >
+                      Kelas
+                    </td>
+                    <td class="border border-slate-300 px-3 py-1">
+                      {{ student.className || "-" }}
+                    </td>
+                  </tr>
+                </table>
+              </div>
+
+              <!-- UPK SECTION -->
+              <div class="mb-6">
+                <h4 class="text-center font-bold mb-3">Ujian Pekanan (UPK)</h4>
+                <div class="grid grid-cols-2 gap-4 text-xs">
+                  <!-- Left Table -->
+                  <table class="w-full border-collapse">
+                    <thead>
+                      <tr class="bg-slate-50">
+                        <th
+                          class="border border-slate-300 px-2 py-1 text-center w-8"
+                        >
+                          No
+                        </th>
+                        <th
+                          class="border border-slate-300 px-2 py-1 text-center"
+                        >
+                          Kode
+                        </th>
+                        <th
+                          class="border border-slate-300 px-2 py-1 text-center"
+                        >
+                          Halaman
+                        </th>
+                        <th
+                          class="border border-slate-300 px-2 py-1 text-center"
+                        >
+                          Nilai
+                        </th>
+                        <th
+                          class="border border-slate-300 px-2 py-1 text-center"
+                        >
+                          Predikat
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr
+                        v-for="(exam, idx) in upkExamsLeft"
+                        :key="'upk-left-' + idx"
+                      >
+                        <td
+                          class="border border-slate-300 px-2 py-1 text-center"
+                        >
+                          {{ idx + 1 }}
+                        </td>
+                        <td
+                          class="border border-slate-300 px-2 py-1 text-center"
+                        >
+                          {{ getExamCode(exam) }}
+                        </td>
+                        <td
+                          class="border border-slate-300 px-2 py-1 text-center"
+                        >
+                          {{ getPageRange(exam) }}
+                        </td>
+                        <td
+                          class="border border-slate-300 px-2 py-1 text-center"
+                        >
+                          {{ exam?.finalScore || "-" }}
+                        </td>
+                        <td
+                          class="border border-slate-300 px-2 py-1 text-center"
+                        >
+                          {{ getPredicate(exam?.finalScore) }}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  <!-- Right Table -->
+                  <table class="w-full border-collapse">
+                    <thead>
+                      <tr class="bg-slate-50">
+                        <th
+                          class="border border-slate-300 px-2 py-1 text-center w-8"
+                        >
+                          No
+                        </th>
+                        <th
+                          class="border border-slate-300 px-2 py-1 text-center"
+                        >
+                          Kode
+                        </th>
+                        <th
+                          class="border border-slate-300 px-2 py-1 text-center"
+                        >
+                          Halaman
+                        </th>
+                        <th
+                          class="border border-slate-300 px-2 py-1 text-center"
+                        >
+                          Nilai
+                        </th>
+                        <th
+                          class="border border-slate-300 px-2 py-1 text-center"
+                        >
+                          Predikat
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr
+                        v-for="(exam, idx) in upkExamsRight"
+                        :key="'upk-right-' + idx"
+                      >
+                        <td
+                          class="border border-slate-300 px-2 py-1 text-center"
+                        >
+                          {{ idx + 1 + upkExamsLeft.length }}
+                        </td>
+                        <td
+                          class="border border-slate-300 px-2 py-1 text-center"
+                        >
+                          {{ getExamCode(exam) }}
+                        </td>
+                        <td
+                          class="border border-slate-300 px-2 py-1 text-center"
+                        >
+                          {{ getPageRange(exam) }}
+                        </td>
+                        <td
+                          class="border border-slate-300 px-2 py-1 text-center"
+                        >
+                          {{ exam?.finalScore || "-" }}
+                        </td>
+                        <td
+                          class="border border-slate-300 px-2 py-1 text-center"
+                        >
+                          {{ getPredicate(exam?.finalScore) }}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <!-- UPK Summary -->
+                <div class="grid grid-cols-2 gap-4 mt-2 text-sm">
+                  <table class="border-collapse">
+                    <tr>
+                      <td
+                        class="border border-slate-300 px-3 py-1 bg-slate-50 font-medium"
+                      >
+                        Nilai
+                      </td>
+                      <td
+                        class="border border-slate-300 px-3 py-1 text-center font-bold"
+                      >
+                        {{ avgUPK }}
+                      </td>
+                    </tr>
+                  </table>
+                  <table class="border-collapse">
+                    <tr>
+                      <td
+                        class="border border-slate-300 px-3 py-1 bg-slate-50 font-medium"
+                      >
+                        Predikat
+                      </td>
+                      <td
+                        class="border border-slate-300 px-3 py-1 text-center font-bold"
+                      >
+                        {{ getPredicate(avgUPK) }}
+                      </td>
+                    </tr>
+                  </table>
+                </div>
+              </div>
+
+              <!-- UKJ SECTION -->
+              <div class="mb-6">
+                <h4 class="text-center font-bold mb-3">
+                  Ujian Kenaikan Juz (UKJ)
+                </h4>
+                <!-- Single UKJ Table with 22 columns for perfect alignment -->
+                <table
+                  class="w-full border-collapse text-xs"
+                  style="table-layout: fixed"
+                >
+                  <colgroup>
+                    <col style="width: 50px" />
+                    <!-- Label column -->
+                    <col v-for="i in 21" :key="'col-' + i" />
+                    <!-- 21 juz columns -->
+                  </colgroup>
+                  <!-- Row 1: Juz 1-21 -->
+                  <tr>
+                    <td
+                      class="border border-slate-300 px-1 py-1 bg-slate-50 font-medium text-center"
+                    >
+                      Juz
+                    </td>
+                    <td
+                      v-for="j in 21"
+                      :key="'juz1-' + j"
+                      class="border border-slate-300 px-1 py-1 text-center"
+                    >
+                      {{ j }}
+                    </td>
+                  </tr>
+                  <!-- Row 2: Nilai 1-21 -->
+                  <tr>
+                    <td
+                      class="border border-slate-300 px-1 py-1 bg-slate-50 font-medium text-center"
+                    >
+                      Nilai
+                    </td>
+                    <td
+                      v-for="j in 21"
+                      :key="'nilai1-' + j"
+                      class="border border-slate-300 px-1 py-1 text-center"
+                    >
+                      {{ getUkjScore(j) }}
+                    </td>
+                  </tr>
+                  <!-- Row 3: Predikat 1-21 -->
+                  <tr>
+                    <td
+                      class="border border-slate-300 px-1 py-1 bg-slate-50 font-medium text-center"
+                    >
+                      Predikat
+                    </td>
+                    <td
+                      v-for="j in 21"
+                      :key="'pred1-' + j"
+                      class="border border-slate-300 px-1 py-1 text-center"
+                    >
+                      {{ getUkjPredicate(j) }}
+                    </td>
+                  </tr>
+                  <!-- Spacer row for visual separation -->
+                  <tr>
+                    <td colspan="22" class="border-0 h-3"></td>
+                  </tr>
+                  <!-- Row 4: Juz 22-30 (cols 1-9) + empty col 10 + Rincian Juz (cols 11-21) -->
+                  <tr>
+                    <td
+                      class="border border-slate-300 px-1 py-1 bg-slate-50 font-medium text-center"
+                    >
+                      Juz
+                    </td>
+                    <td
+                      v-for="j in 9"
+                      :key="'juz2-' + j"
+                      class="border border-slate-300 px-1 py-1 text-center"
+                    >
+                      {{ j + 21 }}
+                    </td>
+                    <td class="border-0"></td>
+                    <!-- col 10 empty -->
+                    <td
+                      colspan="5"
+                      class="border border-slate-300 px-2 py-1 bg-slate-50 font-medium"
+                    >
+                      Rincian Juz
+                    </td>
+                    <td
+                      colspan="6"
+                      class="border border-slate-300 px-2 py-1 text-center"
+                    >
+                      {{ rincianJuz }}
+                    </td>
+                  </tr>
+                  <!-- Row 5: Nilai 22-30 + Nilai summary -->
+                  <tr>
+                    <td
+                      class="border border-slate-300 px-1 py-1 bg-slate-50 font-medium text-center"
+                    >
+                      Nilai
+                    </td>
+                    <td
+                      v-for="j in 9"
+                      :key="'nilai2-' + j"
+                      class="border border-slate-300 px-1 py-1 text-center"
+                    >
+                      {{ getUkjScore(j + 21) }}
+                    </td>
+                    <td class="border-0"></td>
+                    <td
+                      colspan="5"
+                      class="border border-slate-300 px-2 py-1 bg-slate-50 font-medium"
+                    >
+                      Nilai
+                    </td>
+                    <td
+                      colspan="6"
+                      class="border border-slate-300 px-2 py-1 text-center font-bold"
+                    >
+                      {{ avgUKJ }}
+                    </td>
+                  </tr>
+                  <!-- Row 6: Predikat 22-30 + Predikat summary -->
+                  <tr>
+                    <td
+                      class="border border-slate-300 px-1 py-1 bg-slate-50 font-medium text-center"
+                    >
+                      Predikat
+                    </td>
+                    <td
+                      v-for="j in 9"
+                      :key="'pred2-' + j"
+                      class="border border-slate-300 px-1 py-1 text-center"
+                    >
+                      {{ getUkjPredicate(j + 21) }}
+                    </td>
+                    <td class="border-0"></td>
+                    <td
+                      colspan="5"
+                      class="border border-slate-300 px-2 py-1 bg-slate-50 font-medium"
+                    >
+                      Predikat
+                    </td>
+                    <td
+                      colspan="6"
+                      class="border border-slate-300 px-2 py-1 text-center"
+                    >
+                      {{ getPredicate(avgUKJ) }}
+                    </td>
+                  </tr>
+                </table>
+              </div>
+
+              <!-- FOOTER TABLES -->
+              <div class="grid grid-cols-12 gap-4 mb-6 text-xs">
+                <!-- Mading Hafalan -->
+                <div class="col-span-5">
+                  <h5 class="text-center font-bold mb-2">Mading Hafalan</h5>
+                  <table class="w-full border-collapse">
+                    <!-- Column Headers -->
+                    <tr class="bg-slate-50 h-7">
+                      <th
+                        class="border border-slate-300 px-1 text-center align-middle"
+                      >
+                        No
+                      </th>
+                      <th
+                        class="border border-slate-300 px-1 text-center align-middle"
+                      >
+                        Bulan
+                      </th>
+                      <th
+                        class="border border-slate-300 px-1 text-center align-middle"
+                      >
+                        Jumlah Halaman
+                      </th>
+                      <th
+                        class="border border-slate-300 px-1 text-center align-middle"
+                      >
+                        Juz
+                      </th>
+                    </tr>
+                    <!-- Data Rows -->
+                    <tr
+                      v-for="(m, idx) in madingData"
+                      :key="'mading-' + idx"
+                      class="h-7"
+                    >
+                      <td
+                        class="border border-slate-300 px-1 text-center align-middle"
+                      >
+                        {{ idx + 1 }}
+                      </td>
+                      <td class="border border-slate-300 px-1 align-middle">
+                        {{ m.bulan }}
+                      </td>
+                      <td
+                        class="border border-slate-300 px-1 text-center align-middle"
+                      >
+                        {{ m.halaman }}
+                      </td>
+                      <td class="border border-slate-300 px-1 align-middle">
+                        {{ m.juz }}
+                      </td>
+                    </tr>
+                  </table>
+                </div>
+                <!-- Total Hafalan -->
+                <div class="col-span-4">
+                  <!-- Spacer to align with Mading Hafalan title -->
+                  <h5 class="text-center font-bold mb-2 opacity-0 select-none">
+                    Spacer
+                  </h5>
+                  <table class="w-full border-collapse">
+                    <!-- Merged Header Row -->
+                    <tr class="h-7">
+                      <td
+                        colspan="2"
+                        class="border border-slate-300 px-2 text-center font-bold bg-slate-100 align-middle"
+                      >
+                        Total Hafalan
+                      </td>
+                    </tr>
+                    <tr class="h-7">
+                      <td
+                        class="border border-slate-300 px-2 bg-slate-50 font-medium align-middle"
+                      >
+                        Target Minimal
+                      </td>
+                      <td
+                        class="border border-slate-300 px-2 text-center align-middle"
+                      >
+                        {{ targetHafalan || 50 }}
+                      </td>
+                    </tr>
+                    <tr class="h-7">
+                      <td
+                        class="border border-slate-300 px-2 bg-slate-50 font-medium align-middle"
+                      >
+                        Jumlah Halaman
+                      </td>
+                      <td
+                        class="border border-slate-300 px-2 text-center align-middle"
+                      >
+                        {{ totalHafalan }}
+                      </td>
+                    </tr>
+                    <tr class="h-7">
+                      <td
+                        class="border border-slate-300 px-2 bg-slate-50 font-medium align-middle"
+                      >
+                        Jumlah Juz
+                      </td>
+                      <td
+                        class="border border-slate-300 px-2 text-center align-middle"
+                      >
+                        {{ jumlahJuz }}
+                      </td>
+                    </tr>
+                    <tr class="h-7">
+                      <td
+                        class="border border-slate-300 px-2 bg-slate-50 font-medium align-middle"
+                      >
+                        Keterangan
+                      </td>
+                      <td
+                        class="border border-slate-300 px-2 text-center font-bold text-[7pt] align-middle"
+                      >
+                        {{ keteranganHafalan }}
+                      </td>
+                    </tr>
+                  </table>
+                </div>
+                <!-- Kehadiran -->
+                <div class="col-span-3">
+                  <!-- Spacer to align with Mading Hafalan title -->
+                  <h5 class="text-center font-bold mb-2 opacity-0 select-none">
+                    Spacer
+                  </h5>
+                  <table class="w-full border-collapse">
+                    <!-- Merged Header Row -->
+                    <tr class="h-7">
+                      <td
+                        colspan="3"
+                        class="border border-slate-300 px-2 text-center font-bold bg-slate-100 align-middle"
+                      >
+                        Kehadiran
+                      </td>
+                    </tr>
+                    <tr class="h-7">
+                      <td
+                        class="border border-slate-300 px-2 bg-slate-50 font-medium align-middle"
+                      >
+                        Sakit
+                      </td>
+                      <td
+                        class="border border-slate-300 px-2 text-center align-middle"
+                      >
+                        {{ attendance.sakit }}
+                      </td>
+                      <td
+                        class="border border-slate-300 px-2 bg-slate-50 font-medium align-middle"
+                      >
+                        JPL
+                      </td>
+                    </tr>
+                    <tr class="h-7">
+                      <td
+                        class="border border-slate-300 px-2 bg-slate-50 font-medium align-middle"
+                      >
+                        Izin
+                      </td>
+                      <td
+                        class="border border-slate-300 px-2 text-center align-middle"
+                      >
+                        {{ attendance.izin }}
+                      </td>
+                      <td
+                        class="border border-slate-300 px-2 bg-slate-50 font-medium align-middle"
+                      >
+                        JPL
+                      </td>
+                    </tr>
+                    <tr class="h-7">
+                      <td
+                        class="border border-slate-300 px-2 bg-slate-50 font-medium align-middle"
+                      >
+                        Alpa
+                      </td>
+                      <td
+                        class="border border-slate-300 px-2 text-center align-middle"
+                      >
+                        {{ attendance.alpha }}
+                      </td>
+                      <td
+                        class="border border-slate-300 px-2 bg-slate-50 font-medium align-middle"
+                      >
+                        JPL
+                      </td>
+                    </tr>
+                  </table>
+                </div>
+              </div>
+
+              <!-- CATATAN & NILAI AKHIR -->
+              <div class="grid grid-cols-4 gap-4 mb-6 text-sm">
+                <div class="col-span-3 flex flex-col">
+                  <h5 class="font-bold mb-2">Catatan</h5>
+                  <div
+                    class="border border-slate-300 p-3 h-full text-xs whitespace-pre-line"
+                  >
+                    {{ notes || "-" }}
+                  </div>
+                </div>
+                <div>
+                  <h5 class="font-bold mb-2 text-center">Total Nilai Akhir</h5>
+                  <table class="w-full border-collapse text-xs">
+                    <tr>
+                      <td
+                        class="border border-slate-300 px-2 py-1 bg-slate-50 font-medium"
+                      >
+                        UPK
+                      </td>
+                      <td class="border border-slate-300 px-2 py-1 text-center">
+                        {{ avgUPK }}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td
+                        class="border border-slate-300 px-2 py-1 bg-slate-50 font-medium"
+                      >
+                        UKJ
+                      </td>
+                      <td class="border border-slate-300 px-2 py-1 text-center">
+                        {{ avgUKJ }}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td
+                        class="border border-slate-300 px-2 py-1 bg-slate-50 font-medium"
+                      >
+                        UA
+                      </td>
+                      <td class="border border-slate-300 px-2 py-1 text-center">
+                        {{ uaScore || "-" }}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td
+                        class="border border-slate-300 px-2 py-1 bg-slate-50 font-medium"
+                      >
+                        Suluk
+                      </td>
+                      <td class="border border-slate-300 px-2 py-1 text-center">
+                        {{ sulukScore }}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td
+                        class="border border-slate-300 px-2 py-1 bg-slate-50 font-bold"
+                      >
+                        Nilai Akhir
+                      </td>
+                      <td
+                        class="border border-slate-300 px-2 py-1 text-center font-bold"
+                      >
+                        {{ finalScore }}
+                      </td>
+                    </tr>
+                    <!-- Merged Predicate Row -->
+                    <tr>
+                      <td
+                        colspan="2"
+                        class="border border-slate-300 p-2 text-center font-bold"
+                      >
+                        {{ tercapaiLabel }}
+                      </td>
+                    </tr>
+                  </table>
+                </div>
+              </div>
+
+              <!-- SIGNATURES -->
+              <div class="grid grid-cols-3 gap-4 mt-8 text-xs text-center">
+                <div>
+                  <p>Mengetahui,</p>
+                  <p>Orang tua</p>
+                  <div class="h-20"></div>
+                  <p class="">( ............................... )</p>
+                </div>
+                <div>
+                  <p>Mengetahui,</p>
+                  <p>Ketua Bagian Tahfidz</p>
+                  <div class="h-20"></div>
+                  <p class="font-bold">
+                    {{ tahfidzHeadNameDisplay }}
+                  </p>
+                </div>
+                <div>
+                  <p>
+                    {{ settings.cityName || "..........." }}, {{ currentDate }}
+                  </p>
+                  <p>Wali Kelas</p>
+                  <div class="h-20"></div>
+                  <p class="font-bold">
+                    {{
+                      student.homeroomTeacher ||
+                      "..............................."
+                    }}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -798,14 +842,35 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, reactive } from "vue";
+import { ref, reactive, computed, onMounted, watch } from "vue";
 import { Icon } from "@iconify/vue";
+import { useElementSize } from "@vueuse/core";
 import { studentsApi, tahfidzApi } from "@/services/api";
 import { exportTahfidzReportToExcel } from "@/services/exports/tahfidzReportExporter";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
 const loading = ref(false);
+
+const reportContainer = ref(null);
+const { width: containerWidth } = useElementSize(reportContainer);
+const scale = computed(() => {
+  if (!containerWidth.value) return 1;
+  const A4_WIDTH_PX = 794; // 210mm @ 96dpi approx
+  const availableWidth = containerWidth.value;
+
+  // If container is smaller than A4, scale down. Otherwise 1.
+  return availableWidth < A4_WIDTH_PX ? availableWidth / A4_WIDTH_PX : 1;
+});
+
+const reportStyle = computed(() => ({
+  width: "210mm",
+  minHeight: "297mm",
+  transform: `scale(${scale.value})`,
+  marginBottom: `-${(1 - scale.value) * 100}%`,
+}));
+
+/* ---------- State ---------- */
 const showDropdown = ref(false);
 const searchQuery = ref("");
 const academicYear = ref("2025-2026");
@@ -1117,7 +1182,7 @@ function clearSelection() {
 }
 
 // Reload when filters change
-import { watch } from "vue";
+// Reload when filters change
 watch([academicYear, semester], () => {
   if (student.value) {
     selectStudent(student.value);
