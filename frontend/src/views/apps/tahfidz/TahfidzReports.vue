@@ -96,14 +96,7 @@
               <Icon icon="solar:document-text-bold" />
               Export Excel
             </button>
-            <button
-              @click="exportToPDF"
-              :disabled="!student"
-              class="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <Icon icon="solar:file-download-bold" />
-              Export PDF
-            </button>
+
             <button
               @click="handlePrint"
               :disabled="!student"
@@ -847,8 +840,6 @@ import { Icon } from "@iconify/vue";
 import { useElementSize } from "@vueuse/core";
 import { studentsApi, tahfidzApi } from "@/services/api";
 import { exportTahfidzReportToExcel } from "@/services/exports/tahfidzReportExporter";
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
 
 const loading = ref(false);
 
@@ -868,6 +859,7 @@ const reportStyle = computed(() => ({
   minHeight: "297mm",
   transform: `scale(${scale.value})`,
   marginBottom: `-${(1 - scale.value) * 100}%`,
+  transformOrigin: "top left",
 }));
 
 /* ---------- State ---------- */
@@ -1190,88 +1182,6 @@ watch([academicYear, semester], () => {
 });
 
 // --- EXPORT FUNCTIONS ---
-async function exportToPDF() {
-  if (!student.value) return;
-
-  const element = document.getElementById("report-area");
-  if (!element) return;
-
-  try {
-    // Create fixed-width container for consistent layout
-    const printContainer = document.createElement("div");
-    printContainer.style.cssText = `
-      position: fixed;
-      left: -9999px;
-      top: 0;
-      width: 800px;
-      padding: 20px;
-      background: white;
-      font-family: Arial, sans-serif;
-    `;
-
-    const clonedContent = element.cloneNode(true);
-    printContainer.appendChild(clonedContent);
-    document.body.appendChild(printContainer);
-
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    const canvas = await html2canvas(printContainer, {
-      scale: 2,
-      useCORS: true,
-      logging: false,
-      backgroundColor: "#ffffff",
-      width: 800,
-      windowWidth: 800,
-    });
-
-    document.body.removeChild(printContainer);
-
-    const pdf = new jsPDF({
-      orientation: "portrait",
-      unit: "mm",
-      format: "a4",
-    });
-
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
-    const margin = 5;
-    const imgWidth = pageWidth - margin * 2;
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-    if (imgHeight <= pageHeight - margin * 2) {
-      pdf.addImage(
-        canvas.toDataURL("image/png"),
-        "PNG",
-        margin,
-        margin,
-        imgWidth,
-        imgHeight
-      );
-    } else {
-      const scaleFactor = (pageHeight - margin * 2) / imgHeight;
-      const scaledWidth = imgWidth * scaleFactor;
-      const scaledHeight = imgHeight * scaleFactor;
-      const xOffset = (pageWidth - scaledWidth) / 2;
-      pdf.addImage(
-        canvas.toDataURL("image/png"),
-        "PNG",
-        xOffset,
-        margin,
-        scaledWidth,
-        scaledHeight
-      );
-    }
-
-    const fileName = `Rapor_Tahfidz_${student.value.fullName.replace(
-      /\s+/g,
-      "_"
-    )}_${semester.value}_${academicYear.value.replace("/", "-")}.pdf`;
-    pdf.save(fileName);
-  } catch (error) {
-    console.error("Failed to export PDF:", error);
-    alert("Gagal mengekspor PDF. Silakan coba lagi.");
-  }
-}
 
 async function exportToExcel() {
   if (!student.value) return;
@@ -1321,6 +1231,10 @@ onMounted(() => {
 
 <style>
 @media print {
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
   body * {
     visibility: hidden;
   }
@@ -1332,9 +1246,14 @@ onMounted(() => {
     position: absolute;
     left: 0;
     top: 0;
-    width: 100%;
-    transform: scale(0.75);
-    transform-origin: top left;
+    width: 210mm !important;
+    min-height: 297mm !important;
+    margin: 0 !important;
+    padding: 20px !important;
+    border: none !important;
+    box-shadow: none !important;
+    transform: none !important; /* Disable scaling */
+    overflow: visible !important;
   }
 }
 </style>

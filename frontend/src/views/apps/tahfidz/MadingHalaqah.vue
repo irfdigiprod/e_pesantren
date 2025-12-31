@@ -1,5 +1,5 @@
 <template>
-  <div class="max-w-7xl mx-auto pb-12">
+  <div class="p-2 max-w-7xl mx-auto pb-12">
     <!-- Header -->
     <div class="mb-6">
       <h1 class="text-2xl font-bold text-slate-800">Mading Halaqah</h1>
@@ -68,6 +68,27 @@
           </select>
         </div>
       </div>
+
+      <!-- Actions -->
+      <div
+        class="mt-4 pt-4 border-t border-slate-100 flex justify-end gap-3 print:hidden"
+        v-if="report"
+      >
+        <button
+          @click="handlePrint"
+          class="flex items-center gap-2 px-4 py-2 bg-[#602515] text-white rounded-lg hover:bg-[#4a1c10] transition-colors"
+        >
+          <Icon icon="solar:printer-bold-duotone" />
+          Cetak
+        </button>
+        <button
+          @click="exportToExcel"
+          class="flex items-center gap-2 px-4 py-2 bg-[#107c41] text-white rounded-lg hover:bg-[#0c5e31] transition-colors"
+        >
+          <Icon icon="solar:file-download-bold" />
+          Export Excel
+        </button>
+      </div>
     </div>
 
     <!-- Loading -->
@@ -91,173 +112,161 @@
     </div>
 
     <!-- Report Content -->
-    <div
-      v-else
-      id="print-area"
-      class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm"
-    >
-      <!-- Actions -->
-      <div class="flex justify-end mb-4 print:hidden">
-        <button
-          @click="exportToExcel"
-          class="flex items-center gap-2 px-4 py-2 bg-[#107c41] text-white rounded-lg hover:bg-[#0c5e31] transition-colors"
+    <div v-else class="w-full">
+      <div ref="reportContainer" class="w-full overflow-hidden">
+        <div
+          id="print-area"
+          class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm origin-top-left transition-transform duration-200"
+          :style="reportStyle"
         >
-          <Icon icon="solar:file-download-bold" />
-          Export Excel
-        </button>
-      </div>
+          <!-- Report Header -->
+          <div class="text-center border-b-2 border-slate-800 pb-4 mb-6">
+            <h2 class="text-xl font-bold uppercase">
+              Pencapaian Hafalan Santri
+            </h2>
+            <h3 class="text-lg">Pondok Pesantren Minhajul Haq</h3>
+          </div>
 
-      <!-- Report Header -->
-      <div class="text-center border-b-2 border-slate-800 pb-4 mb-6">
-        <h2 class="text-xl font-bold uppercase">Pencapaian Hafalan Santri</h2>
-        <h3 class="text-lg">Pondok Pesantren Minhajul Haq</h3>
-      </div>
+          <!-- Report Info -->
+          <div class="grid grid-cols-2 gap-4 mb-6 text-sm">
+            <div>
+              <p>
+                <span class="font-semibold">Halaqah</span>:
+                {{ report?.halaqah?.name || "-" }}
+              </p>
+              <p>
+                <span class="font-semibold">Pengampu Halaqah</span>:
+                {{ report?.mentor?.fullName || "-" }}
+              </p>
+            </div>
+            <div class="text-right">
+              <p>
+                <span class="font-semibold">Target Minimal</span>:
+                {{ targetPages }} Halaman
+              </p>
+              <p>
+                <span class="font-semibold">Tanggal Rekap</span>:
+                {{ formatDateRange() }}
+              </p>
+            </div>
+          </div>
 
-      <!-- Report Info -->
-      <div class="grid grid-cols-2 gap-4 mb-6 text-sm">
-        <div>
-          <p>
-            <span class="font-semibold">Halaqah</span>:
-            {{ report?.halaqah?.name || "-" }}
-          </p>
-          <p>
-            <span class="font-semibold">Pengampu Halaqah</span>:
-            {{ report?.mentor?.fullName || "-" }}
-          </p>
-        </div>
-        <div class="text-right">
-          <p>
-            <span class="font-semibold">Target Minimal</span>:
-            {{ targetPages }} Halaman
-          </p>
-          <p>
-            <span class="font-semibold">Tanggal Rekap</span>:
-            {{ formatDateRange() }}
-          </p>
-        </div>
-      </div>
-
-      <!-- Table -->
-      <div class="overflow-x-auto">
-        <table class="w-full text-sm border-collapse">
-          <thead>
-            <tr class="bg-slate-100">
-              <th class="border p-2 text-center" rowspan="2">No</th>
-              <th class="border p-2 text-left" rowspan="2">Nama Lengkap</th>
-              <th class="border p-2 text-center" colspan="4">Kehadiran</th>
-              <th class="border p-2 text-center" rowspan="2">Target</th>
-              <th class="border p-2 text-center" colspan="1">
-                Hafalan Bulan Ini
-              </th>
-              <th class="border p-2 text-center" rowspan="2">Jumlah Halaman</th>
-              <th class="border p-2 text-center" rowspan="2">Ket</th>
-            </tr>
-            <tr class="bg-slate-50 text-xs">
-              <th class="border p-1">S</th>
-              <th class="border p-1">I</th>
-              <th class="border p-1">A</th>
-              <th class="border p-1">T</th>
-              <th class="border p-1">Rentang Halaman</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="(m, idx) in report?.members"
-              :key="m.studentId"
-              class="hover:bg-slate-50"
-            >
-              <td class="border p-2 text-center">{{ idx + 1 }}</td>
-              <td class="border p-2">{{ m.fullName }}</td>
-              <td class="border p-2 text-center">
-                {{ m.attendance?.sakit || 0 }}
-              </td>
-              <td class="border p-2 text-center">
-                {{ m.attendance?.izin || 0 }}
-              </td>
-              <td class="border p-2 text-center">
-                {{ m.attendance?.alpha || 0 }}
-              </td>
-              <td class="border p-2 text-center">
-                {{ m.attendance?.terlambat || 0 }}
-              </td>
-              <td class="border p-2 text-center">{{ targetPages }} Hal</td>
-              <td class="border p-2 text-center">
-                {{ m.hafalanRanges || "-" }}
-              </td>
-              <td class="border p-2 text-center font-bold">
-                {{ m.jumlahHalaman || 0 }}
-              </td>
-              <td class="border p-2 text-center">
-                <span
-                  :class="getStatusClass(m.jumlahHalaman)"
-                  class="px-2 py-0.5 rounded text-xs font-medium"
+          <!-- Table -->
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm border-collapse">
+              <thead>
+                <tr class="bg-slate-100">
+                  <th class="border p-2 text-center" rowspan="2">No</th>
+                  <th class="border p-2 text-left" rowspan="2">Nama Lengkap</th>
+                  <th class="border p-2 text-center" colspan="4">Kehadiran</th>
+                  <th class="border p-2 text-center" rowspan="2">Target</th>
+                  <th class="border p-2 text-center" colspan="1">
+                    Hafalan Bulan Ini
+                  </th>
+                  <th class="border p-2 text-center" rowspan="2">
+                    Jumlah Halaman
+                  </th>
+                  <th class="border p-2 text-center" rowspan="2">Ket</th>
+                </tr>
+                <tr class="bg-slate-50 text-xs">
+                  <th class="border p-1">S</th>
+                  <th class="border p-1">I</th>
+                  <th class="border p-1">A</th>
+                  <th class="border p-1">T</th>
+                  <th class="border p-1">Rentang Halaman</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="(m, idx) in report?.members"
+                  :key="m.studentId"
+                  class="hover:bg-slate-50"
                 >
-                  {{ getStatus(m.jumlahHalaman) }}
-                </span>
-              </td>
-            </tr>
-            <tr v-if="!report?.members?.length">
-              <td
-                colspan="10"
-                class="border p-4 text-center text-slate-500 italic"
+                  <td class="border p-2 text-center">{{ idx + 1 }}</td>
+                  <td class="border p-2">{{ m.fullName }}</td>
+                  <td class="border p-2 text-center">
+                    {{ m.attendance?.sakit || 0 }}
+                  </td>
+                  <td class="border p-2 text-center">
+                    {{ m.attendance?.izin || 0 }}
+                  </td>
+                  <td class="border p-2 text-center">
+                    {{ m.attendance?.alpha || 0 }}
+                  </td>
+                  <td class="border p-2 text-center">
+                    {{ m.attendance?.terlambat || 0 }}
+                  </td>
+                  <td class="border p-2 text-center">{{ targetPages }} Hal</td>
+                  <td class="border p-2 text-center">
+                    {{ m.hafalanRanges || "-" }}
+                  </td>
+                  <td class="border p-2 text-center font-bold">
+                    {{ m.jumlahHalaman || 0 }}
+                  </td>
+                  <td class="border p-2 text-center">
+                    <span
+                      :class="getStatusClass(m.jumlahHalaman)"
+                      class="px-2 py-0.5 rounded text-xs font-medium"
+                    >
+                      {{ getStatus(m.jumlahHalaman) }}
+                    </span>
+                  </td>
+                </tr>
+                <tr v-if="!report?.members?.length">
+                  <td
+                    colspan="10"
+                    class="border p-4 text-center text-slate-500 italic"
+                  >
+                    Tidak ada data anggota
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Legend -->
+          <div class="mt-6 grid grid-cols-2 gap-4 text-xs text-slate-600">
+            <div>
+              <p class="font-semibold mb-1">Keterangan Status:</p>
+              <p>
+                <span class="px-1 bg-green-100 text-green-700 rounded">ST</span>
+                : Sesuai Target
+              </p>
+              <p>
+                <span class="px-1 bg-yellow-100 text-yellow-700 rounded"
+                  >DT</span
+                >
+                : Di Bawah Target
+              </p>
+              <p>
+                <span class="px-1 bg-blue-100 text-blue-700 rounded">MT</span> :
+                Melebihi Target
+              </p>
+            </div>
+            <div>
+              <p class="font-semibold mb-1">Keterangan Kehadiran:</p>
+              <p>
+                <b>S</b> : Sakit | <b>I</b> : Izin | <b>A</b> : Alpha |
+                <b>T</b> : Terlambat
+              </p>
+            </div>
+          </div>
+
+          <!-- Footer -->
+          <div class="grid grid-cols-2 gap-8 text-center mt-12 text-sm">
+            <div></div>
+            <div>
+              <p class="mb-16">
+                Purwakarta, {{ currentDate }}<br />Pengampu Halaqah,
+              </p>
+              <p
+                class="font-bold border-b border-slate-800 inline-block min-w-[150px]"
               >
-                Tidak ada data anggota
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Legend -->
-      <div class="mt-6 grid grid-cols-2 gap-4 text-xs text-slate-600">
-        <div>
-          <p class="font-semibold mb-1">Keterangan Status:</p>
-          <p>
-            <span class="px-1 bg-green-100 text-green-700 rounded">ST</span> :
-            Sesuai Target
-          </p>
-          <p>
-            <span class="px-1 bg-yellow-100 text-yellow-700 rounded">DT</span> :
-            Di Bawah Target
-          </p>
-          <p>
-            <span class="px-1 bg-blue-100 text-blue-700 rounded">MT</span> :
-            Melebihi Target
-          </p>
+                {{ report?.mentor?.fullName || "_______________" }}
+              </p>
+            </div>
+          </div>
         </div>
-        <div>
-          <p class="font-semibold mb-1">Keterangan Kehadiran:</p>
-          <p>
-            <b>S</b> : Sakit | <b>I</b> : Izin | <b>A</b> : Alpha | <b>T</b> :
-            Terlambat
-          </p>
-        </div>
-      </div>
-
-      <!-- Footer -->
-      <div class="grid grid-cols-2 gap-8 text-center mt-12 text-sm">
-        <div></div>
-        <div>
-          <p class="mb-16">
-            Purwakarta, {{ currentDate }}<br />Pengampu Halaqah,
-          </p>
-          <p
-            class="font-bold border-b border-slate-800 inline-block min-w-[150px]"
-          >
-            {{ report?.mentor?.fullName || "_______________" }}
-          </p>
-        </div>
-      </div>
-
-      <!-- Print Button -->
-      <div class="mt-8 text-center print:hidden">
-        <button
-          @click="handlePrint"
-          class="px-6 py-2 bg-[#602515] text-white rounded-lg hover:bg-[#4a1c10] flex items-center gap-2 mx-auto"
-        >
-          <Icon icon="solar:printer-bold-duotone" />
-          Cetak Laporan
-        </button>
       </div>
     </div>
   </div>
@@ -265,7 +274,9 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, watch } from "vue";
+
 import { Icon } from "@iconify/vue";
+import { useElementSize } from "@vueuse/core";
 import { tahfidzApi, halaqahApi } from "@/services/api";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
@@ -274,6 +285,24 @@ const loading = ref(false);
 const halaqahList = ref([]);
 const targets = ref([]);
 const report = ref(null);
+
+const reportContainer = ref(null);
+const { width: containerWidth } = useElementSize(reportContainer);
+
+const scale = computed(() => {
+  if (!containerWidth.value) return 1;
+  const A4_WIDTH_PX = 794; // 210mm @ 96dpi
+  const availableWidth = containerWidth.value;
+  return availableWidth < A4_WIDTH_PX ? availableWidth / A4_WIDTH_PX : 1;
+});
+
+const reportStyle = computed(() => ({
+  width: "210mm",
+  minHeight: "297mm",
+  transform: `scale(${scale.value})`,
+  marginBottom: `-${(1 - scale.value) * 100}%`,
+  transformOrigin: "top left",
+}));
 
 const filters = reactive({
   halaqahId: "",
@@ -672,6 +701,10 @@ onMounted(() => {
 
 <style>
 @media print {
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
   body * {
     visibility: hidden;
   }
@@ -683,13 +716,16 @@ onMounted(() => {
     position: absolute;
     left: 0;
     top: 0;
-    width: 100%;
-    margin: 0;
-    padding: 20px;
-    border: none;
-    box-shadow: none;
+    width: 210mm !important;
+    min-height: 297mm !important;
+    margin: 0 !important;
+    padding: 20px !important;
+    border: none !important;
+    box-shadow: none !important;
+    transform: none !important; /* Disable scaling */
+    overflow: visible !important;
   }
-  .print\\:hidden {
+  .print\:hidden {
     display: none !important;
   }
 }
