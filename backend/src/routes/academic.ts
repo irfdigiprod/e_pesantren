@@ -1137,4 +1137,275 @@ academicRoute.put(
   }
 );
 
+// ============ IMPORT SUBJECTS ============
+
+// Preview import subjects from Excel
+academicRoute.post(
+  "/subjects/import/preview",
+  requireRole("admin", "staff"),
+  async (c) => {
+    try {
+      const formData = await c.req.formData();
+      const file = formData.get("file") as File;
+
+      if (!file) {
+        return c.json({ success: false, message: "No file uploaded" }, 400);
+      }
+
+      // Check file type
+      const allowedTypes = [
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "application/vnd.ms-excel",
+      ];
+      if (
+        !allowedTypes.includes(file.type) &&
+        !file.name.endsWith(".xlsx") &&
+        !file.name.endsWith(".xls")
+      ) {
+        return c.json(
+          {
+            success: false,
+            message:
+              "Invalid file type. Please upload an Excel file (.xlsx or .xls)",
+          },
+          400
+        );
+      }
+
+      // Parse Excel file
+      const XLSX = await import("xlsx");
+      const buffer = await file.arrayBuffer();
+      const workbook = XLSX.read(buffer, { type: "array" });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const data = XLSX.utils.sheet_to_json(worksheet) as any[];
+
+      if (!data || data.length === 0) {
+        return c.json(
+          {
+            success: false,
+            message: "Excel file is empty or has no data rows",
+          },
+          400
+        );
+      }
+
+      // Column Mapping
+      const columnMapping: { [key: string]: string } = {
+        Kode: "code",
+        Code: "code",
+        "Mata Pelajaran": "name",
+        Mapel: "name",
+        Nama: "name",
+        "Nama Arab": "nameAr",
+        "Name Ar": "nameAr",
+        Kategori: "category",
+        Category: "category",
+        KKM: "kkm",
+        Kelas: "grades", // String e.g. "1,2,3" or "All"
+        Grades: "grades",
+        SKS: "creditHours",
+        "Credit Hours": "creditHours",
+        Urutan: "sortOrder",
+        Sort: "sortOrder",
+      };
+
+      const preview = {
+        totalRows: data.length,
+        validRows: 0,
+        invalidRows: 0,
+        duplicateCode: 0, // Stats for duplicate entries
+        errors: [] as { row: number; code: string; error: string }[],
+        validData: [] as any[],
+      };
+
+      for (let i = 0; i < data.length; i++) {
+        const row = data[i];
+        const rowNumber = i + 2;
+
+        try {
+          const subjectData: any = {};
+          for (const [excelCol, dbField] of Object.entries(columnMapping)) {
+            if (
+              row[excelCol] !== undefined &&
+              row[excelCol] !== null &&
+              row[excelCol] !== ""
+            ) {
+              subjectData[dbField] = row[excelCol];
+            }
+          }
+
+          // Validation
+          if (!subjectData.name) {
+            throw new Error("Nama mata pelajaran wajib diisi");
+          }
+
+          // Parse Grades: "1,2,3" -> JSON string "[1,2,3]"
+          if (subjectData.grades) {
+            const gStr = String(subjectData.grades);
+            const gArr = gStr
+              .split(",")
+              .map((s) => Number(s.trim()))
+              .filter((n) => !isNaN(n));
+            if (gArr.length > 0) {
+              subjectData.grades = JSON.stringify(gArr);
+            } else {
+              if (!isNaN(Number(subjectData.grades))) {
+                subjectData.grades = JSON.stringify([
+                  Number(subjectData.grades),
+                ]);
+              } else {
+                subjectData.grades = "[]";
+              }
+            }
+          }
+
+          // Check Duplicates by Code
+          if (subjectData.code) {
+            const existing = await db.query.subjects.findFirst({
+              where: eq(subjects.code, String(subjectData.code)),
+            });
+            if (existing) {
+              preview.duplicateCode++;
+              throw new Error(`Kode mapel '${subjectData.code}' sudah ada`);
+            }
+          }
+
+          preview.validRows++;
+          preview.validData.push({
+            row: rowNumber,
+            ...subjectData,
+          });
+        } catch (err: any) {
+          preview.invalidRows++;
+          preview.errors.push({
+            row: rowNumber,
+            code: row.Kode || row.Code || "-",
+            error: err.message || "Unknown error",
+          });
+        }
+      }
+
+      return c.json({
+        success: true,
+        data: preview,
+      });
+    } catch (error: any) {
+      console.error("Preview import error:", error);
+      return c.json({ success: false, message: error?.message }, 500);
+    }
+  }
+);
+
+// Import subjects from Excel
+academicRoute.post(
+  "/subjects/import",
+  requireRole("admin", "staff"),
+  async (c) => {
+    try {
+      const formData = await c.req.formData();
+      const file = formData.get("file") as File;
+
+      if (!file) return c.json({ success: false, message: "No file" }, 400);
+
+      const XLSX = await import("xlsx");
+      const buffer = await file.arrayBuffer();
+      const workbook = XLSX.read(buffer, { type: "array" });
+      const sheetName = workbook.SheetNames[0];
+      const data = XLSX.utils.sheet_to_json(
+        workbook.Sheets[sheetName]
+      ) as any[];
+
+      const columnMapping: { [key: string]: string } = {
+        Kode: "code",
+        Code: "code",
+        "Mata Pelajaran": "name",
+        Mapel: "name",
+        Nama: "name",
+        "Nama Arab": "nameAr",
+        "Name Ar": "nameAr",
+        Kategori: "category",
+        Category: "category",
+        KKM: "kkm",
+        Kelas: "grades",
+        Grades: "grades",
+        SKS: "creditHours",
+        "Credit Hours": "creditHours",
+        Urutan: "sortOrder",
+        Sort: "sortOrder",
+      };
+
+      const results = { success: 0, failed: 0, errors: [] as any[] };
+
+      for (let i = 0; i < data.length; i++) {
+        const row = data[i];
+        const rowNumber = i + 2;
+
+        try {
+          const rawData: any = {};
+          for (const [k, v] of Object.entries(columnMapping)) {
+            if (row[k] !== undefined) rawData[v] = row[k];
+          }
+
+          if (!rawData.name) throw new Error("Nama wajib diisi");
+
+          // Process Grades
+          if (rawData.grades) {
+            const gStr = String(rawData.grades);
+            const gArr = gStr
+              .split(",")
+              .map((s) => Number(s.trim()))
+              .filter((n) => !isNaN(n));
+            if (gArr.length > 0) {
+              rawData.grades = JSON.stringify(gArr);
+            } else if (!isNaN(Number(rawData.grades))) {
+              rawData.grades = JSON.stringify([Number(rawData.grades)]);
+            } else {
+              rawData.grades = "[]";
+            }
+          }
+
+          // Check Duplicate Code
+          if (rawData.code) {
+            const existing = await db.query.subjects.findFirst({
+              where: eq(subjects.code, String(rawData.code)),
+            });
+            if (existing)
+              throw new Error(`Kode mapel '${rawData.code}' sudah ada`);
+          } else {
+            // Generate Code if missing
+            const prefix = rawData.name
+              .substring(0, 3)
+              .toUpperCase()
+              .replace(/[^A-Z]/g, "X");
+            const random = Math.floor(1000 + Math.random() * 9000);
+            rawData.code = `${prefix}-${random}`;
+          }
+
+          await db.insert(subjects).values({
+            code: String(rawData.code),
+            name: rawData.name,
+            nameAr: rawData.nameAr || null,
+            category: rawData.category || null,
+            grades: rawData.grades || null,
+            kkm: rawData.kkm ? String(rawData.kkm) : "70.00",
+            sortOrder: rawData.sortOrder ? Number(rawData.sortOrder) : 0,
+            creditHours: rawData.creditHours ? Number(rawData.creditHours) : 2,
+          });
+
+          results.success++;
+        } catch (e: any) {
+          results.failed++;
+          results.errors.push({ row: rowNumber, error: e.message });
+        }
+      }
+
+      return c.json({ success: true, data: results });
+    } catch (error: any) {
+      console.error("Import error:", error);
+      return c.json({ success: false, message: error.message }, 500);
+    }
+  }
+);
+
 export default academicRoute;

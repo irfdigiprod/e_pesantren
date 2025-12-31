@@ -15,13 +15,22 @@
       @update:limit="itemsPerPage = $event"
     >
       <template #header-actions>
-        <button
-          @click="openCreate"
-          class="bg-[#602515] text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2 hover:bg-[#4a1c10] transition-colors"
-        >
-          <Icon icon="solar:add-circle-bold" />
-          Tambah Mapel
-        </button>
+        <div class="flex gap-2">
+          <button
+            @click="openImport"
+            class="bg-white text-slate-700 border border-slate-200 px-4 py-2 rounded-lg font-medium flex items-center gap-2 hover:bg-slate-50 transition-colors"
+          >
+            <Icon icon="solar:import-bold-duotone" />
+            Import Excel
+          </button>
+          <button
+            @click="openCreate"
+            class="bg-[#602515] text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2 hover:bg-[#4a1c10] transition-colors"
+          >
+            <Icon icon="solar:add-circle-bold" />
+            Tambah Mapel
+          </button>
+        </div>
       </template>
 
       <!-- Filters Slot -->
@@ -418,6 +427,18 @@
       @confirm="deleteItem"
       @close="confirmCancel"
     />
+
+    <!-- Import Modal -->
+    <ImportModal
+      v-model:isOpen="importModal.show"
+      title="Import Mata Pelajaran"
+      :api-preview="academicApi.importSubjectPreview"
+      :api-import="academicApi.importSubject"
+      :template-header="templateHeader"
+      template-name="template_mapel"
+      required-columns="Nama (Wajib), Kode (Opsional), Kelas (Contoh: 7,8,9)"
+      @success="handleImportSuccess"
+    />
   </div>
 </template>
 
@@ -427,6 +448,7 @@ import { academicApi } from "@/services/api";
 import { Icon } from "@iconify/vue";
 import DataTable from "@/components/ui/DataTable.vue";
 import ConfirmModal from "@/components/ui/ConfirmModal.vue";
+import ImportModal from "@/components/common/ImportModal.vue";
 
 const allSubjects = ref([]);
 const availableGrades = ref([]); // List of distinct grades
@@ -445,6 +467,7 @@ const filters = reactive({
 
 const modal = reactive({ show: false, mode: "create", error: "" });
 const confirm = reactive({ show: false, item: null });
+const importModal = reactive({ show: false });
 
 const form = reactive({
   id: null,
@@ -467,6 +490,19 @@ const columns = [
   { field: "creditHours", label: "SKS", width: "60px" },
   { field: "kkm", label: "KKM", sortable: true, width: "80px" },
   { field: "actions", label: "", width: "100px" },
+];
+
+const templateHeader = [
+  {
+    Kode: "", // Kosongkan untuk auto-generate
+    Nama: "Matematika",
+    "Nama Arab": "الرياضيات",
+    Kategori: "Umum",
+    Kelas: "7,8,9",
+    KKM: 70,
+    SKS: 2,
+    Urutan: 1,
+  },
 ];
 
 /* Data Handling with Search & Filter & Pagination */
@@ -684,6 +720,15 @@ function confirmDelete(item) {
 function confirmCancel() {
   confirm.show = false;
   confirm.item = null;
+}
+
+function openImport() {
+  importModal.show = true;
+}
+
+function handleImportSuccess() {
+  importModal.show = false;
+  fetchData();
 }
 
 onMounted(fetchData);

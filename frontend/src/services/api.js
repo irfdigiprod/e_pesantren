@@ -728,6 +728,31 @@ export const academicApi = {
   async deleteSubject(id) {
     return request(`/api/academic/subjects/${id}`, { method: "DELETE" });
   },
+  async importSubjectPreview(formData) {
+    const token = getToken();
+    const res = await fetch(
+      `${BASE_URL}/api/academic/subjects/import/preview`,
+      {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      }
+    );
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.message || "Preview failed");
+    return data;
+  },
+  async importSubject(formData) {
+    const token = getToken();
+    const res = await fetch(`${BASE_URL}/api/academic/subjects/import`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.message || "Import failed");
+    return data;
+  },
 
   // Schedules
   async getSchedules(params = {}) {
