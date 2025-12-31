@@ -1092,13 +1092,13 @@ export default app;
 // Settings Schema
 const settingsSchema = z.object({
   institutionName: z.string().min(1),
-  institutionAddress: z.string().optional(),
-  institutionLogo: z.string().optional(),
-  contactInfo: z.string().optional(),
-  headmasterName: z.string().optional(),
-  tahfidzHeadName: z.string().optional(),
-  tahfidzHeadNameAkhwat: z.string().optional(), // Ketua Tahfidz Akhwat (optional)
-  cityDate: z.string().optional(),
+  institutionAddress: z.string().nullable().optional(),
+  institutionLogo: z.string().nullable().optional(),
+  contactInfo: z.string().nullable().optional(),
+  headmasterName: z.string().nullable().optional(),
+  tahfidzHeadName: z.string().nullable().optional(),
+  tahfidzHeadNameAkhwat: z.string().nullable().optional(), // Ketua Tahfidz Akhwat (optional)
+  cityDate: z.string().nullable().optional(),
 });
 
 // GET /settings
