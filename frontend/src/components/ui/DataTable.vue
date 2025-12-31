@@ -131,7 +131,7 @@
             <tr class="border-b border-slate-200">
               <th
                 v-for="col in columns"
-                :key="col.field"
+                :key="col.field || col.key"
                 :class="[
                   'p-3 md:p-4',
                   col.width || '',
@@ -155,7 +155,7 @@
                 >
                   {{ col.label }}
                   <SortIcon
-                    :field="col.field"
+                    :field="col.field || col.key"
                     :sortBy="sortBy"
                     :order="sortOrder"
                   />

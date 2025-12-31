@@ -42,8 +42,12 @@ export const classHomeroomTeachers = mysqlTable("class_homeroom_teachers", {
 export const subjects = mysqlTable("subjects", {
   id: int("id").primaryKey().autoincrement(),
   name: varchar("name", { length: 255 }).notNull(),
+  nameAr: varchar("name_ar", { length: 255 }), // Arabic Name
   code: varchar("code", { length: 20 }).unique(),
   category: varchar("category", { length: 100 }), // e.g., "wajib", "muatan_lokal", "ekstrakurikuler"
+  grades: text("grades"), // JSON string of grade levels, e.g. "[7,8,9]"
+  kkm: decimal("kkm", { precision: 5, scale: 2 }).default("70.00"),
+  sortOrder: int("sort_order").default(0),
   description: text("description"),
   creditHours: int("credit_hours").default(2),
   createdAt: timestamp("created_at").defaultNow(),

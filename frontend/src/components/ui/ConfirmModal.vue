@@ -125,7 +125,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(["confirm", "cancel"]);
+const emit = defineEmits(["confirm", "cancel", "close"]);
 
 const typeIcon = computed(() => {
   switch (props.type) {

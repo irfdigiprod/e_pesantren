@@ -536,8 +536,36 @@
                 </div>
               </div>
 
-              <!-- Penilaian -->
-              <div class="p-4 bg-slate-50 rounded-lg border border-slate-200">
+              <!-- Penilaian - Suluk: Direct Score -->
+              <div
+                v-if="selectedExamType?.category === 'Suluk'"
+                class="p-4 bg-slate-50 rounded-lg border border-slate-200"
+              >
+                <h4
+                  class="font-semibold text-slate-700 mb-3 flex items-center gap-2"
+                >
+                  <Icon icon="solar:clipboard-check-line-duotone" /> Nilai Akhir
+                </h4>
+                <div>
+                  <label class="block text-sm font-medium text-slate-700 mb-1"
+                    >Nilai (0-100)</label
+                  >
+                  <input
+                    type="number"
+                    v-model="form.directFinalScore"
+                    min="0"
+                    max="100"
+                    class="w-full px-3 py-2 border rounded-lg focus:ring-2 ring-[#602515]/20 outline-none text-center text-2xl font-bold"
+                    :class="getScoreColor(form.directFinalScore)"
+                  />
+                </div>
+              </div>
+
+              <!-- Penilaian - UKJ/UPK: Component Scores -->
+              <div
+                v-else
+                class="p-4 bg-slate-50 rounded-lg border border-slate-200"
+              >
                 <h4
                   class="font-semibold text-slate-700 mb-3 flex items-center gap-2"
                 >
@@ -808,6 +836,7 @@ const form = reactive({
   scoreTajwid: 0,
   scoreMakhraj: 0,
   scoreAdab: 0,
+  directFinalScore: 0, // For Suluk
   verdict: "pass",
   notes: "",
 });
@@ -1126,12 +1155,19 @@ async function submitExam() {
         selectedType?.category === "UPK" ? Number(form.startPage) : null,
       endPage: selectedType?.category === "UPK" ? Number(form.endPage) : null,
 
-      // Scores
-      scoreFluency: Number(form.scoreFluency),
-      scoreTajwid: Number(form.scoreTajwid),
-      scoreMakhraj: Number(form.scoreMakhraj),
-      scoreAdab: Number(form.scoreAdab),
-      finalScore: calculatedFinalScore.value,
+      // Scores - For Suluk, use direct score; for others, use component averages
+      scoreFluency:
+        selectedType?.category === "Suluk" ? 0 : Number(form.scoreFluency),
+      scoreTajwid:
+        selectedType?.category === "Suluk" ? 0 : Number(form.scoreTajwid),
+      scoreMakhraj:
+        selectedType?.category === "Suluk" ? 0 : Number(form.scoreMakhraj),
+      scoreAdab:
+        selectedType?.category === "Suluk" ? 0 : Number(form.scoreAdab),
+      finalScore:
+        selectedType?.category === "Suluk"
+          ? Number(form.directFinalScore)
+          : calculatedFinalScore.value,
 
       verdict: form.verdict,
       notes: form.notes,

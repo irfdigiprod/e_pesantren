@@ -120,13 +120,6 @@ async function request(endpoint, options = {}) {
     const data = await parseResponse(res);
 
     if (!res.ok) {
-      console.error(
-        "[API Error]",
-        res.status,
-        url,
-        JSON.stringify(data, null, 2)
-      );
-
       let errorMsg =
         data?.message || data?.errors || res.statusText || `HTTP ${res.status}`;
 

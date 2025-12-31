@@ -58,16 +58,14 @@
               : 'bg-slate-50 border-slate-200'
           "
         >
-          <div class="flex items-center gap-3">
-            <span class="font-medium text-slate-800">{{ y.year }}</span>
+          <span class="font-medium text-slate-800">{{ y.year }}</span>
+          <div class="flex items-center gap-2">
             <span
               v-if="y.isActive"
               class="px-2 py-0.5 text-xs font-medium bg-[#602515] text-white rounded-full"
             >
               Aktif
             </span>
-          </div>
-          <div class="flex items-center gap-2">
             <button
               v-if="!y.isActive"
               @click="setActiveYear(y.year)"
@@ -129,6 +127,30 @@
         {{ activeYear }} - Semester {{ activeSemesterName }}
       </div>
     </div>
+
+    <!-- Confirm Modal -->
+    <ConfirmModal
+      :isOpen="showConfirmModal"
+      title="Hapus Tahun Pelajaran"
+      confirmText="Ya, Hapus"
+      cancelText="Batal"
+      :loading="deleteLoading"
+      @confirm="onConfirmDelete"
+      @cancel="showConfirmModal = false"
+    >
+      Apakah Anda yakin ingin menghapus tahun pelajaran
+      <strong>{{ yearToDelete }}</strong
+      >?
+    </ConfirmModal>
+
+    <!-- Status Modal -->
+    <StatusModal
+      :isOpen="showStatusModal"
+      :title="statusTitle"
+      :message="statusMessage"
+      :type="statusType"
+      @close="showStatusModal = false"
+    />
   </div>
 </template>
 
@@ -136,6 +158,8 @@
 import { ref, computed, onMounted } from "vue";
 import { Icon } from "@iconify/vue";
 import { academicSettingsApi } from "@/services/api";
+import ConfirmModal from "@/components/ui/ConfirmModal.vue";
+import StatusModal from "@/components/ui/StatusModal.vue";
 
 const loading = ref(false);
 const years = ref([]);
@@ -144,6 +168,23 @@ const newYear = ref("");
 const yearError = ref("");
 const activeYear = ref("");
 const activeSemester = ref("");
+
+// Modal states
+const showConfirmModal = ref(false);
+const yearToDelete = ref("");
+const deleteLoading = ref(false);
+
+const showStatusModal = ref(false);
+const statusTitle = ref("");
+const statusMessage = ref("");
+const statusType = ref("success");
+
+function showStatus(title, message, type = "success") {
+  statusTitle.value = title;
+  statusMessage.value = message;
+  statusType.value = type;
+  showStatusModal.value = true;
+}
 
 const activeSemesterName = computed(() => {
   const s = semesters.value.find((x) => x.isActive);
@@ -209,24 +250,38 @@ async function addYear() {
     await academicSettingsApi.addAcademicYear(newYear.value);
     newYear.value = "";
     await loadData();
+    showStatus("Berhasil", "Tahun pelajaran berhasil ditambahkan", "success");
   } catch (e) {
-    alert(e.message || "Gagal menambahkan tahun pelajaran");
+    showStatus(
+      "Gagal",
+      e.message || "Gagal menambahkan tahun pelajaran",
+      "error"
+    );
   } finally {
     loading.value = false;
   }
 }
 
 async function deleteYear(year) {
-  if (!confirm(`Hapus tahun pelajaran ${year}?`)) return;
+  yearToDelete.value = year;
+  showConfirmModal.value = true;
+}
 
-  loading.value = true;
+async function onConfirmDelete() {
+  deleteLoading.value = true;
   try {
-    await academicSettingsApi.deleteAcademicYear(year);
+    await academicSettingsApi.deleteAcademicYear(yearToDelete.value);
+    showConfirmModal.value = false;
     await loadData();
+    showStatus("Berhasil", "Tahun pelajaran berhasil dihapus", "success");
   } catch (e) {
-    alert(e.message || "Gagal menghapus tahun pelajaran");
+    showStatus(
+      "Gagal",
+      e.message || "Gagal menghapus tahun pelajaran",
+      "error"
+    );
   } finally {
-    loading.value = false;
+    deleteLoading.value = false;
   }
 }
 
@@ -235,8 +290,9 @@ async function setActiveYear(year) {
   try {
     await academicSettingsApi.setActiveAcademicYear(year);
     await loadData();
+    showStatus("Berhasil", "Tahun aktif berhasil diubah", "success");
   } catch (e) {
-    alert(e.message || "Gagal mengubah tahun aktif");
+    showStatus("Gagal", e.message || "Gagal mengubah tahun aktif", "error");
   } finally {
     loading.value = false;
   }
@@ -247,8 +303,9 @@ async function setActiveSemester(semesterId) {
   try {
     await academicSettingsApi.setActiveSemester(semesterId);
     await loadData();
+    showStatus("Berhasil", "Semester aktif berhasil diubah", "success");
   } catch (e) {
-    alert(e.message || "Gagal mengubah semester aktif");
+    showStatus("Gagal", e.message || "Gagal mengubah semester aktif", "error");
   } finally {
     loading.value = false;
   }

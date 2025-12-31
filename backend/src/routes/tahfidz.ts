@@ -544,6 +544,30 @@ app.get("/exams", async (c) => {
 app.post("/exams", zValidator("json", examSchema), async (c) => {
   const body = c.req.valid("json");
   try {
+    // For Suluk and UA, check for duplicate (one per student per semester per academic year)
+    if (body.examCategory === "Suluk" || body.examCategory === "UA") {
+      const existing = await db.query.tahfidzExams.findFirst({
+        where: and(
+          eq(tahfidzExams.studentId, body.studentId),
+          eq(tahfidzExams.examCategory, body.examCategory),
+          eq(tahfidzExams.academicYear, body.academicYear || ""),
+          eq(tahfidzExams.semester, body.semester || "ganjil")
+        ),
+      });
+
+      if (existing) {
+        const categoryLabel =
+          body.examCategory === "Suluk" ? "Suluk" : "Ujian Akhir";
+        return c.json(
+          {
+            success: false,
+            message: `Data ${categoryLabel} untuk siswa ini di semester dan tahun pelajaran yang sama sudah ada. Silakan edit data yang sudah ada.`,
+          },
+          400
+        );
+      }
+    }
+
     await db.insert(tahfidzExams).values({
       ...body,
       examDate: new Date(body.examDate),
@@ -1805,6 +1829,31 @@ app.post("/exams/import", async (c) => {
         payload.finalScore = calculatedFinalScore;
         if (category === "UPK" || category === "UKJ") {
           payload.verdict = calculatedFinalScore >= 75 ? "pass" : "fail";
+        }
+
+        // For Suluk and UA, check for duplicate (one per student per semester per academic year)
+        // This applies to both preview and actual import
+        if (category === "Suluk" || category === "UA") {
+          const existing = await db.query.tahfidzExams.findFirst({
+            where: and(
+              eq(tahfidzExams.studentId, student.id),
+              eq(tahfidzExams.examCategory, category as any),
+              eq(tahfidzExams.academicYear, String(academicYear).trim()),
+              eq(tahfidzExams.semester, String(semester).trim() as any)
+            ),
+          });
+
+          if (existing) {
+            failCount++;
+            const categoryLabel =
+              category === "Suluk" ? "Suluk" : "Ujian Akhir";
+            errors.push({
+              row: rowNum,
+              error: `Data ${categoryLabel} sudah ada untuk siswa ini di semester ini`,
+              nis: String(nis),
+            });
+            continue;
+          }
         }
 
         // Preview Optimization: Include basic student info in payload for display
