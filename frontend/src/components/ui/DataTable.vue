@@ -229,11 +229,14 @@
           class="text-sm text-slate-600 justify-self-start order-2 md:order-1"
         >
           Total Data:
-          <span class="font-semibold">{{ pagination?.total || 0 }}</span>
+          <span class="font-semibold">{{
+            pagination ? pagination.total : items.length
+          }}</span>
         </div>
 
         <!-- Center: Pagination Controls -->
         <div
+          v-if="pagination"
           class="flex items-center justify-center gap-1 justify-self-center order-1 md:order-2 w-full md:w-auto"
         >
           <button
@@ -273,26 +276,29 @@
             <Icon icon="solar:alt-arrow-right-linear" />
           </button>
         </div>
+        <div v-else class="order-1 md:order-2"></div>
 
         <!-- Right: Page Size -->
         <div
           class="flex items-center justify-end gap-2 justify-self-end order-3 md:order-3"
         >
-          <span class="text-sm text-slate-500">Show:</span>
-          <select
-            :value="pagination?.limit"
-            @change="
-              $emit('update:limit', Number($event.target.value));
-              $emit('page-change', 1);
-            "
-            class="border border-slate-200 rounded-lg text-sm px-2 py-1 bg-white focus:outline-none focus:border-[#602515]"
-          >
-            <option :value="10">10</option>
-            <option :value="20">20</option>
-            <option :value="50">50</option>
-            <option :value="100">100</option>
-            <option :value="9999">All</option>
-          </select>
+          <div v-if="pagination" class="flex items-center gap-2">
+            <span class="text-sm text-slate-500">Show:</span>
+            <select
+              :value="pagination?.limit"
+              @change="
+                $emit('update:limit', Number($event.target.value));
+                $emit('page-change', 1);
+              "
+              class="border border-slate-200 rounded-lg text-sm px-2 py-1 bg-white focus:outline-none focus:border-[#602515]"
+            >
+              <option :value="10">10</option>
+              <option :value="20">20</option>
+              <option :value="50">50</option>
+              <option :value="100">100</option>
+              <option :value="9999">All</option>
+            </select>
+          </div>
         </div>
       </div>
     </div>
@@ -351,6 +357,7 @@ const showFilters = ref(false);
 
 /* Pagination Logic */
 const visiblePages = computed(() => {
+  if (!props.pagination) return [];
   const current = props.pagination.page;
   const total = props.pagination.totalPages;
   const pages = [];

@@ -1,296 +1,415 @@
 <template>
-  <div class="p-6">
-    <div
-      class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4"
+  <div class="max-w-7xl mx-auto pb-12">
+    <DataTable
+      title="Input Nilai Rapor"
+      description="Kelola nilai siswa per kelas secara massal."
+      icon="solar:pen-new-square-bold-duotone"
+      :items="studentGrades"
+      :columns="columns"
+      :loading="loading"
+      :pagination="null"
+      :search="search"
+      @update:search="search = $event"
     >
-      <div>
-        <h1 class="text-xl font-semibold text-slate-800">Nilai</h1>
-        <p class="text-sm text-slate-500">Kelola nilai santri.</p>
-      </div>
-      <button
-        @click="openCreate"
-        :disabled="saving"
-        class="px-3 py-2 rounded-lg border text-sm"
-        :style="btnPrimaryOutline"
-      >
-        + Tambah Nilai
-      </button>
-    </div>
-
-    <div class="bg-white rounded-lg shadow-sm overflow-hidden">
-      <table class="min-w-full table-auto">
-        <thead class="bg-slate-50 text-slate-600 text-sm">
-          <tr>
-            <th class="px-4 py-3 text-left">#</th>
-            <th class="px-4 py-3 text-left">Santri</th>
-            <th class="px-4 py-3 text-left">Mapel</th>
-            <th class="px-4 py-3 text-left">Tipe</th>
-            <th class="px-4 py-3 text-left">Nilai</th>
-            <th class="px-4 py-3 text-left">Semester</th>
-            <th class="px-4 py-3 text-left">Aksi</th>
-          </tr>
-        </thead>
-        <tbody class="text-sm text-slate-700">
-          <tr v-for="(g, idx) in grades" :key="g.id" class="border-t">
-            <td class="px-4 py-3">{{ idx + 1 }}</td>
-            <td class="px-4 py-3 font-medium">
-              {{ g.student?.fullName || g.studentId }}
-            </td>
-            <td class="px-4 py-3">{{ g.subject?.name || g.subjectId }}</td>
-            <td class="px-4 py-3">{{ g.type || "-" }}</td>
-            <td class="px-4 py-3">{{ g.score }}</td>
-            <td class="px-4 py-3">{{ g.semester || "-" }}</td>
-            <td class="px-4 py-3">
-              <div class="flex gap-2">
-                <button
-                  @click="openEdit(g)"
-                  class="px-2 py-1 rounded border text-xs"
-                >
-                  Edit
-                </button>
-                <button
-                  @click="confirmDelete(g)"
-                  class="px-2 py-1 rounded border text-xs"
-                >
-                  Hapus
-                </button>
-              </div>
-            </td>
-          </tr>
-          <tr v-if="grades.length === 0">
-            <td colspan="7" class="px-4 py-6 text-center">Data kosong</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div
-      v-if="modal.show"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-    >
-      <div
-        class="bg-white w-full max-w-lg rounded-lg shadow-lg overflow-auto max-h-[90vh]"
-      >
-        <div class="p-4 border-b flex justify-between">
-          <h3 class="font-medium">
-            {{ modal.mode === "create" ? "Tambah" : "Edit" }} Nilai
-          </h3>
-          <button @click="closeModal">✕</button>
-        </div>
-        <div class="p-4 space-y-3">
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="text-xs text-slate-500">ID Santri *</label
-              ><input
-                v-model="form.studentId"
-                type="number"
-                class="w-full border rounded px-3 py-2 text-sm"
-              />
-            </div>
-            <div>
-              <label class="text-xs text-slate-500">ID Mapel *</label
-              ><input
-                v-model="form.subjectId"
-                type="number"
-                class="w-full border rounded px-3 py-2 text-sm"
-              />
-            </div>
-            <div>
-              <label class="text-xs text-slate-500">Tipe Nilai</label
-              ><select
-                v-model="form.type"
-                class="w-full border rounded px-3 py-2 text-sm"
-              >
-                <option value="quiz">Quiz</option>
-                <option value="uts">UTS</option>
-                <option value="uas">UAS</option>
-                <option value="tugas">Tugas</option>
-              </select>
-            </div>
-            <div>
-              <label class="text-xs text-slate-500">Nilai *</label
-              ><input
-                v-model="form.score"
-                type="number"
-                class="w-full border rounded px-3 py-2 text-sm"
-                min="0"
-                max="100"
-              />
-            </div>
-            <div>
-              <label class="text-xs text-slate-500">Semester</label
-              ><input
-                v-model="form.semester"
-                class="w-full border rounded px-3 py-2 text-sm"
-                placeholder="Ganjil/Genap"
-              />
-            </div>
-            <div>
-              <label class="text-xs text-slate-500">Tahun Ajaran</label
-              ><input
-                v-model="form.academicYear"
-                class="w-full border rounded px-3 py-2 text-sm"
-                placeholder="2024/2025"
-              />
-            </div>
-          </div>
-          <div class="flex gap-2">
-            <button
-              @click="submitForm"
-              :disabled="saving"
-              class="px-4 py-2 rounded-lg"
-              :style="btnSecondary"
-            >
-              {{ saving ? "Memproses..." : "Simpan" }}
-            </button>
-            <button @click="closeModal" class="px-4 py-2 rounded-lg border">
-              Batal
-            </button>
-          </div>
-          <div v-if="modal.error" class="text-sm text-red-600">
-            {{ modal.error }}
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div
-      v-if="confirm.show"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-    >
-      <div class="bg-white w-full max-w-md rounded-lg shadow-lg p-4">
-        <h3 class="font-medium">Hapus Nilai</h3>
-        <p class="text-sm text-slate-600 mt-2">Yakin hapus nilai ini?</p>
-        <div class="mt-4 flex gap-2">
-          <button
-            @click="deleteItem"
-            :disabled="saving"
-            class="px-4 py-2 rounded-lg"
-            :style="btnPrimary"
+      <!-- Header Actions (Filters) -->
+      <template #header-actions>
+        <div class="flex flex-wrap gap-2 items-center">
+          <select
+            v-model="filters.classId"
+            class="px-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-[#602515] outline-none"
           >
-            Ya, Hapus
+            <option value="">- Pilih Kelas -</option>
+            <option v-for="c in classes" :key="c.id" :value="c.id">
+              {{ c.name }}
+            </option>
+          </select>
+
+          <select
+            v-model="filters.subjectId"
+            class="px-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-[#602515] outline-none"
+          >
+            <option value="">- Pilih Mapel -</option>
+            <option v-for="s in subjects" :key="s.id" :value="s.id">
+              {{ s.name }}
+            </option>
+          </select>
+
+          <!-- Year & Semester (could be moved to Settings global state later) -->
+          <select
+            v-model="filters.academicYear"
+            class="px-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-[#602515] outline-none"
+          >
+            <option v-for="y in academicYears" :key="y.year" :value="y.year">
+              {{ y.year }}
+            </option>
+          </select>
+
+          <select
+            v-model="filters.semester"
+            class="px-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-[#602515] outline-none"
+          >
+            <option :value="1">Ganjil</option>
+            <option :value="2">Genap</option>
+          </select>
+
+          <button
+            @click="fetchData"
+            :disabled="!isValidFilter || loading"
+            class="px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition-colors text-sm disabled:opacity-50 flex items-center gap-2"
+          >
+            <Icon icon="solar:refresh-linear" />
+            Load
           </button>
-          <button @click="confirmCancel" class="px-4 py-2 rounded-lg border">
-            Batal
+
+          <button
+            @click="saveAll"
+            :disabled="studentGrades.length === 0 || saving"
+            class="px-4 py-2 bg-[#602515] text-white rounded-lg hover:bg-[#4a1c10] transition-colors text-sm disabled:opacity-50 flex items-center gap-2"
+          >
+            <Icon
+              v-if="saving"
+              icon="svg-spinners:ring-resize"
+              class="w-4 h-4"
+            />
+            <Icon v-else icon="solar:diskette-bold-duotone" />
+            Simpan Semua
           </button>
         </div>
-      </div>
-    </div>
+      </template>
 
-    <div v-if="loading" class="mt-4 text-sm text-slate-500">Memuat...</div>
+      <!-- Debug Info (Temporary) -->
+      <template #description>
+        <div
+          v-if="currentSubject"
+          class="mt-2 p-2 bg-slate-50 border border-slate-200 rounded text-xs text-slate-600 font-mono"
+        >
+          <div class="flex items-center gap-4">
+            <span
+              >Subject: <strong>{{ currentSubject.name }}</strong></span
+            >
+            <span
+              >KKM DB: <strong>{{ currentSubject.kkm }}</strong></span
+            >
+            <span
+              >Detected KKM: <strong>{{ currentKkm }}</strong></span
+            >
+            <span
+              >Rules Matched:
+              <strong
+                :class="activeRuleCount > 0 ? 'text-green-600' : 'text-red-500'"
+                >{{ activeRuleCount }} rules</strong
+              ></span
+            >
+          </div>
+        </div>
+      </template>
+
+      <!-- Custom Cells for Inputs -->
+      <template #cell-dailyScore="{ item }">
+        <input
+          v-model.number="item.dailyScore"
+          type="number"
+          min="0"
+          max="100"
+          class="w-16 px-2 py-1 border border-slate-200 rounded text-center text-sm focus:border-[#602515] outline-none"
+          placeholder="0"
+        />
+      </template>
+
+      <template #cell-homeworkScore="{ item }">
+        <input
+          v-model.number="item.homeworkScore"
+          type="number"
+          min="0"
+          max="100"
+          class="w-16 px-2 py-1 border border-slate-200 rounded text-center text-sm focus:border-[#602515] outline-none"
+          placeholder="0"
+        />
+      </template>
+
+      <template #cell-midtermScore="{ item }">
+        <input
+          v-model.number="item.midtermScore"
+          type="number"
+          min="0"
+          max="100"
+          class="w-16 px-2 py-1 border border-slate-200 rounded text-center text-sm focus:border-[#602515] outline-none"
+          placeholder="0"
+        />
+      </template>
+
+      <template #cell-finalScore="{ item }">
+        <input
+          v-model.number="item.finalScore"
+          type="number"
+          min="0"
+          max="100"
+          class="w-16 px-2 py-1 border border-slate-200 rounded text-center text-sm focus:border-[#602515] outline-none"
+          placeholder="0"
+        />
+      </template>
+
+      <template #cell-practiceScore="{ item }">
+        <input
+          v-model.number="item.practiceScore"
+          type="number"
+          min="0"
+          max="100"
+          class="w-16 px-2 py-1 border border-slate-200 rounded text-center text-sm focus:border-[#602515] outline-none"
+          placeholder="0"
+        />
+      </template>
+
+      <!-- Calculated Fields -->
+      <template #cell-calculatedFinal="{ item }">
+        <div class="font-bold text-slate-700">
+          {{ calculateFinal(item) }}
+        </div>
+      </template>
+
+      <template #cell-predicate="{ item }">
+        <span
+          class="px-2 py-1 rounded text-xs font-bold"
+          :class="getPredicateColor(item)"
+        >
+          {{ calculatePredicate(item) }}
+        </span>
+      </template>
+    </DataTable>
+
+    <StatusModal
+      :isOpen="statusModal.open"
+      :type="statusModal.type"
+      :title="statusModal.title"
+      :message="statusModal.message"
+      @close="statusModal.open = false"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from "vue";
-import { academicApi } from "@/services/api.js";
+import { ref, reactive, onMounted, computed, watch } from "vue";
+import { academicApi, academicSettingsApi } from "@/services/api";
+import DataTable from "@/components/ui/DataTable.vue";
+import StatusModal from "@/components/ui/StatusModal.vue";
+import { Icon } from "@iconify/vue";
 
-const btnPrimary = { background: "#602515", color: "#fff" };
-const btnPrimaryOutline = { borderColor: "#602515" };
-const btnSecondary = { background: "#f8ae19", color: "#fff" };
-
-const grades = ref([]);
+// State
 const loading = ref(false);
 const saving = ref(false);
+const classes = ref([]);
+const subjects = ref([]);
+const academicYears = ref([]);
+const studentGrades = ref([]);
+const gradingRules = ref([]);
+const search = ref("");
 
-const modal = reactive({ show: false, mode: "create", error: "" });
-const form = reactive({
-  id: null,
-  studentId: "",
-  subjectId: "",
-  type: "quiz",
-  score: "",
-  semester: "",
-  academicYear: "",
+const currentSubject = computed(() => {
+  return subjects.value.find((s) => s.id === Number(filters.subjectId));
 });
-const confirm = reactive({ show: false, item: null });
+
+const currentKkm = computed(() => {
+  const val = currentSubject.value?.kkm;
+  const num = Number(val);
+  return !isNaN(num) && num > 0 ? num : 75; // Default 75
+});
+
+const activeRules = computed(() => {
+  const config = gradingRules.value.find((r) => r.kkm === currentKkm.value);
+  return config ? config.rules : [];
+});
+
+const activeRuleCount = computed(() => activeRules.value.length);
+
+const statusModal = reactive({
+  open: false,
+  type: "success",
+  title: "",
+  message: "",
+});
+
+const filters = reactive({
+  classId: "",
+  subjectId: "",
+  academicYear: "2024/2025", // Default
+  semester: 1, // Default
+});
+
+// Columns Definition
+const columns = [
+  { field: "nis", label: "NIS", width: "w-20" },
+  { field: "name", label: "Nama Santri", sortable: true },
+  { field: "dailyScore", label: "Harian", align: "center", width: "w-24" },
+  { field: "homeworkScore", label: "Tugas", align: "center", width: "w-24" },
+  { field: "midtermScore", label: "UTS", align: "center", width: "w-24" },
+  { field: "finalScore", label: "UAS", align: "center", width: "w-24" },
+  { field: "practiceScore", label: "Praktek", align: "center", width: "w-24" },
+  {
+    field: "calculatedFinal",
+    label: "Nilai Akhir",
+    align: "center",
+    width: "w-24",
+  },
+  { field: "predicate", label: "Predikat", align: "center", width: "w-24" },
+];
+
+const isValidFilter = computed(() => {
+  return (
+    filters.classId &&
+    filters.subjectId &&
+    filters.academicYear &&
+    filters.semester
+  );
+});
+
+// Fetch Initial Data (Classes & Subjects)
+// Fetch Initial Data (Classes & Subjects & Settings)
+onMounted(async () => {
+  try {
+    const [clsRes, subRes, yearsRes, activeRes, rulesRes] = await Promise.all([
+      academicApi.getClasses(),
+      academicApi.getSubjects(),
+      academicSettingsApi.getAcademicYears(),
+      academicSettingsApi.getActive(),
+      academicSettingsApi.getGradingRules(),
+    ]);
+    classes.value = clsRes.data || [];
+    subjects.value = subRes.data || [];
+    academicYears.value = yearsRes.data || [];
+    gradingRules.value = rulesRes.data || [];
+
+    // Set default filters from active settings
+    if (activeRes.success && activeRes.data) {
+      filters.academicYear = activeRes.data.academicYear;
+      filters.semester = Number(activeRes.data.semester);
+    }
+  } catch (e) {
+    console.error("Failed to load initial data", e);
+  }
+});
 
 async function fetchData() {
+  if (!isValidFilter.value) return;
+
   loading.value = true;
   try {
-    const res = await academicApi.getGrades();
-    grades.value = Array.isArray(res?.data) ? res.data : [];
+    const res = await academicApi.getGradesList(filters);
+    // Flatten data for table
+    studentGrades.value = (res.data || []).map((item) => {
+      const g = item.grade || {};
+      return {
+        id: item.student.id,
+        nis: item.student.nis,
+        name: item.student.name,
+        dailyScore: g.dailyScore ? Number(g.dailyScore) : "", // Input might be empty string
+        homeworkScore: g.homeworkScore ? Number(g.homeworkScore) : "",
+        midtermScore: g.midtermScore ? Number(g.midtermScore) : "",
+        finalScore: g.finalScore ? Number(g.finalScore) : "",
+        practiceScore: g.practiceScore ? Number(g.practiceScore) : "",
+      };
+    });
   } catch (e) {
-    alert(e.message || "Gagal memuat");
+    statusModal.type = "error";
+    statusModal.title = "Gagal Memuat Data";
+    statusModal.message = e.message || "Terjadi kesalahan saat memuat data.";
+    statusModal.open = true;
   } finally {
     loading.value = false;
   }
 }
 
-async function submitForm() {
+async function saveAll() {
   saving.value = true;
-  modal.error = "";
   try {
-    if (!form.studentId || !form.subjectId || !form.score) {
-      modal.error = "ID Santri, Mapel, dan Nilai wajib diisi";
-      return;
-    }
-    const payload = {
-      studentId: parseInt(form.studentId),
-      subjectId: parseInt(form.subjectId),
-      type: form.type,
-      score: parseFloat(form.score),
-      semester: form.semester || undefined,
-      academicYear: form.academicYear || undefined,
-    };
-    if (modal.mode === "edit" && form.id) {
-      await academicApi.updateGrade(form.id, payload);
-    } else {
-      await academicApi.createGrade(payload);
-    }
-    await fetchData();
-    closeModal();
+    // Prepare payload
+    const payload = studentGrades.value.map((item) => ({
+      studentId: item.id,
+      subjectId: Number(filters.subjectId),
+      academicYear: filters.academicYear,
+      semester: Number(filters.semester),
+      dailyScore: item.dailyScore === "" ? undefined : Number(item.dailyScore),
+      homeworkScore:
+        item.homeworkScore === "" ? undefined : Number(item.homeworkScore),
+      midtermScore:
+        item.midtermScore === "" ? undefined : Number(item.midtermScore),
+      finalScore: item.finalScore === "" ? undefined : Number(item.finalScore),
+      practiceScore:
+        item.practiceScore === "" ? undefined : Number(item.practiceScore),
+    }));
+
+    await academicApi.saveGradesBulk(payload);
+
+    statusModal.type = "success";
+    statusModal.title = "Berhasil Disimpan";
+    statusModal.message = "Data nilai berhasil disimpan ke database.";
+    statusModal.open = true;
+
+    fetchData(); // Reload to ensure sync
   } catch (e) {
-    modal.error = e.message || "Gagal menyimpan";
+    statusModal.type = "error";
+    statusModal.title = "Gagal Menyimpan";
+    statusModal.message = e.message || "Terjadi kesalahan saat menyimpan data.";
+    statusModal.open = true;
   } finally {
+    loading.value = false;
     saving.value = false;
   }
 }
 
-async function deleteItem() {
-  saving.value = true;
-  try {
-    await academicApi.deleteGrade(confirm.item.id);
-    await fetchData();
-    confirmCancel();
-  } catch (e) {
-    alert(e.message || "Gagal menghapus");
-  } finally {
-    saving.value = false;
+// Calculations
+function calculateFinal(item) {
+  const scores = [
+    item.dailyScore,
+    item.homeworkScore,
+    item.midtermScore,
+    item.finalScore,
+    item.practiceScore,
+  ]
+    .map((s) => (s === "" ? null : Number(s)))
+    .filter((s) => s !== null);
+
+  if (scores.length === 0) return "-";
+  const sum = scores.reduce((a, b) => a + b, 0);
+  return (sum / scores.length).toFixed(1);
+}
+
+function calculatePredicate(item) {
+  const final = calculateFinal(item);
+  if (final === "-") return "-";
+  const score = Number(final);
+
+  // Find rules for current KKM
+  const kkmConfig = gradingRules.value.find((r) => r.kkm === currentKkm.value);
+
+  if (kkmConfig && kkmConfig.rules) {
+    // Dynamic Rules
+    const match = kkmConfig.rules.find((r) => score >= r.min && score <= r.max);
+    return match ? match.predicate : "E";
+  } else {
+    // Fallback Static Rules (Standard KKM 75 usually)
+    if (score >= 92) return "A";
+    if (score >= 84) return "B";
+    if (score >= 75) return "C";
+    if (score < 75) return "D"; // Or whatever default logic
+    return "E";
   }
 }
 
-function openCreate() {
-  modal.show = true;
-  modal.mode = "create";
-  modal.error = "";
-  Object.assign(form, {
-    id: null,
-    studentId: "",
-    subjectId: "",
-    type: "quiz",
-    score: "",
-    semester: "",
-    academicYear: "",
-  });
+function getPredicateColor(item) {
+  const pred = calculatePredicate(item);
+  switch (pred) {
+    case "A":
+      return "bg-green-100 text-green-700";
+    case "B":
+      return "bg-blue-100 text-blue-700";
+    case "C":
+      return "bg-yellow-100 text-yellow-700";
+    case "D":
+      return "bg-orange-100 text-orange-700";
+    case "E":
+      return "bg-red-100 text-red-700";
+    default:
+      return "bg-slate-100 text-slate-500";
+  }
 }
-function openEdit(item) {
-  modal.show = true;
-  modal.mode = "edit";
-  modal.error = "";
-  Object.assign(form, { ...item });
-}
-function closeModal() {
-  modal.show = false;
-}
-function confirmDelete(item) {
-  confirm.show = true;
-  confirm.item = item;
-}
-function confirmCancel() {
-  confirm.show = false;
-  confirm.item = null;
-}
-
-onMounted(fetchData);
 </script>

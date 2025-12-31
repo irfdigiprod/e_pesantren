@@ -790,6 +790,13 @@ export const academicApi = {
   async deleteGrade(id) {
     return request(`/api/academic/grades/${id}`, { method: "DELETE" });
   },
+  async getGradesList(params) {
+    const query = new URLSearchParams(params).toString();
+    return request(`/api/academic/grades/list?${query}`);
+  },
+  async saveGradesBulk(data) {
+    return request("/api/academic/grades/bulk", { method: "POST", body: data });
+  },
 
   // Reports
   async getReports(params = {}) {
@@ -1554,6 +1561,19 @@ export const academicSettingsApi = {
   // Get semesters
   getSemesters() {
     return request("/api/academic-settings/semesters");
+  },
+
+  // Get grading rules
+  async getGradingRules() {
+    return request("/api/academic-settings/grading-rules");
+  },
+
+  // Save grading rules
+  async saveGradingRules(rules) {
+    return request("/api/academic-settings/grading-rules", {
+      method: "POST",
+      body: rules,
+    });
   },
 
   // Set active semester

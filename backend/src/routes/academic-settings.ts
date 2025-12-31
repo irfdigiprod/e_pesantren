@@ -177,4 +177,89 @@ app.put("/semesters/:id/active", async (c) => {
   }
 });
 
+// GET /grading-rules - Get all grading rules
+app.get("/grading-rules", async (c) => {
+  try {
+    const rules = await getSetting("grading_rules");
+    // Default structure if empty
+    const defaultRules = [
+      {
+        kkm: 75,
+        rules: [
+          {
+            min: 92,
+            max: 100,
+            predicate: "A",
+            descriptionId: "Sangat Baik",
+            descriptionAr: "Mumtaz",
+          },
+          {
+            min: 84,
+            max: 91,
+            predicate: "B",
+            descriptionId: "Baik",
+            descriptionAr: "Jayyid Jiddan",
+          },
+          {
+            min: 75,
+            max: 83,
+            predicate: "C",
+            descriptionId: "Cukup",
+            descriptionAr: "Jayyid",
+          },
+          {
+            min: 0,
+            max: 74,
+            predicate: "D",
+            descriptionId: "Kurang",
+            descriptionAr: "Maqbul",
+          },
+        ],
+      },
+    ];
+
+    return c.json({
+      success: true,
+      data: rules ? JSON.parse(rules) : defaultRules,
+    });
+  } catch (e: any) {
+    return c.json({ success: false, message: e.message }, 500);
+  }
+});
+
+// POST /grading-rules - Save grading rules
+const gradingRulesSchema = z.array(
+  z.object({
+    kkm: z.number().min(0).max(100),
+    rules: z.array(
+      z.object({
+        min: z.number().min(0).max(100),
+        max: z.number().min(0).max(100),
+        predicate: z.string(),
+        predicateAr: z.string().optional(),
+        descriptionId: z.string(),
+        descriptionAr: z.string(),
+      })
+    ),
+  })
+);
+
+app.post(
+  "/grading-rules",
+  zValidator("json", gradingRulesSchema),
+  async (c) => {
+    try {
+      const rules = c.req.valid("json");
+      await setSetting("grading_rules", JSON.stringify(rules));
+
+      return c.json({
+        success: true,
+        message: "Aturan penilaian berhasil disimpan",
+      });
+    } catch (e: any) {
+      return c.json({ success: false, message: e.message }, 500);
+    }
+  }
+);
+
 export default app;

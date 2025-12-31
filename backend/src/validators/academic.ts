@@ -123,3 +123,18 @@ export type CreateGradeInput = z.infer<typeof createGradeSchema>;
 export type UpdateGradeInput = z.infer<typeof updateGradeSchema>;
 export type GenerateReportInput = z.infer<typeof generateReportSchema>;
 export type UpdateReportInput = z.infer<typeof updateReportSchema>;
+
+export const bulkGradeSchema = z.array(
+  z.object({
+    studentId: z.number(),
+    subjectId: z.number(),
+    academicYear: z.string(),
+    semester: z.number(),
+    dailyScore: z.number().optional(),
+    homeworkScore: z.number().optional(),
+    midtermScore: z.number().optional(),
+    finalScore: z.number().optional(),
+    practiceScore: z.number().optional(),
+    notes: z.string().optional(),
+  })
+);

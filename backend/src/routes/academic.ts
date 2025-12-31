@@ -21,6 +21,7 @@ import {
   updateGradeSchema,
   generateReportSchema,
   updateReportSchema,
+  bulkGradeSchema,
 } from "../validators/academic";
 
 // Helper to check for duplicate subjects with overlapping grades
@@ -943,9 +944,28 @@ academicRoute.post(
         });
       }
 
+      const {
+        dailyScore,
+        homeworkScore,
+        midtermScore,
+        finalScore,
+        practiceScore,
+        ...restData
+      } = data;
+
+      // Convert scores to strings for Decimal
+      const scores = {
+        dailyScore: dailyScore ? String(dailyScore) : null,
+        homeworkScore: homeworkScore ? String(homeworkScore) : null,
+        midtermScore: midtermScore ? String(midtermScore) : null,
+        finalScore: finalScore ? String(finalScore) : null,
+        practiceScore: practiceScore ? String(practiceScore) : null,
+      };
+
       const result = await db.insert(grades).values({
-        ...data,
-        averageScore,
+        ...restData,
+        ...scores,
+        averageScore: averageScore ? String(averageScore) : null,
         letterGrade,
         predicate,
       });
@@ -1042,6 +1062,188 @@ academicRoute.put(
     } catch (error) {
       console.error("Update grade error:", error);
       return c.json({ success: false, message: "Failed to update grade" }, 500);
+    }
+  }
+);
+
+// Get grades list for bulk input
+academicRoute.get(
+  "/grades/list",
+  requireRole("admin", "teacher", "staff"),
+  async (c) => {
+    try {
+      const classId = c.req.query("classId");
+      const subjectId = c.req.query("subjectId");
+      const academicYear = c.req.query("academicYear");
+      const semester = c.req.query("semester");
+
+      if (!classId || !subjectId || !academicYear || !semester) {
+        return c.json(
+          { success: false, message: "Missing required params" },
+          400
+        );
+      }
+
+      const { students } = await import("../db/schema/students");
+
+      // 1. Get all students in class
+      const classStudents = await db.query.students.findMany({
+        where: eq(students.classId, Number(classId)),
+        orderBy: (students, { asc }) => [asc(students.fullName)],
+      });
+
+      // 2. Get existing grades
+      const existingGrades = await db.query.grades.findMany({
+        where: and(
+          eq(grades.classId, Number(classId)),
+          eq(grades.subjectId, Number(subjectId)),
+          eq(grades.academicYear, academicYear),
+          eq(grades.semester, Number(semester))
+        ),
+      });
+
+      // 3. Merge data
+      const data = classStudents.map((student) => {
+        const grade = existingGrades.find((g) => g.studentId === student.id);
+        return {
+          student: {
+            id: student.id,
+            nis: student.nis,
+            name: student.fullName,
+          },
+          grade: grade || null,
+        };
+      });
+
+      return c.json({ success: true, data });
+    } catch (error) {
+      console.error("Get grades list error:", error);
+      return c.json(
+        { success: false, message: "Failed to get grades list" },
+        500
+      );
+    }
+  }
+);
+
+// Bulk save grades
+academicRoute.post(
+  "/grades/bulk",
+  requireRole("admin", "teacher", "staff"),
+  zValidator("json", bulkGradeSchema),
+  async (c) => {
+    try {
+      const items = c.req.valid("json");
+      const results = { updated: 0, inserted: 0 };
+
+      await db.transaction(async (tx) => {
+        for (const item of items) {
+          // Determine grade stats
+          const scoreFields = [
+            item.dailyScore,
+            item.homeworkScore,
+            item.midtermScore,
+            item.finalScore,
+            item.practiceScore,
+          ].filter((s) => s !== undefined && s !== null) as number[];
+
+          const averageScore =
+            scoreFields.length > 0
+              ? scoreFields.reduce((a, b) => a + b, 0) / scoreFields.length
+              : undefined;
+
+          let letterGrade: string | undefined;
+          let predicate: string | undefined;
+
+          if (averageScore !== undefined) {
+            if (averageScore >= 90) {
+              letterGrade = "A";
+              predicate = "Sangat Baik";
+            } else if (averageScore >= 80) {
+              letterGrade = "B";
+              predicate = "Baik";
+            } else if (averageScore >= 70) {
+              letterGrade = "C";
+              predicate = "Cukup";
+            } else if (averageScore >= 60) {
+              letterGrade = "D";
+              predicate = "Kurang";
+            } else {
+              letterGrade = "E";
+              predicate = "Sangat Kurang";
+            }
+          }
+
+          // Upsert Logic
+          const existing = await tx.query.grades.findFirst({
+            where: and(
+              eq(grades.studentId, item.studentId),
+              eq(grades.subjectId, item.subjectId),
+              eq(grades.academicYear, item.academicYear),
+              eq(grades.semester, item.semester)
+            ),
+          });
+
+          // Destructure item to remove numeric scores
+          const {
+            dailyScore,
+            homeworkScore,
+            midtermScore,
+            finalScore,
+            practiceScore,
+            ...restItem
+          } = item;
+
+          // Prepare score values
+          const scores = {
+            dailyScore: dailyScore ? String(dailyScore) : null,
+            homeworkScore: homeworkScore ? String(homeworkScore) : null,
+            midtermScore: midtermScore ? String(midtermScore) : null,
+            finalScore: finalScore ? String(finalScore) : null,
+            practiceScore: practiceScore ? String(practiceScore) : null,
+          };
+
+          if (existing) {
+            await tx
+              .update(grades)
+              .set({
+                ...restItem,
+                ...scores,
+                averageScore: averageScore ? String(averageScore) : null,
+                letterGrade,
+                predicate,
+              })
+              .where(eq(grades.id, existing.id));
+            results.updated++;
+          } else {
+            // Only insert if at least one score is provided
+            if (scoreFields.length > 0) {
+              const { students } = await import("../db/schema/students");
+              const student = await tx.query.students.findFirst({
+                where: eq(students.id, item.studentId),
+              });
+              await tx.insert(grades).values({
+                ...restItem,
+                ...scores,
+                classId: student?.classId,
+                averageScore: averageScore ? String(averageScore) : null,
+                letterGrade,
+                predicate,
+              });
+              results.inserted++;
+            }
+          }
+        }
+      });
+
+      return c.json({
+        success: true,
+        message: "Berhasil menyimpan nilai",
+        results,
+      });
+    } catch (error) {
+      console.error("Bulk save grades error:", error);
+      return c.json({ success: false, message: "Gagal menyimpan nilai" }, 500);
     }
   }
 );
