@@ -143,9 +143,11 @@
 
           <!-- Title -->
           <div class="text-center mb-6">
-            <h2 class="text-lg font-bold">كشف درجات الاختبار النهائي</h2>
+            <h2 class="text-lg font-bold font-arabic">
+              كشف درجات الاختبار النهائي
+            </h2>
             <!-- <h3 class="text-base font-bold">LAPORAN HASIL BELAJAR SANTRI</h3> -->
-            <p class="text-sm">
+            <p class="text-sm font-arabic">
               {{
                 semester === "1"
                   ? "الفصل الدراسي الأول"
@@ -199,11 +201,11 @@
 
             <!-- Student Info Row 1: Val(5) | Lab(1) | SEP(1) | Val(4) | Lab(2) = 13 -->
             <tr>
-              <td class="border px-2 py-1" colspan="4" dir="rtl">
+              <td class="border px-2 py-1 font-arabic" colspan="4" dir="rtl">
                 {{ toArabicNumeral(student.classGrade || "-") }}
               </td>
               <td
-                class="border px-2 py-1 bg-slate-50 font-medium"
+                class="border px-2 py-1 bg-slate-50 font-medium font-arabic"
                 colspan="2"
                 dir="rtl"
               >
@@ -211,11 +213,11 @@
               </td>
               <td class=""></td>
               <!-- Separator -->
-              <td dir="rtl" class="border px-2 py-1" colspan="4">
+              <td dir="rtl" class="border px-2 py-1 font-arabic" colspan="4">
                 {{ student.fullNameAr || student.fullName }}
               </td>
               <td
-                class="border px-2 py-1 bg-slate-50 font-medium text-right"
+                class="border px-2 py-1 bg-slate-50 font-medium text-right font-arabic"
                 colspan="2"
                 dir="rtl"
               >
@@ -225,11 +227,11 @@
 
             <!-- Student Info Row 2 -->
             <tr>
-              <td class="border px-2 py-1" colspan="4" dir="rtl">
+              <td class="border px-2 py-1 font-arabic" colspan="4" dir="rtl">
                 {{ toArabicNumeral(academicYear) }}
               </td>
               <td
-                class="border px-2 py-1 bg-slate-50 font-medium"
+                class="border px-2 py-1 bg-slate-50 font-medium font-arabic"
                 colspan="2"
                 dir="rtl"
               >
@@ -237,11 +239,11 @@
               </td>
               <td class=""></td>
               <!-- Separator -->
-              <td dir="rtl" class="border px-2 py-1" colspan="4">
+              <td dir="rtl" class="border px-2 py-1 font-arabic" colspan="4">
                 {{ toArabicNumeral(student.nis || "-") }}
               </td>
               <td
-                class="border px-2 py-1 bg-slate-50 font-medium text-right"
+                class="border px-2 py-1 bg-slate-50 font-medium text-right font-arabic"
                 colspan="2"
                 dir="rtl"
               >
@@ -251,11 +253,11 @@
 
             <!-- Student Info Row 3 -->
             <tr>
-              <td class="border px-2 py-1" colspan="4" dir="rtl">
+              <td class="border px-2 py-1 font-arabic" colspan="4" dir="rtl">
                 {{ student.majorAr || "الدراسة الإسلامية" }}
               </td>
               <td
-                class="border px-2 py-1 bg-slate-50 font-medium"
+                class="border px-2 py-1 bg-slate-50 font-medium font-arabic"
                 colspan="2"
                 dir="rtl"
               >
@@ -263,11 +265,11 @@
               </td>
               <td class=""></td>
               <!-- Separator -->
-              <td dir="rtl" class="border px-2 py-1" colspan="4">
+              <td dir="rtl" class="border px-2 py-1 font-arabic" colspan="4">
                 {{ toArabicNumeral(student.nisn || "-") }}
               </td>
               <td
-                class="border px-2 py-1 bg-slate-50 font-medium text-right"
+                class="border px-2 py-1 bg-slate-50 font-medium text-right font-arabic"
                 colspan="2"
                 dir="rtl"
               >
@@ -294,18 +296,24 @@
               <th class="bg-white"></th>
 
               <!-- Right 6 -->
-              <th class="border px-1 py-1 text-center" dir="rtl">
+              <th class="border px-1 py-1 text-center font-arabic" dir="rtl">
                 المعدل الفصلي
               </th>
-              <th class="border px-1 py-1 text-center" dir="rtl">الرمز</th>
-              <th class="border px-1 py-1 text-center" dir="rtl">النتيجة</th>
-              <th class="border px-1 py-1 text-center" dir="rtl">
+              <th class="border px-1 py-1 text-center font-arabic" dir="rtl">
+                الرمز
+              </th>
+              <th class="border px-1 py-1 text-center font-arabic" dir="rtl">
+                النتيجة
+              </th>
+              <th class="border px-1 py-1 text-center font-arabic" dir="rtl">
                 أدنى الدرجة
               </th>
-              <th class="border px-1 py-1 text-right" dir="rtl">
+              <th class="border px-1 py-1 text-right font-arabic" dir="rtl">
                 المواد الدراسية
               </th>
-              <th class="border px-1 py-1 text-center" dir="rtl">الرقم</th>
+              <th class="border px-1 py-1 text-center font-arabic" dir="rtl">
+                الرقم
+              </th>
             </tr>
 
             <!-- Grades Data Rows (13 Columns) -->
@@ -330,22 +338,28 @@
               <td class=""></td>
 
               <!-- Right 6 -->
-              <td class="border px-1 py-1 text-center font-semibold" dir="rtl">
+              <td
+                class="border px-1 py-1 text-center font-semibold font-arabic"
+                dir="rtl"
+              >
                 {{ toArabicNumeral(grade.averageScore || "-") }}
               </td>
-              <td class="border px-1 py-1 text-center" dir="rtl">
+              <td class="border px-1 py-1 text-center font-arabic" dir="rtl">
                 {{ grade.letterGradeAr || grade.letterGrade || "-" }}
               </td>
-              <td class="border px-1 py-1 text-center font-semibold" dir="rtl">
+              <td
+                class="border px-1 py-1 text-center font-semibold font-arabic"
+                dir="rtl"
+              >
                 {{ toArabicNumeral(grade.averageScore || "-") }}
               </td>
-              <td class="border px-1 py-1 text-center" dir="rtl">
+              <td class="border px-1 py-1 text-center font-arabic" dir="rtl">
                 {{ toArabicNumeral(grade.kkm || 70) }}
               </td>
-              <td class="border px-1 py-1 text-right" dir="rtl">
+              <td class="border px-1 py-1 text-right font-arabic" dir="rtl">
                 {{ grade.subjectNameAr || "-" }}
               </td>
-              <td class="border px-1 py-1 text-center" dir="rtl">
+              <td class="border px-1 py-1 text-center font-arabic" dir="rtl">
                 {{ toArabicNumeral(idx + 1) }}
               </td>
             </tr>
@@ -374,7 +388,7 @@
               <td class=""></td>
               <!-- Sep -->
               <td
-                class="border px-2 py-1 font-bold text-center bg-slate-50"
+                class="border px-2 py-1 font-bold text-center bg-slate-50 font-arabic"
                 colspan="6"
                 dir="rtl"
               >
@@ -388,10 +402,17 @@
               </td>
               <td class=""></td>
               <!-- Sep -->
-              <td class="border px-2 py-1 text-center font-bold" colspan="3">
+              <td
+                class="border px-2 py-1 text-center font-bold font-arabic"
+                colspan="3"
+              >
                 {{ toArabicNumeral(averageScore) }}
               </td>
-              <td class="border px-2 py-1 text-right" colspan="3" dir="rtl">
+              <td
+                class="border px-2 py-1 text-right font-arabic"
+                colspan="3"
+                dir="rtl"
+              >
                 معدل النتائج
               </td>
             </tr>
@@ -402,10 +423,17 @@
               </td>
               <td class=""></td>
               <!-- Sep -->
-              <td class="border px-2 py-1 text-center font-bold" colspan="3">
+              <td
+                class="border px-2 py-1 text-center font-bold font-arabic"
+                colspan="3"
+              >
                 {{ overallPredicateAr }}
               </td>
-              <td class="border px-2 py-1 text-right" colspan="3" dir="rtl">
+              <td
+                class="border px-2 py-1 text-right font-arabic"
+                colspan="3"
+                dir="rtl"
+              >
                 التقدير
               </td>
             </tr>
@@ -416,10 +444,17 @@
               </td>
               <td class=""></td>
               <!-- Sep -->
-              <td class="border px-2 py-1 text-center font-bold" colspan="3">
+              <td
+                class="border px-2 py-1 text-center font-bold font-arabic"
+                colspan="3"
+              >
                 {{ ranking ? toArabicNumeral(ranking) : "-" }}
               </td>
-              <td class="border px-2 py-1 text-right" colspan="3" dir="rtl">
+              <td
+                class="border px-2 py-1 text-right font-arabic"
+                colspan="3"
+                dir="rtl"
+              >
                 الترتيب
               </td>
             </tr>
@@ -529,9 +564,17 @@
               </p>
             </div>
             <div>
-              <p class="mb-1 text-center">{{ cityName }}, {{ hijriDate }}</p>
-              <div class="border-b border-black mb-1 mx-4"></div>
-              <p class="mb-1">{{ currentDate }}</p>
+              <div class="flex gap-1 items-center">
+                <div>
+                  <p class="mb-1">{{ cityName }},</p>
+                </div>
+                <div class="flex-1">
+                  <p class="mb-1 ml-1 text-left font-arabic">{{ hijriDate }}</p>
+                  <div class="w-full border-b border-black mb-1"></div>
+                  <p class="mb-1 ml-1 text-left">{{ currentDate }}</p>
+                </div>
+              </div>
+
               <p class="mb-11">Wali Kelas</p>
               <p class="pt-1 mx-4 font-bold">
                 {{ homeroomTeacher || "........................" }}
@@ -892,5 +935,37 @@ onMounted(() => {
     size: A4 portrait;
     margin: 10mm;
   }
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #report-area,
+  #report-area * {
+    visibility: visible;
+  }
+  #report-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 210mm !important;
+    min-height: 297mm !important;
+    margin: 0 !important;
+    padding: 0 !important; /* Reset padding if needed, or keep defined padding */
+    border: none !important;
+    box-shadow: none !important;
+    transform: none !important; /* Disable scaling */
+    overflow: visible !important;
+  }
+  @page {
+    size: A4 portrait;
+    margin: 10mm;
+  }
+}
+
+/* Arabic Font Class */
+.font-arabic {
+  font-family: "Cairo", sans-serif;
 }
 </style>
