@@ -246,6 +246,11 @@ const groupedMenuItems = [
         icon: "solar:printer-line-duotone",
         route: "/mobile-dashboard/report-card",
       },
+      {
+        label: "Catatan", // Shortened for mobile grid
+        icon: "solar:notebook-line-duotone",
+        route: "/mobile-dashboard/homeroom-notes",
+      },
     ],
   },
   {

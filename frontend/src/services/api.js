@@ -1616,6 +1616,24 @@ export const academicSettingsApi = {
       body: data,
     });
   },
+
+  // Report Dates (Titi Mangsa)
+  async getReportDates() {
+    return request("/api/academic-settings/report-dates");
+  },
+
+  async saveReportDate(data) {
+    return request("/api/academic-settings/report-dates", {
+      method: "POST",
+      body: data,
+    });
+  },
+
+  async deleteReportDate(id) {
+    return request(`/api/academic-settings/report-dates/${id}`, {
+      method: "DELETE",
+    });
+  },
 };
 
 // ============================================

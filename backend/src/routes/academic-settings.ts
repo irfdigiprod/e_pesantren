@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { db } from "../db";
 import { settings } from "../db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 
@@ -337,6 +337,93 @@ app.put("/report-header", zValidator("json", reportHeaderSchema), async (c) => {
       success: true,
       message: "Pengaturan header rapor berhasil disimpan",
     });
+  } catch (e: any) {
+    return c.json({ success: false, message: e.message }, 500);
+  }
+});
+
+// ==========================================
+// REPORT CARD DATES (Titi Mangsa)
+// ==========================================
+
+// GET /report-dates - List all report dates
+app.get("/report-dates", async (c) => {
+  try {
+    const dates = await db.query.reportCardDates.findMany({
+      orderBy: (reportCardDates, { desc }) => [
+        desc(reportCardDates.academicYear),
+        desc(reportCardDates.semester),
+      ],
+    });
+    return c.json({ success: true, data: dates });
+  } catch (e: any) {
+    return c.json({ success: false, message: e.message }, 500);
+  }
+});
+
+// POST /report-dates - Create or Update (Upsert) report date
+const reportDateSchema = z.object({
+  academicYear: z.string(),
+  semester: z.number().int().min(1).max(2),
+  reportDate: z.string(), // YYYY-MM-DD
+  notes: z.string().optional(),
+});
+
+app.post("/report-dates", zValidator("json", reportDateSchema), async (c) => {
+  try {
+    const data = c.req.valid("json");
+    const { reportCardDates } = await import("../db/schema/academic");
+
+    // Check if exists
+    const existing = await db.query.reportCardDates.findFirst({
+      where: and(
+        eq(reportCardDates.academicYear, data.academicYear),
+        eq(reportCardDates.semester, data.semester)
+      ),
+    });
+
+    if (existing) {
+      // Update
+      await db
+        .update(reportCardDates)
+        .set({
+          reportDate: data.reportDate,
+          notes: data.notes,
+        })
+        .where(eq(reportCardDates.id, existing.id));
+
+      return c.json({
+        success: true,
+        message: "Titi mangsa diperbarui",
+      });
+    } else {
+      // Create
+      await db.insert(reportCardDates).values({
+        academicYear: data.academicYear,
+        semester: data.semester,
+        reportDate: data.reportDate,
+        notes: data.notes,
+      });
+
+      return c.json({
+        success: true,
+        message: "Titi mangsa ditambahkan",
+      });
+    }
+  } catch (e: any) {
+    return c.json({ success: false, message: e.message }, 500);
+  }
+});
+
+// DELETE /report-dates/:id
+app.delete("/report-dates/:id", async (c) => {
+  try {
+    const id = parseInt(c.req.param("id"));
+    const { reportCardDates } = await import("../db/schema/academic");
+
+    await db.delete(reportCardDates).where(eq(reportCardDates.id, id));
+
+    return c.json({ success: true, message: "Titi mangsa dihapus" });
   } catch (e: any) {
     return c.json({ success: false, message: e.message }, 500);
   }

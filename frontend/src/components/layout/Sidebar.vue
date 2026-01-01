@@ -96,6 +96,10 @@ const submenuByMain = {
           { label: "Nilai", route: "/apps/academic/grades" },
           { label: "Rapor", route: "/apps/academic/reports" },
           { label: "Cetak Rapor", route: "/apps/academic/report-card" },
+          {
+            label: "Catatan Wali Kelas",
+            route: "/apps/academic/homeroom-notes",
+          },
         ],
       },
       {

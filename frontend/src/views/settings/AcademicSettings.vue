@@ -423,6 +423,115 @@
       </div>
     </div>
 
+    <!-- Report Dates (Titi Mangsa) -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mt-6">
+      <h2
+        class="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2"
+      >
+        <Icon icon="solar:calendar-mark-bold" class="text-[#602515]" />
+        Titi Mangsa Rapor
+      </h2>
+
+      <!-- Form -->
+      <div class="bg-[#602515]/5 p-4 rounded-lg mb-4">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <!-- Year -->
+          <div class="md:col-span-1">
+            <label class="block text-xs font-medium text-slate-600 mb-1"
+              >Tahun Pelajaran</label
+            >
+            <select
+              v-model="newReportDate.academicYear"
+              class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#602515]/30 focus:border-[#602515]"
+            >
+              <option v-for="y in years" :key="y.year" :value="y.year">
+                {{ y.year }}
+              </option>
+            </select>
+          </div>
+
+          <!-- Semester -->
+          <div class="md:col-span-1">
+            <label class="block text-xs font-medium text-slate-600 mb-1"
+              >Semester</label
+            >
+            <select
+              v-model="newReportDate.semester"
+              class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#602515]/30 focus:border-[#602515]"
+            >
+              <option :value="1">Ganjil (1)</option>
+              <option :value="2">Genap (2)</option>
+            </select>
+          </div>
+
+          <!-- Date -->
+          <div class="md:col-span-1">
+            <label class="block text-xs font-medium text-slate-600 mb-1"
+              >Tanggal Rapor</label
+            >
+            <input
+              v-model="newReportDate.reportDate"
+              type="date"
+              class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#602515]/30 focus:border-[#602515]"
+            />
+          </div>
+
+          <!-- Action -->
+          <div class="md:col-span-1 flex items-end">
+            <button
+              @click="saveReportDate"
+              :disabled="loading || !newReportDate.reportDate"
+              class="w-full px-4 py-2 bg-[#602515] text-white rounded-lg hover:bg-[#4a1c10] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              <Icon icon="solar:diskette-bold" />
+              Simpan
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- List -->
+      <div v-if="reportDates.length" class="space-y-2">
+        <div
+          v-for="rd in reportDates"
+          :key="rd.id"
+          class="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200"
+        >
+          <div class="flex flex-col md:flex-row md:items-center gap-2 md:gap-6">
+            <div class="flex items-center gap-2">
+              <span class="font-medium text-slate-800">{{
+                rd.academicYear
+              }}</span>
+              <span
+                class="px-2 py-0.5 text-xs font-medium rounded-full"
+                :class="
+                  rd.semester === 1
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'bg-orange-100 text-orange-700'
+                "
+              >
+                Sem {{ rd.semester }}
+              </span>
+            </div>
+            <div class="flex items-center gap-2 text-slate-600">
+              <Icon icon="solar:calendar-line-duotone" class="text-sm" />
+              <span>{{ formatDate(rd.reportDate) }}</span>
+            </div>
+          </div>
+          <button
+            @click="deleteReportDate(rd.id)"
+            class="p-1.5 text-red-500 hover:bg-red-100 rounded-lg"
+            title="Hapus"
+          >
+            <Icon icon="solar:trash-bin-trash-bold" />
+          </button>
+        </div>
+      </div>
+      <div v-else class="text-center py-6 text-slate-400">
+        Belum ada data titi mangsa rapor.
+      </div>
+    </div>
+
     <!-- Report Header Section -->
     <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mt-6">
       <h2
@@ -981,8 +1090,75 @@ async function saveGradingRules() {
   }
 }
 
-onMounted(() => {
-  loadData();
-  loadHeaderSettings();
+const reportDates = ref([]);
+const newReportDate = ref({
+  academicYear: "",
+  semester: 1,
+  reportDate: "",
+});
+
+function formatDate(dateString) {
+  if (!dateString) return "-";
+  return new Date(dateString).toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+async function fetchReportDates() {
+  try {
+    const res = await academicSettingsApi.getReportDates();
+    if (res.success) {
+      reportDates.value = res.data;
+    }
+  } catch (e) {
+    console.error("Failed to fetch report dates", e);
+  }
+}
+
+async function saveReportDate() {
+  loading.value = true;
+  try {
+    const res = await academicSettingsApi.saveReportDate(newReportDate.value);
+    if (res.success) {
+      showStatus("Berhasil", "Titi mangsa berhasil disimpan", "success");
+      await fetchReportDates();
+      // Reset form but keep year/sem for convenience
+      newReportDate.value.reportDate = "";
+    }
+  } catch (e) {
+    showStatus("Gagal", e.message || "Gagal menyimpan titi mangsa", "error");
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function deleteReportDate(id) {
+  if (!confirm("Hapus titi mangsa ini?")) return;
+
+  loading.value = true;
+  try {
+    const res = await academicSettingsApi.deleteReportDate(id);
+    if (res.success) {
+      showStatus("Berhasil", "Titi mangsa berhasil dihapus", "success");
+      await fetchReportDates();
+    }
+  } catch (e) {
+    showStatus("Gagal", e.message || "Gagal menghapus titi mangsa", "error");
+  } finally {
+    loading.value = false;
+  }
+}
+
+onMounted(async () => {
+  await loadData();
+  await loadHeaderSettings();
+  await fetchReportDates();
+
+  // Set default year for new report date
+  if (years.value.length > 0) {
+    newReportDate.value.academicYear = activeYear.value || years.value[0].year;
+  }
 });
 </script>

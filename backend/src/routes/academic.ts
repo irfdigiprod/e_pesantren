@@ -162,15 +162,40 @@ academicRoute.get("/classes/:id", async (c) => {
 
     // Import students table and get students in this class
     const { students } = await import("../db/schema/students");
+    const { teachers } = await import("../db/schema/teachers");
+
     const classStudents = await db.query.students.findMany({
       where: eq(students.classId, id),
     });
+
+    // Get homeroom teacher details (legacy column)
+    let homeroomTeacher = null;
+    if (classData.homeroomTeacherId) {
+      homeroomTeacher = await db.query.teachers.findFirst({
+        where: eq(teachers.id, classData.homeroomTeacherId),
+      });
+    }
+
+    // Fallback: Check pivot table if legacy is null
+    if (!homeroomTeacher) {
+      const { classHomeroomTeachers } = await import("../db/schema/academic");
+      const pivot = await db.query.classHomeroomTeachers.findFirst({
+        where: eq(classHomeroomTeachers.classId, id),
+      });
+
+      if (pivot) {
+        homeroomTeacher = await db.query.teachers.findFirst({
+          where: eq(teachers.id, pivot.teacherId),
+        });
+      }
+    }
 
     return c.json({
       success: true,
       data: {
         ...classData,
         students: classStudents,
+        homeroomTeacher,
       },
     });
   } catch (error) {

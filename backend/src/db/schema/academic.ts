@@ -7,6 +7,7 @@ import {
   timestamp,
   decimal,
   boolean,
+  date,
   mysqlEnum,
 } from "drizzle-orm/mysql-core";
 import { teachers } from "./teachers";
@@ -163,3 +164,13 @@ export type Report = typeof reports.$inferSelect;
 export type NewReport = typeof reports.$inferInsert;
 export type HomeroomNote = typeof homeroomNotes.$inferSelect;
 export type NewHomeroomNote = typeof homeroomNotes.$inferInsert;
+// Titi Mangsa Rapor
+export const reportCardDates = mysqlTable("report_card_dates", {
+  id: int("id").primaryKey().autoincrement(),
+  academicYear: varchar("academic_year", { length: 20 }).notNull(), // e.g., "2024-2025"
+  semester: int("semester").notNull(), // 1 or 2
+  reportDate: date("report_date").notNull(), // Tanggal pembagian rapor
+  notes: text("notes"), // Optional notes
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
+});

@@ -506,23 +506,21 @@
           <!-- Signatures (Keep outside main table for flexibility) -->
           <div class="grid grid-cols-3 gap-4 text-center text-xs mt-8">
             <div>
-              <p class="mb-12">Mengetahui,</p>
-              <p class="mb-1">Orang Tua / Wali</p>
-              <p class="border-t border-slate-300 pt-1 mx-4">
-                ........................
-              </p>
+              <p class="mb-1">Mengetahui,</p>
+              <p class="mb-12">Orang Tua / Wali</p>
+              <p class="pt-1 mx-4">........................</p>
             </div>
             <div>
-              <p class="mb-12">Mengetahui,</p>
-              <p class="mb-1">Kepala Madrasah</p>
-              <p class="border-t border-slate-300 pt-1 mx-4 font-medium">
+              <p class="mb-1">Mengetahui,</p>
+              <p class="mb-12">Kepala Madrasah</p>
+              <p class="pt-1 mx-4 font-bold">
                 {{ principalName || "........................" }}
               </p>
             </div>
             <div>
               <p class="mb-1">{{ cityName }}, {{ currentDate }}</p>
-              <p class="mb-10">Wali Kelas</p>
-              <p class="border-t border-slate-300 pt-1 mx-4 font-medium">
+              <p class="mb-12">Wali Kelas</p>
+              <p class="pt-1 mx-4 font-bold">
                 {{ homeroomTeacher || "........................" }}
               </p>
             </div>
@@ -614,13 +612,13 @@ const cityName = computed(() => headerSettings.value?.cityName || "Purwakarta");
 const homeroomTeacher = ref("");
 
 // Computed
-const currentDate = computed(() => {
-  return new Date().toLocaleDateString("id-ID", {
+const currentDate = ref(
+  new Date().toLocaleDateString("id-ID", {
     day: "numeric",
     month: "long",
     year: "numeric",
-  });
-});
+  })
+);
 
 const totalScore = computed(() => {
   const graded = grades.value.filter((g) => g.averageScore !== null);
@@ -731,7 +729,7 @@ function selectStudent(s) {
     fullName: s.fullName,
     fullNameAr: s.fullNameAr,
     nis: s.nis,
-    classId: s.classId,
+    classId: s.classId || s.class_id, // Try both formats
     className: s.class?.name || "",
     major: s.major || "Pendidikan Islam",
   };
@@ -799,11 +797,42 @@ async function loadData() {
     // Get homeroom teacher name
     if (student.value.classId) {
       try {
-        const classRes = await academicApi.getClassById(student.value.classId);
+        const classRes = await academicApi.getClass(student.value.classId);
         homeroomTeacher.value = classRes.data?.homeroomTeacher?.fullName || "";
       } catch (e) {
         homeroomTeacher.value = "";
       }
+    }
+
+    // Get Report Date (Titi Mangsa)
+    try {
+      const datesRes = await academicSettingsApi.getReportDates();
+      if (datesRes.success && datesRes.data) {
+        const found = datesRes.data.find(
+          (d) =>
+            d.academicYear === academicYear.value &&
+            d.semester === Number(semester.value)
+        );
+        if (found) {
+          currentDate.value = new Date(found.reportDate).toLocaleDateString(
+            "id-ID",
+            {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            }
+          );
+        } else {
+          // Default to today if not set
+          currentDate.value = new Date().toLocaleDateString("id-ID", {
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+          });
+        }
+      }
+    } catch (e) {
+      console.error("Error loading report date", e);
     }
   } catch (e) {
     console.error("Error loading data:", e);
