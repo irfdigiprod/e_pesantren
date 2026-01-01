@@ -1,5 +1,5 @@
 <template>
-  <div class="p-2 max-w-7xl mx-auto pb-12">
+  <div class="max-w-7xl mx-auto pb-12">
     <!-- Controls Panel (hidden on print) -->
     <div
       class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-6 print:hidden"
@@ -30,10 +30,10 @@
               v-for="s in filteredStudents"
               :key="s.id"
               @click="selectStudent(s)"
-              class="px-4 py-2 hover:bg-slate-50 cursor-pointer text-sm"
+              class="flex align-center flex-col px-4 py-2 hover:bg-slate-50 cursor-pointer text-sm"
             >
               <span class="font-medium">{{ s.fullName }}</span>
-              <span class="text-xs text-slate-400 ml-2"
+              <span class="text-xs text-slate-400"
                 >{{ s.nis }} • {{ s.class?.name || "-" }}</span
               >
             </div>
@@ -539,7 +539,9 @@
 
             <!-- Catatan Row: Lab(2) + Value(11) = 13 -->
             <tr>
-              <td class="border px-2 py-1 font-bold" colspan="2">Catatan :</td>
+              <td class="border px-2 py-1 font-bold bg-slate-50" colspan="2">
+                Catatan :
+              </td>
               <td class="border px-2 py-1" colspan="11">
                 {{
                   teacherNotes ||
