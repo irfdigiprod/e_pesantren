@@ -144,18 +144,17 @@
           <!-- Title -->
           <div class="text-center mb-6">
             <h2 class="text-lg font-bold">كشف درجات الاختبار النهائي</h2>
-            <h3 class="text-base font-bold">LAPORAN HASIL BELAJAR SANTRI</h3>
+            <!-- <h3 class="text-base font-bold">LAPORAN HASIL BELAJAR SANTRI</h3> -->
             <p class="text-sm">
-              Semester
               {{
                 semester === "1"
-                  ? "Ganjil / الفصل الدراسي الأول"
-                  : "Genap / الفصل الدراسي الثاني"
+                  ? "الفصل الدراسي الأول"
+                  : "الفصل الدراسي الثاني"
               }}
             </p>
-            <p class="text-sm">
+            <!-- <p class="text-sm">
               Tahun Ajaran / العام الدراسي: {{ academicYear }}
-            </p>
+            </p> -->
           </div>
 
           <!-- UNIFIED SINGLE TABLE - 12 Column Grid (matching reference exactly) -->
@@ -201,7 +200,7 @@
             <!-- Student Info Row 1: Val(5) | Lab(1) | SEP(1) | Val(4) | Lab(2) = 13 -->
             <tr>
               <td class="border px-2 py-1" colspan="5" dir="rtl">
-                {{ student.className || "-" }}
+                {{ toArabicNumeral(student.classGrade || "-") }}
               </td>
               <td class="border px-2 py-1 bg-slate-50 font-medium" dir="rtl">
                 الصف
@@ -223,7 +222,7 @@
             <!-- Student Info Row 2 -->
             <tr>
               <td class="border px-2 py-1" colspan="5" dir="rtl">
-                {{ academicYear }}
+                {{ toArabicNumeral(academicYear) }}
               </td>
               <td class="border px-2 py-1 bg-slate-50 font-medium" dir="rtl">
                 للعام الدراسي
@@ -231,7 +230,7 @@
               <td class=""></td>
               <!-- Separator -->
               <td dir="rtl" class="border px-2 py-1" colspan="4">
-                {{ student.nis || "-" }}
+                {{ toArabicNumeral(student.nis || "-") }}
               </td>
               <td
                 class="border px-2 py-1 bg-slate-50 font-medium text-right"
@@ -253,7 +252,7 @@
               <td class=""></td>
               <!-- Separator -->
               <td dir="rtl" class="border px-2 py-1" colspan="4">
-                {{ student.nisn || "-" }}
+                {{ toArabicNumeral(student.nisn || "-") }}
               </td>
               <td
                 class="border px-2 py-1 bg-slate-50 font-medium text-right"
@@ -320,16 +319,16 @@
 
               <!-- Right 6 -->
               <td class="border px-1 py-1 text-center font-semibold" dir="rtl">
-                {{ grade.averageScore || "-" }}
+                {{ toArabicNumeral(grade.averageScore || "-") }}
               </td>
               <td class="border px-1 py-1 text-center" dir="rtl">
                 {{ grade.letterGradeAr || grade.letterGrade || "-" }}
               </td>
               <td class="border px-1 py-1 text-center font-semibold" dir="rtl">
-                {{ grade.averageScore || "-" }}
+                {{ toArabicNumeral(grade.averageScore || "-") }}
               </td>
               <td class="border px-1 py-1 text-center" dir="rtl">
-                {{ grade.kkm || 70 }}
+                {{ toArabicNumeral(grade.kkm || 70) }}
               </td>
               <td class="border px-1 py-1 text-right" dir="rtl">
                 {{ grade.subjectNameAr || "-" }}
@@ -378,7 +377,7 @@
               <td class=""></td>
               <!-- Sep -->
               <td class="border px-2 py-1 text-center font-bold" colspan="3">
-                {{ averageScore }}
+                {{ toArabicNumeral(averageScore) }}
               </td>
               <td class="border px-2 py-1 text-right" colspan="3" dir="rtl">
                 معدل النتائج
@@ -729,8 +728,10 @@ function selectStudent(s) {
     fullName: s.fullName,
     fullNameAr: s.fullNameAr,
     nis: s.nis,
+    nisn: s.nisn,
     classId: s.classId || s.class_id, // Try both formats
     className: s.class?.name || "",
+    classGrade: s.class?.grade || s.class?.name?.replace(/\D/g, "") || "",
     major: s.major || "Pendidikan Islam",
   };
   searchQuery.value = s.fullName;
