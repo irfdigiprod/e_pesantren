@@ -95,6 +95,7 @@ const submenuByMain = {
           { label: "Jadwal", route: "/apps/academic/schedules" },
           { label: "Nilai", route: "/apps/academic/grades" },
           { label: "Rapor", route: "/apps/academic/reports" },
+          { label: "Cetak Rapor", route: "/apps/academic/report-card" },
         ],
       },
       {

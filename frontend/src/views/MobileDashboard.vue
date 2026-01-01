@@ -241,6 +241,11 @@ const groupedMenuItems = [
         icon: "solar:document-text-line-duotone",
         route: "/mobile-dashboard/academic-reports",
       },
+      {
+        label: "Cetak Rapor",
+        icon: "solar:printer-line-duotone",
+        route: "/mobile-dashboard/report-card",
+      },
     ],
   },
   {

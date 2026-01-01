@@ -208,7 +208,7 @@
               </td>
               <td class=""></td>
               <!-- Separator -->
-              <td class="border px-2 py-1" colspan="4">
+              <td dir="rtl" class="border px-2 py-1" colspan="4">
                 {{ student.fullNameAr || student.fullName }}
               </td>
               <td
@@ -230,7 +230,7 @@
               </td>
               <td class=""></td>
               <!-- Separator -->
-              <td class="border px-2 py-1" colspan="4">
+              <td dir="rtl" class="border px-2 py-1" colspan="4">
                 {{ student.nis || "-" }}
               </td>
               <td
@@ -252,7 +252,7 @@
               </td>
               <td class=""></td>
               <!-- Separator -->
-              <td class="border px-2 py-1" colspan="4">
+              <td dir="rtl" class="border px-2 py-1" colspan="4">
                 {{ student.nisn || "-" }}
               </td>
               <td
@@ -431,6 +431,7 @@
               <td
                 class="border px-2 py-1 font-bold text-center bg-slate-50"
                 colspan="6"
+                rowspan="2"
               >
                 Ketidakhadiran
               </td>
@@ -442,11 +443,6 @@
               </td>
               <td class=""></td>
               <!-- Sep -->
-              <td class="border px-2 py-1" colspan="2">Sakit</td>
-              <td class="border px-2 py-1 text-center" colspan="2">
-                {{ attendance.sickDays || 0 }}
-              </td>
-              <td class="border px-2 py-1" colspan="2">Hari</td>
             </tr>
             <tr>
               <td class="border px-2 py-1" colspan="3">
@@ -457,9 +453,9 @@
               </td>
               <td class=""></td>
               <!-- Sep -->
-              <td class="border px-2 py-1" colspan="2">Izin</td>
+              <td class="border px-2 py-1" colspan="2">Sakit</td>
               <td class="border px-2 py-1 text-center" colspan="2">
-                {{ attendance.permissionDays || 0 }}
+                {{ attendance.sickDays || 0 }}
               </td>
               <td class="border px-2 py-1" colspan="2">Hari</td>
             </tr>
@@ -470,9 +466,9 @@
               </td>
               <td class=""></td>
               <!-- Sep -->
-              <td class="border px-2 py-1" colspan="2">Alpa</td>
+              <td class="border px-2 py-1" colspan="2">Izin</td>
               <td class="border px-2 py-1 text-center" colspan="2">
-                {{ attendance.absentDays || 0 }}
+                {{ attendance.permissionDays || 0 }}
               </td>
               <td class="border px-2 py-1" colspan="2">Hari</td>
             </tr>
@@ -482,7 +478,12 @@
                 {{ tahfidz.status || "-" }}
               </td>
               <td class=""></td>
-              <td class="border" colspan="6"></td>
+              <!-- <td class="border" colspan="6"></td> -->
+              <td class="border px-2 py-1" colspan="2">Alpa</td>
+              <td class="border px-2 py-1 text-center" colspan="2">
+                {{ attendance.absentDays || 0 }}
+              </td>
+              <td class="border px-2 py-1" colspan="2">Hari</td>
             </tr>
 
             <!-- Empty Separator Row -->
