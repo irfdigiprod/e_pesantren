@@ -161,20 +161,14 @@
         <table
           class="w-full border-collapse text-xs mb-6"
           style="table-layout: fixed"
-          <!--
-          Define
-          12
-          Column
-          Widths
-          (Symmetric
-          4-16-7.5-7.5-7.5-7.5)
-          --
         >
+          <!-- Define 13 Column Widths (6 Left - 1 Separator - 6 Right) -->
           <colgroup>
+            <!-- Left 6 Columns -->
             <col style="width: 4%" />
             <!-- 1: NO -->
-            <col style="width: 16%" />
-            <!-- 2: Mata Pelajaran -->
+            <col style="width: 15%" />
+            <!-- 2: Mata Pelajaran (Reduced to accommodate separator) -->
             <col style="width: 7.5%" />
             <!-- 3: KKM -->
             <col style="width: 7.5%" />
@@ -183,24 +177,27 @@
             <!-- 5: Simbol -->
             <col style="width: 7.5%" />
             <!-- 6: Rata-rata -->
+
+            <!-- Middle Separator -->
+            <col style="width: 2%" />
+            <!-- 7: SEPARATOR -->
+
+            <!-- Right 6 Columns -->
             <col style="width: 7.5%" />
-            <!-- 7: المعدل الفصلي -->
+            <!-- 8: المعدل الفصلي -->
             <col style="width: 7.5%" />
-            <!-- 8: الرمز -->
+            <!-- 9: الرمز -->
             <col style="width: 7.5%" />
-            <!-- 9: النتيجة -->
+            <!-- 10: النتيجة -->
             <col style="width: 7.5%" />
-            <!-- 10: أدنى الدرجة -->
-            <col style="width: 16%" />
-            <!-- 11: المواد الدراسية -->
+            <!-- 11: أدنى الدرجة -->
+            <col style="width: 15%" />
+            <!-- 12: المواد الدراسية -->
             <col style="width: 4%" />
-            <!-- 12: الرقم -->
+            <!-- 13: الرقم -->
           </colgroup>
 
-          <!-- Student Info Row 1: Value(5) | Label(1) | Value(4) | Label(2) -->
-
-          <!-- WAIT. The reference shows Label on the RIGHT of the left block. Block = Cols 1-6. 
-               Label ("الصف") is Col 6. Value ("9A") is Cols 1-5. -->
+          <!-- Student Info Row 1: Val(5) | Lab(1) | SEP(1) | Val(4) | Lab(2) = 13 -->
           <tr>
             <td class="border px-2 py-1" colspan="5" dir="rtl">
               {{ student.className || "-" }}
@@ -208,8 +205,8 @@
             <td class="border px-2 py-1 bg-slate-50 font-medium" dir="rtl">
               الصف
             </td>
-
-            <!-- Right Block: Value (Cols 7-10) | Label (Cols 11-12) -->
+            <td class=""></td>
+            <!-- Separator -->
             <td class="border px-2 py-1" colspan="4">
               {{ student.fullNameAr || student.fullName }}
             </td>
@@ -230,7 +227,8 @@
             <td class="border px-2 py-1 bg-slate-50 font-medium" dir="rtl">
               للعام الدراسي
             </td>
-
+            <td class=""></td>
+            <!-- Separator -->
             <td class="border px-2 py-1" colspan="4">
               {{ student.nis || "-" }}
             </td>
@@ -251,7 +249,8 @@
             <td class="border px-2 py-1 bg-slate-50 font-medium" dir="rtl">
               قسم
             </td>
-
+            <td class=""></td>
+            <!-- Separator -->
             <td class="border px-2 py-1" colspan="4">
               {{ student.nisn || "-" }}
             </td>
@@ -266,18 +265,23 @@
 
           <!-- Empty Separator Row -->
           <tr>
-            <td colspan="12" class="py-2"></td>
+            <td colspan="13" class="py-2"></td>
           </tr>
 
-          <!-- Grades Table Header (12 Columns) -->
+          <!-- Grades Table Header (13 Columns) -->
           <tr class="bg-slate-100">
+            <!-- Left 6 -->
             <th class="border px-1 py-1 text-center">NO</th>
             <th class="border px-1 py-1 text-left">Mata Pelajaran</th>
-            <!-- Single Col -->
             <th class="border px-1 py-1 text-center">KKM</th>
             <th class="border px-1 py-1 text-center">Nilai</th>
             <th class="border px-1 py-1 text-center">Simbol</th>
             <th class="border px-1 py-1 text-center">Rata-rata</th>
+
+            <!-- Separator -->
+            <th class="bg-white"></th>
+
+            <!-- Right 6 -->
             <th class="border px-1 py-1 text-center" dir="rtl">
               المعدل الفصلي
             </th>
@@ -290,11 +294,11 @@
             <th class="border px-1 py-1 text-center" dir="rtl">الرقم</th>
           </tr>
 
-          <!-- Grades Data Rows (12 Columns) -->
+          <!-- Grades Data Rows (13 Columns) -->
           <tr v-for="(grade, idx) in grades" :key="grade.subjectId || idx">
+            <!-- Left 6 -->
             <td class="border px-1 py-1 text-center">{{ idx + 1 }}</td>
             <td class="border px-1 py-1">{{ grade.subjectName }}</td>
-            <!-- Single Col -->
             <td class="border px-1 py-1 text-center">{{ grade.kkm || 70 }}</td>
             <td class="border px-1 py-1 text-center font-semibold">
               {{ grade.averageScore || "-" }}
@@ -305,6 +309,11 @@
             <td class="border px-1 py-1 text-center font-semibold">
               {{ grade.averageScore || "-" }}
             </td>
+
+            <!-- Separator -->
+            <td class=""></td>
+
+            <!-- Right 6 -->
             <td class="border px-1 py-1 text-center font-semibold" dir="rtl">
               {{ grade.averageScore || "-" }}
             </td>
@@ -326,7 +335,7 @@
           </tr>
           <tr v-if="!grades.length">
             <td
-              colspan="12"
+              colspan="13"
               class="border px-4 py-3 text-center text-slate-400 italic"
             >
               Belum ada mata pelajaran untuk kelas ini
@@ -335,10 +344,10 @@
 
           <!-- Empty Separator Row -->
           <tr>
-            <td colspan="12" class="py-2"></td>
+            <td colspan="13" class="py-2"></td>
           </tr>
 
-          <!-- Summary Section: 3-3 | 3-3 structure -->
+          <!-- Summary Section -->
           <tr>
             <td
               class="border px-2 py-1 font-bold text-center bg-slate-50"
@@ -346,6 +355,8 @@
             >
               Jumlah Nilai
             </td>
+            <td class=""></td>
+            <!-- Sep -->
             <td
               class="border px-2 py-1 font-bold text-center bg-slate-50"
               colspan="6"
@@ -359,6 +370,8 @@
             <td class="border px-2 py-1 text-center font-bold" colspan="3">
               {{ averageScore }}
             </td>
+            <td class=""></td>
+            <!-- Sep -->
             <td class="border px-2 py-1 text-center font-bold" colspan="3">
               {{ averageScore }}
             </td>
@@ -371,6 +384,8 @@
             <td class="border px-2 py-1 text-center font-bold" colspan="3">
               {{ overallPredicate }}
             </td>
+            <td class=""></td>
+            <!-- Sep -->
             <td class="border px-2 py-1 text-center font-bold" colspan="3">
               {{ overallPredicateAr }}
             </td>
@@ -383,6 +398,8 @@
             <td class="border px-2 py-1 text-center font-bold" colspan="3">
               {{ ranking || "-" }}
             </td>
+            <td class=""></td>
+            <!-- Sep -->
             <td class="border px-2 py-1 text-center font-bold" colspan="3">
               {{ ranking ? toArabicNumeral(ranking) : "-" }}
             </td>
@@ -393,7 +410,7 @@
 
           <!-- Empty Separator Row -->
           <tr>
-            <td colspan="12" class="py-2"></td>
+            <td colspan="13" class="py-2"></td>
           </tr>
 
           <!-- Tahfidz + Ketidakhadiran -->
@@ -404,6 +421,8 @@
             >
               Penilaian Tahfizh
             </td>
+            <td class=""></td>
+            <!-- Sep -->
             <td
               class="border px-2 py-1 font-bold text-center bg-slate-50"
               colspan="6"
@@ -416,6 +435,8 @@
             <td class="border px-2 py-1 text-center" colspan="3">
               {{ tahfidz.target || "-" }}
             </td>
+            <td class=""></td>
+            <!-- Sep -->
             <td class="border px-2 py-1" colspan="2">Sakit</td>
             <td class="border px-2 py-1 text-center" colspan="2">
               {{ attendance.sickDays || 0 }}
@@ -429,6 +450,8 @@
             <td class="border px-2 py-1 text-center" colspan="3">
               {{ tahfidz.achieved || "-" }}
             </td>
+            <td class=""></td>
+            <!-- Sep -->
             <td class="border px-2 py-1" colspan="2">Izin</td>
             <td class="border px-2 py-1 text-center" colspan="2">
               {{ attendance.permissionDays || 0 }}
@@ -440,6 +463,8 @@
             <td class="border px-2 py-1 text-center font-bold" colspan="3">
               {{ tahfidz.score || "-" }}
             </td>
+            <td class=""></td>
+            <!-- Sep -->
             <td class="border px-2 py-1" colspan="2">Alpa</td>
             <td class="border px-2 py-1 text-center" colspan="2">
               {{ attendance.absentDays || 0 }}
@@ -451,18 +476,19 @@
             <td class="border px-2 py-1 text-center" colspan="3">
               {{ tahfidz.status || "-" }}
             </td>
+            <td class=""></td>
             <td class="border" colspan="6"></td>
           </tr>
 
           <!-- Empty Separator Row -->
           <tr>
-            <td colspan="12" class="py-2"></td>
+            <td colspan="13" class="py-2"></td>
           </tr>
 
-          <!-- Catatan Row -->
+          <!-- Catatan Row: Lab(2) + Value(11) = 13 -->
           <tr>
             <td class="border px-2 py-1 font-bold" colspan="2">Catatan :</td>
-            <td class="border px-2 py-1" colspan="10">
+            <td class="border px-2 py-1" colspan="11">
               {{
                 teacherNotes ||
                 "Nilai ananda sudah baik. Pertahankan prestasi dan jangan mudah puas!"
