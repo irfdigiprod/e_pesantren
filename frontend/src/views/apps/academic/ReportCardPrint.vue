@@ -118,408 +118,415 @@
     </div>
 
     <!-- Report Preview -->
-    <div
-      v-else
-      class="bg-white rounded-xl border shadow-sm overflow-hidden"
-      id="report-area"
-    >
-      <div class="p-6 text-slate-800" style="font-size: 11pt">
-        <!-- Header Image -->
-        <div class="mb-4">
-          <img
-            v-if="headerImageUrl"
-            :src="headerImageUrl"
-            alt="Kop Surat"
-            class="w-full h-auto"
-          />
-          <div
-            v-else
-            class="w-full h-24 flex items-center justify-center bg-slate-50 border border-dashed rounded text-slate-400 italic"
-          >
-            Upload gambar kop di Pengaturan Akademik
-          </div>
-        </div>
-
-        <!-- Title -->
-        <div class="text-center mb-6">
-          <h2 class="text-lg font-bold">كشف درجات الاختبار النهائي</h2>
-          <h3 class="text-base font-bold">LAPORAN HASIL BELAJAR SANTRI</h3>
-          <p class="text-sm">
-            Semester
-            {{
-              semester === "1"
-                ? "Ganjil / الفصل الدراسي الأول"
-                : "Genap / الفصل الدراسي الثاني"
-            }}
-          </p>
-          <p class="text-sm">
-            Tahun Ajaran / العام الدراسي: {{ academicYear }}
-          </p>
-        </div>
-
-        <!-- UNIFIED SINGLE TABLE - 12 Column Grid (matching reference exactly) -->
-        <table
-          class="w-full border-collapse text-xs mb-6"
-          style="table-layout: fixed"
+    <div v-else class="w-full">
+      <div ref="reportContainer" class="w-full overflow-hidden">
+        <div
+          id="report-area"
+          class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 text-slate-800 origin-top-left transition-transform duration-200"
+          :style="reportStyle"
         >
-          <!-- Define 13 Column Widths (6 Left - 1 Separator - 6 Right) -->
-          <colgroup>
-            <!-- Left 6 Columns -->
-            <col style="width: 4%" />
-            <!-- 1: NO -->
-            <col style="width: 15%" />
-            <!-- 2: Mata Pelajaran (Reduced to accommodate separator) -->
-            <col style="width: 7.5%" />
-            <!-- 3: KKM -->
-            <col style="width: 7.5%" />
-            <!-- 4: Nilai -->
-            <col style="width: 7.5%" />
-            <!-- 5: Simbol -->
-            <col style="width: 7.5%" />
-            <!-- 6: Rata-rata -->
-
-            <!-- Middle Separator -->
-            <col style="width: 2%" />
-            <!-- 7: SEPARATOR -->
-
-            <!-- Right 6 Columns -->
-            <col style="width: 7.5%" />
-            <!-- 8: المعدل الفصلي -->
-            <col style="width: 7.5%" />
-            <!-- 9: الرمز -->
-            <col style="width: 7.5%" />
-            <!-- 10: النتيجة -->
-            <col style="width: 7.5%" />
-            <!-- 11: أدنى الدرجة -->
-            <col style="width: 15%" />
-            <!-- 12: المواد الدراسية -->
-            <col style="width: 4%" />
-            <!-- 13: الرقم -->
-          </colgroup>
-
-          <!-- Student Info Row 1: Val(5) | Lab(1) | SEP(1) | Val(4) | Lab(2) = 13 -->
-          <tr>
-            <td class="border px-2 py-1" colspan="5" dir="rtl">
-              {{ student.className || "-" }}
-            </td>
-            <td class="border px-2 py-1 bg-slate-50 font-medium" dir="rtl">
-              الصف
-            </td>
-            <td class=""></td>
-            <!-- Separator -->
-            <td class="border px-2 py-1" colspan="4">
-              {{ student.fullNameAr || student.fullName }}
-            </td>
-            <td
-              class="border px-2 py-1 bg-slate-50 font-medium text-right"
-              colspan="2"
-              dir="rtl"
+          <!-- Header Image -->
+          <div class="mb-4">
+            <img
+              v-if="headerImageUrl"
+              :src="headerImageUrl"
+              alt="Kop Surat"
+              class="w-full h-auto"
+            />
+            <div
+              v-else
+              class="w-full h-24 flex items-center justify-center bg-slate-50 border border-dashed rounded text-slate-400 italic"
             >
-              اسم الطالب
-            </td>
-          </tr>
+              Upload gambar kop di Pengaturan Akademik
+            </div>
+          </div>
 
-          <!-- Student Info Row 2 -->
-          <tr>
-            <td class="border px-2 py-1" colspan="5" dir="rtl">
-              {{ academicYear }}
-            </td>
-            <td class="border px-2 py-1 bg-slate-50 font-medium" dir="rtl">
-              للعام الدراسي
-            </td>
-            <td class=""></td>
-            <!-- Separator -->
-            <td class="border px-2 py-1" colspan="4">
-              {{ student.nis || "-" }}
-            </td>
-            <td
-              class="border px-2 py-1 bg-slate-50 font-medium text-right"
-              colspan="2"
-              dir="rtl"
-            >
-              رقم الطلب
-            </td>
-          </tr>
-
-          <!-- Student Info Row 3 -->
-          <tr>
-            <td class="border px-2 py-1" colspan="5" dir="rtl">
-              {{ student.majorAr || "الدراسة الإسلامية" }}
-            </td>
-            <td class="border px-2 py-1 bg-slate-50 font-medium" dir="rtl">
-              قسم
-            </td>
-            <td class=""></td>
-            <!-- Separator -->
-            <td class="border px-2 py-1" colspan="4">
-              {{ student.nisn || "-" }}
-            </td>
-            <td
-              class="border px-2 py-1 bg-slate-50 font-medium text-right"
-              colspan="2"
-              dir="rtl"
-            >
-              رقم القيد الوطني
-            </td>
-          </tr>
-
-          <!-- Empty Separator Row -->
-          <tr>
-            <td colspan="13" class="py-2"></td>
-          </tr>
-
-          <!-- Grades Table Header (13 Columns) -->
-          <tr class="bg-slate-100">
-            <!-- Left 6 -->
-            <th class="border px-1 py-1 text-center">NO</th>
-            <th class="border px-1 py-1 text-left">Mata Pelajaran</th>
-            <th class="border px-1 py-1 text-center">KKM</th>
-            <th class="border px-1 py-1 text-center">Nilai</th>
-            <th class="border px-1 py-1 text-center">Simbol</th>
-            <th class="border px-1 py-1 text-center">Rata-rata</th>
-
-            <!-- Separator -->
-            <th class="bg-white"></th>
-
-            <!-- Right 6 -->
-            <th class="border px-1 py-1 text-center" dir="rtl">
-              المعدل الفصلي
-            </th>
-            <th class="border px-1 py-1 text-center" dir="rtl">الرمز</th>
-            <th class="border px-1 py-1 text-center" dir="rtl">النتيجة</th>
-            <th class="border px-1 py-1 text-center" dir="rtl">أدنى الدرجة</th>
-            <th class="border px-1 py-1 text-right" dir="rtl">
-              المواد الدراسية
-            </th>
-            <th class="border px-1 py-1 text-center" dir="rtl">الرقم</th>
-          </tr>
-
-          <!-- Grades Data Rows (13 Columns) -->
-          <tr v-for="(grade, idx) in grades" :key="grade.subjectId || idx">
-            <!-- Left 6 -->
-            <td class="border px-1 py-1 text-center">{{ idx + 1 }}</td>
-            <td class="border px-1 py-1">{{ grade.subjectName }}</td>
-            <td class="border px-1 py-1 text-center">{{ grade.kkm || 70 }}</td>
-            <td class="border px-1 py-1 text-center font-semibold">
-              {{ grade.averageScore || "-" }}
-            </td>
-            <td class="border px-1 py-1 text-center">
-              {{ grade.letterGrade || "-" }}
-            </td>
-            <td class="border px-1 py-1 text-center font-semibold">
-              {{ grade.averageScore || "-" }}
-            </td>
-
-            <!-- Separator -->
-            <td class=""></td>
-
-            <!-- Right 6 -->
-            <td class="border px-1 py-1 text-center font-semibold" dir="rtl">
-              {{ grade.averageScore || "-" }}
-            </td>
-            <td class="border px-1 py-1 text-center" dir="rtl">
-              {{ grade.letterGradeAr || grade.letterGrade || "-" }}
-            </td>
-            <td class="border px-1 py-1 text-center font-semibold" dir="rtl">
-              {{ grade.averageScore || "-" }}
-            </td>
-            <td class="border px-1 py-1 text-center" dir="rtl">
-              {{ grade.kkm || 70 }}
-            </td>
-            <td class="border px-1 py-1 text-right" dir="rtl">
-              {{ grade.subjectNameAr || "-" }}
-            </td>
-            <td class="border px-1 py-1 text-center" dir="rtl">
-              {{ toArabicNumeral(idx + 1) }}
-            </td>
-          </tr>
-          <tr v-if="!grades.length">
-            <td
-              colspan="13"
-              class="border px-4 py-3 text-center text-slate-400 italic"
-            >
-              Belum ada mata pelajaran untuk kelas ini
-            </td>
-          </tr>
-
-          <!-- Empty Separator Row -->
-          <tr>
-            <td colspan="13" class="py-2"></td>
-          </tr>
-
-          <!-- Summary Section -->
-          <tr>
-            <td
-              class="border px-2 py-1 font-bold text-center bg-slate-50"
-              colspan="6"
-            >
-              Jumlah Nilai
-            </td>
-            <td class=""></td>
-            <!-- Sep -->
-            <td
-              class="border px-2 py-1 font-bold text-center bg-slate-50"
-              colspan="6"
-              dir="rtl"
-            >
-              مجموع النتائج
-            </td>
-          </tr>
-          <tr>
-            <td class="border px-2 py-1" colspan="3">Rata-rata</td>
-            <td class="border px-2 py-1 text-center font-bold" colspan="3">
-              {{ averageScore }}
-            </td>
-            <td class=""></td>
-            <!-- Sep -->
-            <td class="border px-2 py-1 text-center font-bold" colspan="3">
-              {{ averageScore }}
-            </td>
-            <td class="border px-2 py-1 text-right" colspan="3" dir="rtl">
-              معدل النتائج
-            </td>
-          </tr>
-          <tr>
-            <td class="border px-2 py-1" colspan="3">Predikat</td>
-            <td class="border px-2 py-1 text-center font-bold" colspan="3">
-              {{ overallPredicate }}
-            </td>
-            <td class=""></td>
-            <!-- Sep -->
-            <td class="border px-2 py-1 text-center font-bold" colspan="3">
-              {{ overallPredicateAr }}
-            </td>
-            <td class="border px-2 py-1 text-right" colspan="3" dir="rtl">
-              التقدير
-            </td>
-          </tr>
-          <tr>
-            <td class="border px-2 py-1" colspan="3">Ranking</td>
-            <td class="border px-2 py-1 text-center font-bold" colspan="3">
-              {{ ranking || "-" }}
-            </td>
-            <td class=""></td>
-            <!-- Sep -->
-            <td class="border px-2 py-1 text-center font-bold" colspan="3">
-              {{ ranking ? toArabicNumeral(ranking) : "-" }}
-            </td>
-            <td class="border px-2 py-1 text-right" colspan="3" dir="rtl">
-              الترتيب
-            </td>
-          </tr>
-
-          <!-- Empty Separator Row -->
-          <tr>
-            <td colspan="13" class="py-2"></td>
-          </tr>
-
-          <!-- Tahfidz + Ketidakhadiran -->
-          <tr>
-            <td
-              class="border px-2 py-1 font-bold text-center bg-slate-50"
-              colspan="6"
-            >
-              Penilaian Tahfizh
-            </td>
-            <td class=""></td>
-            <!-- Sep -->
-            <td
-              class="border px-2 py-1 font-bold text-center bg-slate-50"
-              colspan="6"
-            >
-              Ketidakhadiran
-            </td>
-          </tr>
-          <tr>
-            <td class="border px-2 py-1" colspan="3">Target Hafalan</td>
-            <td class="border px-2 py-1 text-center" colspan="3">
-              {{ tahfidz.target || "-" }}
-            </td>
-            <td class=""></td>
-            <!-- Sep -->
-            <td class="border px-2 py-1" colspan="2">Sakit</td>
-            <td class="border px-2 py-1 text-center" colspan="2">
-              {{ attendance.sickDays || 0 }}
-            </td>
-            <td class="border px-2 py-1" colspan="2">Hari</td>
-          </tr>
-          <tr>
-            <td class="border px-2 py-1" colspan="3">
-              Jumlah Juz yang Dihafalkan
-            </td>
-            <td class="border px-2 py-1 text-center" colspan="3">
-              {{ tahfidz.achieved || "-" }}
-            </td>
-            <td class=""></td>
-            <!-- Sep -->
-            <td class="border px-2 py-1" colspan="2">Izin</td>
-            <td class="border px-2 py-1 text-center" colspan="2">
-              {{ attendance.permissionDays || 0 }}
-            </td>
-            <td class="border px-2 py-1" colspan="2">Hari</td>
-          </tr>
-          <tr>
-            <td class="border px-2 py-1" colspan="3">Nilai</td>
-            <td class="border px-2 py-1 text-center font-bold" colspan="3">
-              {{ tahfidz.score || "-" }}
-            </td>
-            <td class=""></td>
-            <!-- Sep -->
-            <td class="border px-2 py-1" colspan="2">Alpa</td>
-            <td class="border px-2 py-1 text-center" colspan="2">
-              {{ attendance.absentDays || 0 }}
-            </td>
-            <td class="border px-2 py-1" colspan="2">Hari</td>
-          </tr>
-          <tr>
-            <td class="border px-2 py-1" colspan="3">Keterangan</td>
-            <td class="border px-2 py-1 text-center" colspan="3">
-              {{ tahfidz.status || "-" }}
-            </td>
-            <td class=""></td>
-            <td class="border" colspan="6"></td>
-          </tr>
-
-          <!-- Empty Separator Row -->
-          <tr>
-            <td colspan="13" class="py-2"></td>
-          </tr>
-
-          <!-- Catatan Row: Lab(2) + Value(11) = 13 -->
-          <tr>
-            <td class="border px-2 py-1 font-bold" colspan="2">Catatan :</td>
-            <td class="border px-2 py-1" colspan="11">
+          <!-- Title -->
+          <div class="text-center mb-6">
+            <h2 class="text-lg font-bold">كشف درجات الاختبار النهائي</h2>
+            <h3 class="text-base font-bold">LAPORAN HASIL BELAJAR SANTRI</h3>
+            <p class="text-sm">
+              Semester
               {{
-                teacherNotes ||
-                "Nilai ananda sudah baik. Pertahankan prestasi dan jangan mudah puas!"
+                semester === "1"
+                  ? "Ganjil / الفصل الدراسي الأول"
+                  : "Genap / الفصل الدراسي الثاني"
               }}
-            </td>
-          </tr>
-        </table>
+            </p>
+            <p class="text-sm">
+              Tahun Ajaran / العام الدراسي: {{ academicYear }}
+            </p>
+          </div>
 
-        <!-- Signatures (Keep outside main table for flexibility) -->
-        <div class="grid grid-cols-3 gap-4 text-center text-xs mt-8">
-          <div>
-            <p class="mb-12">Mengetahui,</p>
-            <p class="mb-1">Orang Tua / Wali</p>
-            <p class="border-t border-slate-300 pt-1 mx-4">
-              ........................
-            </p>
+          <!-- UNIFIED SINGLE TABLE - 12 Column Grid (matching reference exactly) -->
+          <table
+            class="w-full border-collapse text-xs mb-6"
+            style="table-layout: fixed"
+          >
+            <!-- Define 13 Column Widths (6 Left - 1 Separator - 6 Right) -->
+            <colgroup>
+              <!-- Left 6 Columns -->
+              <col style="width: 4%" />
+              <!-- 1: NO -->
+              <col style="width: 15%" />
+              <!-- 2: Mata Pelajaran (Reduced to accommodate separator) -->
+              <col style="width: 7.5%" />
+              <!-- 3: KKM -->
+              <col style="width: 7.5%" />
+              <!-- 4: Nilai -->
+              <col style="width: 7.5%" />
+              <!-- 5: Simbol -->
+              <col style="width: 7.5%" />
+              <!-- 6: Rata-rata -->
+
+              <!-- Middle Separator -->
+              <col style="width: 2%" />
+              <!-- 7: SEPARATOR -->
+
+              <!-- Right 6 Columns -->
+              <col style="width: 7.5%" />
+              <!-- 8: المعدل الفصلي -->
+              <col style="width: 7.5%" />
+              <!-- 9: الرمز -->
+              <col style="width: 7.5%" />
+              <!-- 10: النتيجة -->
+              <col style="width: 7.5%" />
+              <!-- 11: أدنى الدرجة -->
+              <col style="width: 15%" />
+              <!-- 12: المواد الدراسية -->
+              <col style="width: 4%" />
+              <!-- 13: الرقم -->
+            </colgroup>
+
+            <!-- Student Info Row 1: Val(5) | Lab(1) | SEP(1) | Val(4) | Lab(2) = 13 -->
+            <tr>
+              <td class="border px-2 py-1" colspan="5" dir="rtl">
+                {{ student.className || "-" }}
+              </td>
+              <td class="border px-2 py-1 bg-slate-50 font-medium" dir="rtl">
+                الصف
+              </td>
+              <td class=""></td>
+              <!-- Separator -->
+              <td class="border px-2 py-1" colspan="4">
+                {{ student.fullNameAr || student.fullName }}
+              </td>
+              <td
+                class="border px-2 py-1 bg-slate-50 font-medium text-right"
+                colspan="2"
+                dir="rtl"
+              >
+                اسم الطالب
+              </td>
+            </tr>
+
+            <!-- Student Info Row 2 -->
+            <tr>
+              <td class="border px-2 py-1" colspan="5" dir="rtl">
+                {{ academicYear }}
+              </td>
+              <td class="border px-2 py-1 bg-slate-50 font-medium" dir="rtl">
+                للعام الدراسي
+              </td>
+              <td class=""></td>
+              <!-- Separator -->
+              <td class="border px-2 py-1" colspan="4">
+                {{ student.nis || "-" }}
+              </td>
+              <td
+                class="border px-2 py-1 bg-slate-50 font-medium text-right"
+                colspan="2"
+                dir="rtl"
+              >
+                رقم الطلب
+              </td>
+            </tr>
+
+            <!-- Student Info Row 3 -->
+            <tr>
+              <td class="border px-2 py-1" colspan="5" dir="rtl">
+                {{ student.majorAr || "الدراسة الإسلامية" }}
+              </td>
+              <td class="border px-2 py-1 bg-slate-50 font-medium" dir="rtl">
+                قسم
+              </td>
+              <td class=""></td>
+              <!-- Separator -->
+              <td class="border px-2 py-1" colspan="4">
+                {{ student.nisn || "-" }}
+              </td>
+              <td
+                class="border px-2 py-1 bg-slate-50 font-medium text-right"
+                colspan="2"
+                dir="rtl"
+              >
+                رقم القيد الوطني
+              </td>
+            </tr>
+
+            <!-- Empty Separator Row -->
+            <tr>
+              <td colspan="13" class="py-2"></td>
+            </tr>
+
+            <!-- Grades Table Header (13 Columns) -->
+            <tr class="bg-slate-100">
+              <!-- Left 6 -->
+              <th class="border px-1 py-1 text-center">NO</th>
+              <th class="border px-1 py-1 text-left">Mata Pelajaran</th>
+              <th class="border px-1 py-1 text-center">KKM</th>
+              <th class="border px-1 py-1 text-center">Nilai</th>
+              <th class="border px-1 py-1 text-center">Simbol</th>
+              <th class="border px-1 py-1 text-center">Rata-rata</th>
+
+              <!-- Separator -->
+              <th class="bg-white"></th>
+
+              <!-- Right 6 -->
+              <th class="border px-1 py-1 text-center" dir="rtl">
+                المعدل الفصلي
+              </th>
+              <th class="border px-1 py-1 text-center" dir="rtl">الرمز</th>
+              <th class="border px-1 py-1 text-center" dir="rtl">النتيجة</th>
+              <th class="border px-1 py-1 text-center" dir="rtl">
+                أدنى الدرجة
+              </th>
+              <th class="border px-1 py-1 text-right" dir="rtl">
+                المواد الدراسية
+              </th>
+              <th class="border px-1 py-1 text-center" dir="rtl">الرقم</th>
+            </tr>
+
+            <!-- Grades Data Rows (13 Columns) -->
+            <tr v-for="(grade, idx) in grades" :key="grade.subjectId || idx">
+              <!-- Left 6 -->
+              <td class="border px-1 py-1 text-center">{{ idx + 1 }}</td>
+              <td class="border px-1 py-1">{{ grade.subjectName }}</td>
+              <td class="border px-1 py-1 text-center">
+                {{ grade.kkm || 70 }}
+              </td>
+              <td class="border px-1 py-1 text-center font-semibold">
+                {{ grade.averageScore || "-" }}
+              </td>
+              <td class="border px-1 py-1 text-center">
+                {{ grade.letterGrade || "-" }}
+              </td>
+              <td class="border px-1 py-1 text-center font-semibold">
+                {{ grade.averageScore || "-" }}
+              </td>
+
+              <!-- Separator -->
+              <td class=""></td>
+
+              <!-- Right 6 -->
+              <td class="border px-1 py-1 text-center font-semibold" dir="rtl">
+                {{ grade.averageScore || "-" }}
+              </td>
+              <td class="border px-1 py-1 text-center" dir="rtl">
+                {{ grade.letterGradeAr || grade.letterGrade || "-" }}
+              </td>
+              <td class="border px-1 py-1 text-center font-semibold" dir="rtl">
+                {{ grade.averageScore || "-" }}
+              </td>
+              <td class="border px-1 py-1 text-center" dir="rtl">
+                {{ grade.kkm || 70 }}
+              </td>
+              <td class="border px-1 py-1 text-right" dir="rtl">
+                {{ grade.subjectNameAr || "-" }}
+              </td>
+              <td class="border px-1 py-1 text-center" dir="rtl">
+                {{ toArabicNumeral(idx + 1) }}
+              </td>
+            </tr>
+            <tr v-if="!grades.length">
+              <td
+                colspan="13"
+                class="border px-4 py-3 text-center text-slate-400 italic"
+              >
+                Belum ada mata pelajaran untuk kelas ini
+              </td>
+            </tr>
+
+            <!-- Empty Separator Row -->
+            <tr>
+              <td colspan="13" class="py-2"></td>
+            </tr>
+
+            <!-- Summary Section -->
+            <tr>
+              <td
+                class="border px-2 py-1 font-bold text-center bg-slate-50"
+                colspan="6"
+              >
+                Jumlah Nilai
+              </td>
+              <td class=""></td>
+              <!-- Sep -->
+              <td
+                class="border px-2 py-1 font-bold text-center bg-slate-50"
+                colspan="6"
+                dir="rtl"
+              >
+                مجموع النتائج
+              </td>
+            </tr>
+            <tr>
+              <td class="border px-2 py-1" colspan="3">Rata-rata</td>
+              <td class="border px-2 py-1 text-center font-bold" colspan="3">
+                {{ averageScore }}
+              </td>
+              <td class=""></td>
+              <!-- Sep -->
+              <td class="border px-2 py-1 text-center font-bold" colspan="3">
+                {{ averageScore }}
+              </td>
+              <td class="border px-2 py-1 text-right" colspan="3" dir="rtl">
+                معدل النتائج
+              </td>
+            </tr>
+            <tr>
+              <td class="border px-2 py-1" colspan="3">Predikat</td>
+              <td class="border px-2 py-1 text-center font-bold" colspan="3">
+                {{ overallPredicate }}
+              </td>
+              <td class=""></td>
+              <!-- Sep -->
+              <td class="border px-2 py-1 text-center font-bold" colspan="3">
+                {{ overallPredicateAr }}
+              </td>
+              <td class="border px-2 py-1 text-right" colspan="3" dir="rtl">
+                التقدير
+              </td>
+            </tr>
+            <tr>
+              <td class="border px-2 py-1" colspan="3">Ranking</td>
+              <td class="border px-2 py-1 text-center font-bold" colspan="3">
+                {{ ranking || "-" }}
+              </td>
+              <td class=""></td>
+              <!-- Sep -->
+              <td class="border px-2 py-1 text-center font-bold" colspan="3">
+                {{ ranking ? toArabicNumeral(ranking) : "-" }}
+              </td>
+              <td class="border px-2 py-1 text-right" colspan="3" dir="rtl">
+                الترتيب
+              </td>
+            </tr>
+
+            <!-- Empty Separator Row -->
+            <tr>
+              <td colspan="13" class="py-2"></td>
+            </tr>
+
+            <!-- Tahfidz + Ketidakhadiran -->
+            <tr>
+              <td
+                class="border px-2 py-1 font-bold text-center bg-slate-50"
+                colspan="6"
+              >
+                Penilaian Tahfizh
+              </td>
+              <td class=""></td>
+              <!-- Sep -->
+              <td
+                class="border px-2 py-1 font-bold text-center bg-slate-50"
+                colspan="6"
+              >
+                Ketidakhadiran
+              </td>
+            </tr>
+            <tr>
+              <td class="border px-2 py-1" colspan="3">Target Hafalan</td>
+              <td class="border px-2 py-1 text-center" colspan="3">
+                {{ tahfidz.target || "-" }}
+              </td>
+              <td class=""></td>
+              <!-- Sep -->
+              <td class="border px-2 py-1" colspan="2">Sakit</td>
+              <td class="border px-2 py-1 text-center" colspan="2">
+                {{ attendance.sickDays || 0 }}
+              </td>
+              <td class="border px-2 py-1" colspan="2">Hari</td>
+            </tr>
+            <tr>
+              <td class="border px-2 py-1" colspan="3">
+                Jumlah Juz yang Dihafalkan
+              </td>
+              <td class="border px-2 py-1 text-center" colspan="3">
+                {{ tahfidz.achieved || "-" }}
+              </td>
+              <td class=""></td>
+              <!-- Sep -->
+              <td class="border px-2 py-1" colspan="2">Izin</td>
+              <td class="border px-2 py-1 text-center" colspan="2">
+                {{ attendance.permissionDays || 0 }}
+              </td>
+              <td class="border px-2 py-1" colspan="2">Hari</td>
+            </tr>
+            <tr>
+              <td class="border px-2 py-1" colspan="3">Nilai</td>
+              <td class="border px-2 py-1 text-center font-bold" colspan="3">
+                {{ tahfidz.score || "-" }}
+              </td>
+              <td class=""></td>
+              <!-- Sep -->
+              <td class="border px-2 py-1" colspan="2">Alpa</td>
+              <td class="border px-2 py-1 text-center" colspan="2">
+                {{ attendance.absentDays || 0 }}
+              </td>
+              <td class="border px-2 py-1" colspan="2">Hari</td>
+            </tr>
+            <tr>
+              <td class="border px-2 py-1" colspan="3">Keterangan</td>
+              <td class="border px-2 py-1 text-center" colspan="3">
+                {{ tahfidz.status || "-" }}
+              </td>
+              <td class=""></td>
+              <td class="border" colspan="6"></td>
+            </tr>
+
+            <!-- Empty Separator Row -->
+            <tr>
+              <td colspan="13" class="py-2"></td>
+            </tr>
+
+            <!-- Catatan Row: Lab(2) + Value(11) = 13 -->
+            <tr>
+              <td class="border px-2 py-1 font-bold" colspan="2">Catatan :</td>
+              <td class="border px-2 py-1" colspan="11">
+                {{
+                  teacherNotes ||
+                  "Nilai ananda sudah baik. Pertahankan prestasi dan jangan mudah puas!"
+                }}
+              </td>
+            </tr>
+          </table>
+
+          <!-- Signatures (Keep outside main table for flexibility) -->
+          <div class="grid grid-cols-3 gap-4 text-center text-xs mt-8">
+            <div>
+              <p class="mb-12">Mengetahui,</p>
+              <p class="mb-1">Orang Tua / Wali</p>
+              <p class="border-t border-slate-300 pt-1 mx-4">
+                ........................
+              </p>
+            </div>
+            <div>
+              <p class="mb-12">Mengetahui,</p>
+              <p class="mb-1">Kepala Madrasah</p>
+              <p class="border-t border-slate-300 pt-1 mx-4 font-medium">
+                {{ principalName || "........................" }}
+              </p>
+            </div>
+            <div>
+              <p class="mb-1">{{ cityName }}, {{ currentDate }}</p>
+              <p class="mb-10">Wali Kelas</p>
+              <p class="border-t border-slate-300 pt-1 mx-4 font-medium">
+                {{ homeroomTeacher || "........................" }}
+              </p>
+            </div>
           </div>
-          <div>
-            <p class="mb-12">Mengetahui,</p>
-            <p class="mb-1">Kepala Madrasah</p>
-            <p class="border-t border-slate-300 pt-1 mx-4 font-medium">
-              {{ principalName || "........................" }}
-            </p>
-          </div>
-          <div>
-            <p class="mb-1">{{ cityName }}, {{ currentDate }}</p>
-            <p class="mb-10">Wali Kelas</p>
-            <p class="border-t border-slate-300 pt-1 mx-4 font-medium">
-              {{ homeroomTeacher || "........................" }}
-            </p>
-          </div>
+          <!-- NOTE: End of Report Content -->
         </div>
       </div>
     </div>
@@ -536,8 +543,10 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, reactive, computed, onMounted, watch } from "vue";
+import { useRoute } from "vue-router";
 import { Icon } from "@iconify/vue";
+import { useElementSize } from "@vueuse/core";
 import {
   studentsApi,
   academicApi,
@@ -547,10 +556,30 @@ import {
 } from "@/services/api";
 import StatusModal from "@/components/ui/StatusModal.vue";
 
+const route = useRoute();
+const loading = ref(false);
+
+// Scaling Logic
+const reportContainer = ref(null);
+const { width: containerWidth } = useElementSize(reportContainer);
+const scale = computed(() => {
+  if (!containerWidth.value) return 1;
+  const A4_WIDTH_PX = 794; // 210mm @ 96dpi approx
+  const availableWidth = containerWidth.value;
+  return availableWidth < A4_WIDTH_PX ? availableWidth / A4_WIDTH_PX : 1;
+});
+
+const reportStyle = computed(() => ({
+  width: "210mm",
+  minHeight: "297mm",
+  transform: `scale(${scale.value})`,
+  marginBottom: `-${(1 - scale.value) * 100}%`,
+  transformOrigin: "top left",
+}));
+
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 
 // State
-const loading = ref(false);
 const student = ref(null);
 const searchQuery = ref("");
 const showDropdown = ref(false);
@@ -806,11 +835,14 @@ onMounted(() => {
     position: absolute;
     left: 0;
     top: 0;
-    width: 100%;
-    padding: 0;
-    margin: 0;
-    border: none;
-    box-shadow: none;
+    width: 210mm !important;
+    min-height: 297mm !important;
+    margin: 0 !important;
+    padding: 0 !important; /* Reset padding if needed, or keep defined padding */
+    border: none !important;
+    box-shadow: none !important;
+    transform: none !important; /* Disable scaling */
+    overflow: visible !important;
   }
   @page {
     size: A4 portrait;
