@@ -64,6 +64,17 @@ function handleFileSelect(e) {
     return;
   }
 
+  // Max 10MB check
+  if (file.size > 10 * 1024 * 1024) {
+    showStatus(
+      "error",
+      "File Terlalu Besar",
+      "Ukuran maksimal file adalah 10MB."
+    );
+    e.target.value = "";
+    return;
+  }
+
   cropperImageSrc.value = URL.createObjectURL(file);
   showCropper.value = true;
   e.target.value = "";
@@ -91,8 +102,22 @@ async function uploadImage(file) {
       headers: { Authorization: `Bearer ${token}` },
       body: formData,
     });
+
+    if (upRes.status === 413) {
+      throw new Error("Ukuran file terlalu besar (Max 10MB)");
+    }
+
+    if (!upRes.ok) {
+      const text = await upRes.text();
+      try {
+        const json = JSON.parse(text);
+        throw new Error(json.message || "Gagal upload gambar");
+      } catch (e) {
+        throw new Error(`Upload gagal: ${upRes.statusText}`);
+      }
+    }
+
     const upJson = await upRes.json();
-    if (!upJson.success) throw new Error(upJson.message);
     const filePath = upJson.data.filePath;
 
     // 2. Save to Info Board
