@@ -3,6 +3,7 @@ import { z } from "zod";
 export const createStudentSchema = z.object({
   nis: z.string().min(1, "NIS is required"),
   fullName: z.string().min(1, "Full name is required"),
+  fullNameAr: z.string().optional(),
   birthDate: z.string().optional(),
   birthPlace: z.string().optional(),
   gender: z.enum(["male", "female"]).optional(),
@@ -28,6 +29,7 @@ export const createStudentSchema = z.object({
 export const updateStudentSchema = z.object({
   nis: z.string().min(1).optional(),
   fullName: z.string().min(1).optional(),
+  fullNameAr: z.string().optional(),
   birthDate: z.string().optional(),
   birthPlace: z.string().optional(),
   gender: z.enum(["male", "female"]).optional(),

@@ -292,4 +292,54 @@ app.post(
   }
 );
 
+// GET /report-header - Get report header settings
+app.get("/report-header", async (c) => {
+  try {
+    const institutionLogo = await getSetting("academic_report_header_logo");
+    const principalName = await getSetting("academic_report_principal_name");
+    const cityName = await getSetting("academic_report_city_name");
+
+    return c.json({
+      success: true,
+      data: {
+        institutionLogo: institutionLogo || "",
+        principalName: principalName || "",
+        cityName: cityName || "Purwakarta",
+      },
+    });
+  } catch (e: any) {
+    return c.json({ success: false, message: e.message }, 500);
+  }
+});
+
+// PUT /report-header - Update report header settings
+const reportHeaderSchema = z.object({
+  institutionLogo: z.string().optional(),
+  principalName: z.string().optional(),
+  cityName: z.string().optional(),
+});
+
+app.put("/report-header", zValidator("json", reportHeaderSchema), async (c) => {
+  try {
+    const data = c.req.valid("json");
+
+    if (data.institutionLogo !== undefined) {
+      await setSetting("academic_report_header_logo", data.institutionLogo);
+    }
+    if (data.principalName !== undefined) {
+      await setSetting("academic_report_principal_name", data.principalName);
+    }
+    if (data.cityName !== undefined) {
+      await setSetting("academic_report_city_name", data.cityName);
+    }
+
+    return c.json({
+      success: true,
+      message: "Pengaturan header rapor berhasil disimpan",
+    });
+  } catch (e: any) {
+    return c.json({ success: false, message: e.message }, 500);
+  }
+});
+
 export default app;

@@ -1057,6 +1057,104 @@ academicRoute.put(
   }
 );
 
+// Get grades with filters (for report card)
+// Returns all subjects for student's grade level, merged with existing grades
+academicRoute.get("/grades", async (c) => {
+  try {
+    const studentId = c.req.query("studentId");
+    const academicYear = c.req.query("academicYear");
+    const semester = c.req.query("semester");
+
+    if (!studentId) {
+      return c.json({ success: false, message: "studentId is required" }, 400);
+    }
+
+    const { students } = await import("../db/schema/students");
+
+    // Get student and their class
+    const student = await db.query.students.findFirst({
+      where: eq(students.id, Number(studentId)),
+    });
+
+    if (!student) {
+      return c.json({ success: false, message: "Student not found" }, 404);
+    }
+
+    // Get class to find grade level
+    let gradeLevel: number | null = null;
+    if (student.classId) {
+      const studentClass = await db.query.classes.findFirst({
+        where: eq(classes.id, student.classId),
+      });
+      gradeLevel = studentClass?.grade || null;
+    }
+
+    // Get all subjects for this grade level
+    const allSubjects = await db.query.subjects.findMany({
+      orderBy: (subjects, { asc }) => [
+        asc(subjects.sortOrder),
+        asc(subjects.name),
+      ],
+    });
+
+    // Filter subjects by grade level
+    const subjectsForGrade = allSubjects.filter((sub) => {
+      if (!gradeLevel) return true; // If no grade, show all
+      if (!sub.grades) return true; // If subject has no grade restriction, include it
+      try {
+        const subjectGrades = JSON.parse(sub.grades);
+        return (
+          Array.isArray(subjectGrades) && subjectGrades.includes(gradeLevel)
+        );
+      } catch {
+        return true;
+      }
+    });
+
+    // Build where conditions for existing grades
+    const conditions = [eq(grades.studentId, Number(studentId))];
+    if (academicYear) conditions.push(eq(grades.academicYear, academicYear));
+    if (semester) conditions.push(eq(grades.semester, Number(semester)));
+
+    const existingGrades = await db.query.grades.findMany({
+      where: and(...conditions),
+    });
+
+    // Create a map of existing grades by subjectId
+    const gradeMap = new Map(existingGrades.map((g) => [g.subjectId, g]));
+
+    // Merge: all subjects with their grades (or null if no grade)
+    const mergedData = subjectsForGrade.map((subject) => {
+      const grade = gradeMap.get(subject.id);
+      return {
+        subjectId: subject.id,
+        subjectName: subject.name,
+        subjectNameAr: subject.nameAr || "",
+        kkm: subject.kkm,
+        sortOrder: subject.sortOrder,
+        // Grade data (null if not exists)
+        id: grade?.id || null,
+        averageScore: grade?.averageScore || null,
+        letterGrade: grade?.letterGrade || null,
+        letterGradeAr: grade?.letterGradeAr || null,
+        predicate: grade?.predicate || null,
+        dailyScore: grade?.dailyScore || null,
+        homeworkScore: grade?.homeworkScore || null,
+        midtermScore: grade?.midtermScore || null,
+        finalScore: grade?.finalScore || null,
+        practiceScore: grade?.practiceScore || null,
+        notes: grade?.notes || null,
+        subject,
+      };
+    });
+
+    return c.json({ success: true, data: mergedData });
+  } catch (error) {
+    console.error("Get grades error:", error);
+    return c.json({ success: false, message: "Failed to get grades" }, 500);
+  }
+});
+
 // Get grades list for bulk input
 academicRoute.get(
   "/grades/list",

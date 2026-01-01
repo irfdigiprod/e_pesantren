@@ -1604,4 +1604,53 @@ export const academicSettingsApi = {
       method: "PUT",
     });
   },
+
+  // Report Header Settings
+  getReportHeader() {
+    return request("/api/academic-settings/report-header");
+  },
+
+  updateReportHeader(data) {
+    return request("/api/academic-settings/report-header", {
+      method: "PUT",
+      body: data,
+    });
+  },
+};
+
+// ============================================
+// HOMEROOM NOTES API
+// ============================================
+
+export const homeroomNotesApi = {
+  getByClass(classId, semester, academicYear) {
+    const params = new URLSearchParams({
+      classId: String(classId),
+      semester: String(semester),
+      academicYear,
+    });
+    return request(`/api/homeroom-notes?${params}`);
+  },
+
+  save(data) {
+    return request("/api/homeroom-notes", {
+      method: "POST",
+      body: data,
+    });
+  },
+
+  bulkSave(notes) {
+    return request("/api/homeroom-notes/bulk", {
+      method: "POST",
+      body: { notes },
+    });
+  },
+
+  getByStudent(studentId, semester, academicYear) {
+    const params = new URLSearchParams({
+      semester: String(semester),
+      academicYear,
+    });
+    return request(`/api/homeroom-notes/${studentId}?${params}`);
+  },
 };

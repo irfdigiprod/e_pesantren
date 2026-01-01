@@ -130,6 +130,25 @@ export const reports = mysqlTable("reports", {
   generatedAt: timestamp("generated_at").defaultNow(),
 });
 
+// Catatan Wali Kelas (Homeroom Notes)
+export const homeroomNotes = mysqlTable("homeroom_notes", {
+  id: int("id").primaryKey().autoincrement(),
+  studentId: int("student_id")
+    .references(() => students.id)
+    .notNull(),
+  classId: int("class_id").references(() => classes.id),
+  academicYear: varchar("academic_year", { length: 20 }).notNull(),
+  semester: int("semester").notNull(),
+  // Manual attendance input
+  sickDays: int("sick_days").default(0),
+  permissionDays: int("permission_days").default(0),
+  absentDays: int("absent_days").default(0),
+  // Notes
+  teacherNotes: text("teacher_notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
+});
+
 export type Class = typeof classes.$inferSelect;
 export type NewClass = typeof classes.$inferInsert;
 export type ClassHomeroomTeacher = typeof classHomeroomTeachers.$inferSelect;
@@ -142,3 +161,5 @@ export type Grade = typeof grades.$inferSelect;
 export type NewGrade = typeof grades.$inferInsert;
 export type Report = typeof reports.$inferSelect;
 export type NewReport = typeof reports.$inferInsert;
+export type HomeroomNote = typeof homeroomNotes.$inferSelect;
+export type NewHomeroomNote = typeof homeroomNotes.$inferInsert;

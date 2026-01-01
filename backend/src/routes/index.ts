@@ -26,6 +26,7 @@ import tahfidzRoute from "./tahfidz";
 import wilayahRoute from "./wilayah";
 import informationBoardRoute from "./information-board";
 import academicSettingsRoute from "./academic-settings";
+import homeroomNotesRoute from "./homeroom-notes";
 
 export {
   authRoute,
@@ -55,4 +56,5 @@ export {
   wilayahRoute,
   informationBoardRoute,
   academicSettingsRoute,
+  homeroomNotesRoute,
 };

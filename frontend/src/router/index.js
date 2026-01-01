@@ -157,6 +157,18 @@ const router = createRouter({
           meta: { title: "Rapor Akademik" },
         },
         {
+          path: "homeroom-notes",
+          name: "MobileHomeroomNotes",
+          component: () => import("@/views/apps/academic/HomeroomNotes.vue"),
+          meta: { title: "Catatan Wali Kelas" },
+        },
+        {
+          path: "report-card",
+          name: "MobileReportCardPrint",
+          component: () => import("@/views/apps/academic/ReportCardPrint.vue"),
+          meta: { title: "Cetak Rapor" },
+        },
+        {
           path: "halaqah",
           name: "MobileHalaqah",
           component: () => import("@/views/apps/Halaqah.vue"),
@@ -521,6 +533,16 @@ const router = createRouter({
           path: "apps/academic/reports",
           name: "Reports",
           component: () => import("@/views/apps/academic/Reports.vue"),
+        },
+        {
+          path: "apps/academic/homeroom-notes",
+          name: "HomeroomNotes",
+          component: () => import("@/views/apps/academic/HomeroomNotes.vue"),
+        },
+        {
+          path: "apps/academic/report-card",
+          name: "ReportCardPrint",
+          component: () => import("@/views/apps/academic/ReportCardPrint.vue"),
         },
         {
           path: "apps/invoice/list",

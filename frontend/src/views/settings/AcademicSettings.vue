@@ -423,6 +423,142 @@
       </div>
     </div>
 
+    <!-- Report Header Section -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mt-6">
+      <h2
+        class="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2"
+      >
+        <Icon icon="solar:document-text-bold" class="text-[#602515]" />
+        Kop & TTD Rapor Akademik
+      </h2>
+
+      <p class="text-sm text-slate-500 mb-6">
+        Upload gambar kop surat yang akan digunakan sebagai header rapor
+        akademik.
+      </p>
+
+      <!-- Upload Zone -->
+      <div
+        @dragover.prevent="isDragging = true"
+        @dragleave.prevent="isDragging = false"
+        @drop.prevent="handleDrop"
+        :class="[
+          'relative border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-300 cursor-pointer',
+          isDragging
+            ? 'border-[#602515] bg-[#602515]/5 scale-[1.01]'
+            : 'border-slate-300 hover:border-[#602515]/50 hover:bg-slate-50',
+        ]"
+        @click="triggerFileInput"
+      >
+        <input
+          ref="fileInput"
+          type="file"
+          accept="image/*"
+          class="hidden"
+          @change="handleFileSelect"
+        />
+
+        <!-- Upload Progress -->
+        <div v-if="uploadingHeader" class="flex flex-col items-center gap-4">
+          <div
+            class="w-16 h-16 rounded-full border-4 border-[#602515]/20 border-t-[#602515] animate-spin"
+          ></div>
+          <span class="text-slate-600 font-medium">Mengupload gambar...</span>
+        </div>
+
+        <!-- Preview (if image exists) -->
+        <div v-else-if="headerForm.institutionLogo" class="space-y-4">
+          <img
+            :src="getImageUrl(headerForm.institutionLogo)"
+            alt="Kop Surat Preview"
+            class="max-h-48 mx-auto rounded-lg shadow-lg border border-slate-200"
+          />
+          <div class="flex items-center justify-center gap-3">
+            <button
+              @click.stop="triggerFileInput"
+              class="px-4 py-2 text-sm font-medium text-[#602515] border border-[#602515] rounded-lg hover:bg-[#602515]/5 flex items-center gap-2"
+            >
+              <Icon icon="solar:gallery-edit-bold" />
+              Ganti Gambar
+            </button>
+            <button
+              @click.stop="removeHeader"
+              class="px-4 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 flex items-center gap-2"
+            >
+              <Icon icon="solar:trash-bin-trash-bold" />
+              Hapus
+            </button>
+          </div>
+        </div>
+
+        <!-- Empty State -->
+        <div v-else class="space-y-4">
+          <div
+            class="w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-[#602515]/10 to-[#602515]/5 flex items-center justify-center"
+          >
+            <Icon
+              icon="solar:cloud-upload-bold-duotone"
+              class="w-10 h-10 text-[#602515]"
+            />
+          </div>
+          <div>
+            <p class="text-slate-700 font-medium">
+              Drag & drop gambar kop surat di sini
+            </p>
+            <p class="text-slate-500 text-sm mt-1">
+              atau klik untuk memilih file (PNG, JPG, max 5MB)
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Signature Names Section -->
+      <div class="mt-6 border-t pt-6">
+        <h4 class="font-bold text-slate-800 mb-4">Nama Penandatangan</h4>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">
+              Nama Kepala Sekolah
+            </label>
+            <input
+              v-model="headerForm.principalName"
+              type="text"
+              class="w-full px-3 py-2 border rounded-lg focus:ring-2 ring-[#602515]/20 outline-none"
+              placeholder="Nama lengkap + Gelar"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">
+              Kota
+            </label>
+            <input
+              v-model="headerForm.cityName"
+              type="text"
+              class="w-full px-3 py-2 border rounded-lg focus:ring-2 ring-[#602515]/20 outline-none"
+              placeholder="Purwakarta"
+            />
+          </div>
+        </div>
+
+        <!-- Save Button -->
+        <div class="mt-6 flex justify-end">
+          <button
+            @click="saveHeaderSettings"
+            :disabled="savingHeader"
+            class="px-6 py-2 bg-[#602515] text-white rounded-lg hover:bg-[#4a1c10] disabled:opacity-50 flex items-center gap-2"
+          >
+            <Icon
+              v-if="savingHeader"
+              icon="solar:spinner-bold"
+              class="animate-spin"
+            />
+            <Icon v-else icon="solar:diskette-bold-duotone" />
+            {{ savingHeader ? "Menyimpan..." : "Simpan Pengaturan" }}
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Confirm Modal -->
     <ConfirmModal
       :isOpen="showConfirmModal"
@@ -452,9 +588,11 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import { Icon } from "@iconify/vue";
-import { academicSettingsApi } from "@/services/api";
+import { academicSettingsApi, uploadsApi } from "@/services/api";
 import ConfirmModal from "@/components/ui/ConfirmModal.vue";
 import StatusModal from "@/components/ui/StatusModal.vue";
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 
 const loading = ref(false);
 const years = ref([]);
@@ -473,6 +611,17 @@ const gradingRules = ref({
 });
 const newKkmValue = ref("");
 const savingRules = ref(false);
+
+// Header Settings State
+const headerForm = ref({
+  institutionLogo: "",
+  principalName: "",
+  cityName: "Purwakarta",
+});
+const savingHeader = ref(false);
+const uploadingHeader = ref(false);
+const isDragging = ref(false);
+const fileInput = ref(null);
 
 // Modal states
 const showConfirmModal = ref(false);
@@ -519,6 +668,119 @@ async function loadData() {
     console.error("Failed to load academic settings:", e);
   } finally {
     loading.value = false;
+  }
+}
+
+// Header Image Helpers
+function getImageUrl(path) {
+  if (!path) return "";
+  if (path.startsWith("http")) return path;
+  return `${API_BASE}/api/${path}`;
+}
+
+function triggerFileInput() {
+  fileInput.value?.click();
+}
+
+function handleDrop(e) {
+  isDragging.value = false;
+  const files = e.dataTransfer?.files;
+  if (files && files.length > 0) {
+    processFile(files[0]);
+  }
+}
+
+function handleFileSelect(e) {
+  const files = e.target?.files;
+  if (files && files.length > 0) {
+    processFile(files[0]);
+  }
+  if (e.target) e.target.value = "";
+}
+
+function processFile(file) {
+  if (!file.type.startsWith("image/")) {
+    showStatus(
+      "File Tidak Valid",
+      "Silakan pilih file gambar (PNG, JPG)",
+      "error"
+    );
+    return;
+  }
+
+  if (file.size > 5 * 1024 * 1024) {
+    showStatus(
+      "File Terlalu Besar",
+      "Ukuran maksimal file adalah 5MB",
+      "error"
+    );
+    return;
+  }
+
+  uploadFile(file);
+}
+
+async function uploadFile(file) {
+  uploadingHeader.value = true;
+  try {
+    const res = await uploadsApi.upload(file);
+    if (res.success && res.data?.filePath) {
+      headerForm.value.institutionLogo = res.data.filePath;
+      await saveHeaderSettings();
+      showStatus("Berhasil", "Gambar kop surat berhasil diupload", "success");
+    } else {
+      throw new Error(res.message || "Upload gagal");
+    }
+  } catch (e) {
+    console.error("Upload error:", e);
+    showStatus(
+      "Gagal Upload",
+      e.message || "Terjadi kesalahan saat mengupload gambar",
+      "error"
+    );
+  } finally {
+    uploadingHeader.value = false;
+  }
+}
+
+async function removeHeader() {
+  headerForm.value.institutionLogo = "";
+  await saveHeaderSettings();
+  showStatus("Berhasil", "Gambar kop surat berhasil dihapus", "success");
+}
+
+async function saveHeaderSettings() {
+  savingHeader.value = true;
+  try {
+    await academicSettingsApi.updateReportHeader({
+      institutionLogo: headerForm.value.institutionLogo,
+      principalName: headerForm.value.principalName,
+      cityName: headerForm.value.cityName,
+    });
+  } catch (e) {
+    console.error("Save header error:", e);
+    showStatus(
+      "Gagal",
+      e.message || "Gagal menyimpan pengaturan header",
+      "error"
+    );
+  } finally {
+    savingHeader.value = false;
+  }
+}
+
+async function loadHeaderSettings() {
+  try {
+    const res = await academicSettingsApi.getReportHeader();
+    if (res.success && res.data) {
+      headerForm.value = {
+        institutionLogo: res.data.institutionLogo || "",
+        principalName: res.data.principalName || "",
+        cityName: res.data.cityName || "Purwakarta",
+      };
+    }
+  } catch (e) {
+    console.error("Failed to load header settings:", e);
   }
 }
 
@@ -721,5 +983,6 @@ async function saveGradingRules() {
 
 onMounted(() => {
   loadData();
+  loadHeaderSettings();
 });
 </script>

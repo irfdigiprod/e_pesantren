@@ -34,6 +34,7 @@ export const students = mysqlTable("students", {
   userId: int("user_id").references(() => users.id),
   nis: varchar("nis", { length: 50 }).notNull().unique(), // Nomor Induk Siswa
   fullName: varchar("full_name", { length: 255 }).notNull(),
+  fullNameAr: varchar("full_name_ar", { length: 255 }),
   birthDate: date("birth_date"),
   birthPlace: varchar("birth_place", { length: 255 }),
   gender: mysqlEnum("gender", ["male", "female"]),

@@ -446,6 +446,17 @@
                   />
                 </div>
               </div>
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1"
+                  >Nama Arab</label
+                >
+                <input
+                  v-model="form.fullNameAr"
+                  dir="rtl"
+                  placeholder="الاسم بالعربية"
+                  class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#602515] text-right"
+                />
+              </div>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label class="block text-sm font-medium text-slate-700 mb-1"
@@ -587,6 +598,13 @@
             <h3 class="text-xl font-bold text-slate-800">
               {{ view.item.fullName }}
             </h3>
+            <p
+              v-if="view.item.fullNameAr"
+              class="text-base text-slate-600 mt-1"
+              dir="rtl"
+            >
+              {{ view.item.fullNameAr }}
+            </p>
             <div
               class="inline-block px-3 py-1 rounded-full bg-white border border-amber-200 text-xs font-medium text-[#602515] mt-1"
             >
@@ -918,6 +936,7 @@ const form = reactive({
   id: null,
   nis: "",
   fullName: "",
+  fullNameAr: "",
   birthDate: "",
   birthPlace: "",
   gender: "male",
@@ -947,6 +966,7 @@ const studentImportTemplate = [
   {
     NIS: "12345",
     "Nama Lengkap": "Contoh Nama Santri",
+    "Nama Arab": "محمد علي",
     "Jenis Kelamin": "Laki-laki",
     "Tanggal Lahir": "2010-01-15",
     "Tempat Lahir": "Jakarta",
@@ -1037,6 +1057,7 @@ async function submitForm() {
       id: form.id,
       nis: form.nis,
       fullName: form.fullName,
+      fullNameAr: form.fullNameAr || undefined,
       birthDate: form.birthDate || undefined,
       birthPlace: form.birthPlace || undefined,
       gender: form.gender,
@@ -1159,6 +1180,7 @@ function openCreate() {
     id: null,
     nis: "",
     fullName: "",
+    fullNameAr: "",
     birthDate: "",
     birthPlace: "",
     gender: "male",
@@ -1210,6 +1232,7 @@ function openEdit(item) {
     id: item.id,
     nis: item.nis || "",
     fullName: item.fullName || "",
+    fullNameAr: item.fullNameAr || "",
     birthDate: formattedBirthDate,
     birthPlace: item.birthPlace || "",
     gender: item.gender || "male",
