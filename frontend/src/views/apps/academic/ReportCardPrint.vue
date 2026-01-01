@@ -159,7 +159,7 @@
 
           <!-- UNIFIED SINGLE TABLE - 12 Column Grid (matching reference exactly) -->
           <table
-            class="w-full border-collapse text-xs mb-6"
+            class="w-full border-collapse text-xs mb-1"
             style="table-layout: fixed"
           >
             <!-- Define 13 Column Widths (6 Left - 1 Separator - 6 Right) -->
@@ -199,10 +199,14 @@
 
             <!-- Student Info Row 1: Val(5) | Lab(1) | SEP(1) | Val(4) | Lab(2) = 13 -->
             <tr>
-              <td class="border px-2 py-1" colspan="5" dir="rtl">
+              <td class="border px-2 py-1" colspan="4" dir="rtl">
                 {{ toArabicNumeral(student.classGrade || "-") }}
               </td>
-              <td class="border px-2 py-1 bg-slate-50 font-medium" dir="rtl">
+              <td
+                class="border px-2 py-1 bg-slate-50 font-medium"
+                colspan="2"
+                dir="rtl"
+              >
                 الصف
               </td>
               <td class=""></td>
@@ -221,10 +225,14 @@
 
             <!-- Student Info Row 2 -->
             <tr>
-              <td class="border px-2 py-1" colspan="5" dir="rtl">
+              <td class="border px-2 py-1" colspan="4" dir="rtl">
                 {{ toArabicNumeral(academicYear) }}
               </td>
-              <td class="border px-2 py-1 bg-slate-50 font-medium" dir="rtl">
+              <td
+                class="border px-2 py-1 bg-slate-50 font-medium"
+                colspan="2"
+                dir="rtl"
+              >
                 للعام الدراسي
               </td>
               <td class=""></td>
@@ -243,10 +251,14 @@
 
             <!-- Student Info Row 3 -->
             <tr>
-              <td class="border px-2 py-1" colspan="5" dir="rtl">
+              <td class="border px-2 py-1" colspan="4" dir="rtl">
                 {{ student.majorAr || "الدراسة الإسلامية" }}
               </td>
-              <td class="border px-2 py-1 bg-slate-50 font-medium" dir="rtl">
+              <td
+                class="border px-2 py-1 bg-slate-50 font-medium"
+                colspan="2"
+                dir="rtl"
+              >
                 قسم
               </td>
               <td class=""></td>
@@ -503,22 +515,24 @@
           </table>
 
           <!-- Signatures (Keep outside main table for flexibility) -->
-          <div class="grid grid-cols-3 gap-4 text-center text-xs mt-8">
+          <div class="grid grid-cols-3 gap-4 text-center text-xs">
             <div>
-              <p class="mb-1">Mengetahui,</p>
+              <p class="mb-1 mt-6">Mengetahui,</p>
               <p class="mb-12">Orang Tua / Wali</p>
               <p class="pt-1 mx-4">........................</p>
             </div>
             <div>
-              <p class="mb-1">Mengetahui,</p>
+              <p class="mb-1 mt-6">Mengetahui,</p>
               <p class="mb-12">Kepala Madrasah</p>
               <p class="pt-1 mx-4 font-bold">
                 {{ principalName || "........................" }}
               </p>
             </div>
             <div>
-              <p class="mb-1">{{ cityName }}, {{ currentDate }}</p>
-              <p class="mb-12">Wali Kelas</p>
+              <p class="mb-1 text-center">{{ cityName }}, {{ hijriDate }}</p>
+              <div class="border-b border-black mb-1 mx-4"></div>
+              <p class="mb-1">{{ currentDate }}</p>
+              <p class="mb-11">Wali Kelas</p>
               <p class="pt-1 mx-4 font-bold">
                 {{ homeroomTeacher || "........................" }}
               </p>
@@ -611,13 +625,23 @@ const cityName = computed(() => headerSettings.value?.cityName || "Purwakarta");
 const homeroomTeacher = ref("");
 
 // Computed
-const currentDate = ref(
-  new Date().toLocaleDateString("id-ID", {
+const currentDateRaw = ref(new Date());
+
+const currentDate = computed(() => {
+  return currentDateRaw.value.toLocaleDateString("id-ID", {
     day: "numeric",
     month: "long",
     year: "numeric",
-  })
-);
+  });
+});
+
+const hijriDate = computed(() => {
+  return new Intl.DateTimeFormat("ar-SA-u-ca-islamic-civil", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(currentDateRaw.value);
+});
 
 const totalScore = computed(() => {
   const graded = grades.value.filter((g) => g.averageScore !== null);
@@ -815,21 +839,10 @@ async function loadData() {
             d.semester === Number(semester.value)
         );
         if (found) {
-          currentDate.value = new Date(found.reportDate).toLocaleDateString(
-            "id-ID",
-            {
-              day: "numeric",
-              month: "long",
-              year: "numeric",
-            }
-          );
+          currentDateRaw.value = new Date(found.reportDate);
         } else {
           // Default to today if not set
-          currentDate.value = new Date().toLocaleDateString("id-ID", {
-            day: "numeric",
-            month: "long",
-            year: "numeric",
-          });
+          currentDateRaw.value = new Date();
         }
       }
     } catch (e) {
