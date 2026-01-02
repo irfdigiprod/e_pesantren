@@ -1672,3 +1672,63 @@ export const homeroomNotesApi = {
     return request(`/api/homeroom-notes/${studentId}?${params}`);
   },
 };
+
+// ============================================
+// PDF GENERATION API
+// ============================================
+
+export const pdfApi = {
+  /**
+   * Generate PDF from URL with auto-scaling to fit A4
+   * @param {string} url - URL to render and convert to PDF
+   * @param {object} options - PDF generation options
+   * @returns {Promise<Blob>} PDF as blob
+   */
+  async generateFromUrl(url, options = {}) {
+    const token = getToken();
+    const response = await fetch(`${BASE_URL}/api/pdf/from-url`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: token ? `Bearer ${token}` : "",
+      },
+      body: JSON.stringify({ url, options }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.message || errorData.error || "PDF generation failed"
+      );
+    }
+
+    return response.blob();
+  },
+
+  /**
+   * Generate PDF from HTML string with auto-scaling to fit A4
+   * @param {string} html - HTML string to convert to PDF
+   * @param {object} options - PDF generation options
+   * @returns {Promise<Blob>} PDF as blob
+   */
+  async generateFromHtml(html, options = {}) {
+    const token = getToken();
+    const response = await fetch(`${BASE_URL}/api/pdf/from-html`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: token ? `Bearer ${token}` : "",
+      },
+      body: JSON.stringify({ html, options }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.message || errorData.error || "PDF generation failed"
+      );
+    }
+
+    return response.blob();
+  },
+};

@@ -27,6 +27,7 @@ import wilayahRoute from "./wilayah";
 import informationBoardRoute from "./information-board";
 import academicSettingsRoute from "./academic-settings";
 import homeroomNotesRoute from "./homeroom-notes";
+import pdfRoute from "./pdf";
 
 export {
   authRoute,
@@ -57,4 +58,5 @@ export {
   informationBoardRoute,
   academicSettingsRoute,
   homeroomNotesRoute,
+  pdfRoute,
 };
