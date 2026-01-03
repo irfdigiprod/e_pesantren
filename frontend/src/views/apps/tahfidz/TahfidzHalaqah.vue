@@ -1462,6 +1462,14 @@ async function processDepositSubmission() {
           isDepositType && form.totalLines ? Number(form.totalLines) : null,
         totalPages:
           isDepositType && form.totalPages ? Number(form.totalPages) : null,
+        // Fix: Add juz field for report
+        juz:
+          isDepositType &&
+          calculatedResult.value &&
+          calculatedResult.value.juzList &&
+          calculatedResult.value.juzList.length > 0
+            ? Number(calculatedResult.value.juzList[0])
+            : null,
       };
 
       if (studentItem.deposit && studentItem.deposit.id) {
