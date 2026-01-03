@@ -714,6 +714,10 @@
       :classes="classesList"
       :halaqahs="halaqahList"
       :examiners="teachersList"
+      :academic-years="academicYears"
+      :semesters="semesters"
+      :default-academic-year="activeSettings.year"
+      :default-semester="activeSettings.semester"
       @close="showImportModal = false"
       @success="handleImportSuccess"
     />
@@ -763,6 +767,11 @@ const showStudentDropdown = ref(false);
 const filteredExaminers = ref([]);
 const examinerSearch = ref("");
 const showExaminerDropdown = ref(false);
+
+const activeSettings = ref({
+  year: "2024-2025",
+  semester: "ganjil",
+});
 
 // Modal States
 const showConfirmModal = ref(false);
@@ -1039,6 +1048,10 @@ async function openModal() {
   studentSearch.value = ""; // Reset search input
   examinerSearch.value = ""; // Reset examiner search
 
+  // Set default academic settings
+  form.academicYear = activeSettings.value.year;
+  form.semester = activeSettings.value.semester;
+
   showModal.value = true;
 }
 
@@ -1209,12 +1222,17 @@ onMounted(async () => {
     ]);
     academicYears.value = yearsRes.data || [];
     semesters.value = semsRes.data || [];
+    activeSettings.value = {
+      year:
+        activeRes.data?.academicYear ||
+        academicYears.value[0]?.year ||
+        "2024-2025",
+      semester: activeRes.data?.semester === "2" ? "genap" : "ganjil",
+    };
+
     // Set form defaults to active values
-    form.academicYear =
-      activeRes.data?.academicYear ||
-      academicYears.value[0]?.year ||
-      "2024-2025";
-    form.semester = activeRes.data?.semester === "2" ? "genap" : "ganjil";
+    form.academicYear = activeSettings.value.year;
+    form.semester = activeSettings.value.semester;
   } catch (e) {
     console.error("Failed to load academic settings:", e);
   }

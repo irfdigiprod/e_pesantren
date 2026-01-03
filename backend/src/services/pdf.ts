@@ -11,20 +11,30 @@ export interface PdfOptions {
 
 let browserInstance: Browser | null = null;
 
+import { execSync } from "child_process";
+
 function findChromePath(): string {
   const possiblePaths = [
+    process.env.CHROME_PATH,
     "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
     "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
-    `${process.env.LOCALAPPDATA}\\Google\\Chrome\\Application\\chrome.exe`,
-    `${process.env.PROGRAMFILES}\\Google\\Chrome\\Application\\chrome.exe`,
+    process.env.LOCALAPPDATA
+      ? `${process.env.LOCALAPPDATA}\\Google\\Chrome\\Application\\chrome.exe`
+      : undefined,
+    process.env.PROGRAMFILES
+      ? `${process.env.PROGRAMFILES}\\Google\\Chrome\\Application\\chrome.exe`
+      : undefined,
     "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
     "C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe",
+    // Common Linux/Mac paths
     "/usr/bin/google-chrome",
     "/usr/bin/google-chrome-stable",
     "/usr/bin/chromium",
     "/usr/bin/chromium-browser",
     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-  ];
+  ].filter(Boolean) as string[];
+
+  console.log("[PDF] Searching for Chrome/Chromium in paths:");
 
   for (const chromePath of possiblePaths) {
     if (existsSync(chromePath)) {
@@ -32,7 +42,38 @@ function findChromePath(): string {
       return chromePath;
     }
   }
-  throw new Error("Chrome/Chromium not found");
+
+  // Fallback: Try 'where' command on Windows or 'which' on Linux
+  try {
+    const command =
+      process.platform === "win32" ? "where chrome" : "which google-chrome";
+    console.log(`[PDF] Trying command: ${command}`);
+    const output = execSync(command).toString().trim().split("\n")[0].trim();
+    if (output && existsSync(output)) {
+      console.log(`[PDF] Found browser via command: ${output}`);
+      return output;
+    }
+
+    // Try edge
+    if (process.platform === "win32") {
+      const outputEdge = execSync("where msedge")
+        .toString()
+        .trim()
+        .split("\n")[0]
+        .trim();
+      if (outputEdge && existsSync(outputEdge)) {
+        console.log(`[PDF] Found Edge via command: ${outputEdge}`);
+        return outputEdge;
+      }
+    }
+  } catch (e) {
+    console.log("[PDF] Command search failed");
+  }
+
+  console.error("[PDF] Chrome/Chromium NOT found in any known location.");
+  throw new Error(
+    "Chrome/Chromium not found. Please install Google Chrome or Microsoft Edge, or set CHROME_PATH environment variable."
+  );
 }
 
 async function getBrowser(): Promise<Browser> {

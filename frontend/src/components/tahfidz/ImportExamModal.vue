@@ -127,8 +127,13 @@
                     v-model="importForm.academicYear"
                     class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-green-500"
                   >
-                    <option value="2024-2025">2024-2025</option>
-                    <option value="2025-2026">2025-2026</option>
+                    <option
+                      v-for="y in academicYears"
+                      :key="y.year"
+                      :value="y.year"
+                    >
+                      {{ y.year }}{{ y.isActive ? " (Aktif)" : "" }}
+                    </option>
                   </select>
                 </div>
                 <div>
@@ -139,8 +144,13 @@
                     v-model="importForm.semester"
                     class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-green-500"
                   >
-                    <option value="ganjil">Ganjil (1)</option>
-                    <option value="genap">Genap (2)</option>
+                    <option
+                      v-for="s in semesters"
+                      :key="s.id"
+                      :value="s.name.toLowerCase()"
+                    >
+                      {{ s.name }}{{ s.isActive ? " (Aktif)" : "" }}
+                    </option>
                   </select>
                 </div>
               </div>
@@ -507,6 +517,22 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  academicYears: {
+    type: Array,
+    default: () => [],
+  },
+  semesters: {
+    type: Array,
+    default: () => [],
+  },
+  defaultAcademicYear: {
+    type: String,
+    default: "2024-2025",
+  },
+  defaultSemester: {
+    type: String,
+    default: "ganjil",
+  },
 });
 
 const emit = defineEmits(["close", "success"]);
@@ -529,8 +555,8 @@ const templateForm = reactive({
 const importForm = reactive({
   examinerId: "",
   examDate: new Date().toISOString().split("T")[0],
-  academicYear: "2024-2025",
-  semester: "ganjil",
+  academicYear: props.defaultAcademicYear,
+  semester: props.defaultSemester,
   category: "UPK",
 });
 
@@ -552,6 +578,10 @@ function resetForm() {
   if (fileInputRef.value) fileInputRef.value.value = "";
   previewResult.value = null;
   importResult.value = null;
+
+  // Reset form values to default props
+  importForm.academicYear = props.defaultAcademicYear;
+  importForm.semester = props.defaultSemester;
 }
 
 function handleFileSelect(e) {
