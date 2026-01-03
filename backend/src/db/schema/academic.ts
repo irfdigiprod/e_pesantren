@@ -174,3 +174,16 @@ export const reportCardDates = mysqlTable("report_card_dates", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
 });
+
+// Predikat Nilai Rapor (Dynamic Report Card Predicates)
+export const reportCardPredicates = mysqlTable("report_card_predicates", {
+  id: int("id").primaryKey().autoincrement(),
+  grade: varchar("grade", { length: 5 }).notNull(), // A, B, C...
+  minScore: decimal("min_score", { precision: 5, scale: 2 }).notNull(),
+  maxScore: decimal("max_score", { precision: 5, scale: 2 }).notNull(),
+  description: varchar("description", { length: 100 }), // e.g., "Sangat Baik"
+  descriptionAr: varchar("description_ar", { length: 100 }), // e.g., "Muntaz"
+  sortOrder: int("sort_order").default(0), // For ordering
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
+});

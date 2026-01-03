@@ -198,7 +198,7 @@ export async function generatePdfFromHtml(
     await page.addStyleTag({
       content: `
         /* Override container - no flexbox, relative positioning */
-        .print-a4, #report-area {
+        .print-a4, #pdf-wrapper-root {
           width: ${A4_W}px !important;
           height: ${A4_H}px !important;
           padding: 0 !important;
@@ -209,7 +209,7 @@ export async function generatePdfFromHtml(
         }
         
         /* Apply scale and position to content */
-        #report-page {
+        ${waitForSelector} {
           position: absolute !important;
           left: ${offsetX}px !important;
           top: ${offsetY}px !important;

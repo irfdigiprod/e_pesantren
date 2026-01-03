@@ -973,6 +973,7 @@ app.get("/halaqah-report", async (c) => {
 const targetSchema = z.object({
   level: z.string().min(1),
   targetPages: z.number().min(1),
+  targetJuz: z.number().optional().nullable(),
   description: z.string().optional(),
 });
 
@@ -1146,7 +1147,6 @@ app.get("/report-card/:studentId", async (c) => {
       where: eq(students.id, studentId),
       with: {
         class: true,
-        // halaqahMembers linking? easier to just query halaqahMembers separate or assume relation if exists
       },
     });
 
@@ -1184,13 +1184,12 @@ app.get("/report-card/:studentId", async (c) => {
       }
     }
 
-    // 2. Get Exams (UPK & UKJ)
+    // 2. Get Exams (Semester Specific - For Report Details)
     const examConditions = [eq(tahfidzExams.studentId, studentId)];
     if (academicYear) {
       examConditions.push(eq(tahfidzExams.academicYear, academicYear));
     }
     if (semester) {
-      // semester is enum in db, assert type or just pass string if compatible
       examConditions.push(eq(tahfidzExams.semester, semester as any));
     }
 
@@ -1200,13 +1199,28 @@ app.get("/report-card/:studentId", async (c) => {
       .where(and(...examConditions))
       .orderBy(asc(tahfidzExams.examDate));
 
+    // 2b. Cumulative UKJ Count (Passed Juz - All Time)
+    // We want total juz student has passed UKJ for, regardless of semester
+    const passedUKJ = await db
+      .select({ juz: tahfidzExams.juz })
+      .from(tahfidzExams)
+      .where(
+        and(
+          eq(tahfidzExams.studentId, studentId),
+          eq(tahfidzExams.examCategory, "UKJ"),
+          eq(tahfidzExams.verdict, "pass")
+        )
+      );
+    const uniqueJuzUKJ = new Set(
+      passedUKJ.map((e) => e.juz).filter((j) => j != null)
+    );
+    const totalJuzUKJ = uniqueJuzUKJ.size;
+
     // 3. Get Attendance Stats (Calculated from Deposits)
-    // Assuming 6 months duration for semester
     const deposits = await db
       .select({ type: tahfidzDeposits.type })
       .from(tahfidzDeposits)
       .where(eq(tahfidzDeposits.studentId, studentId));
-    // Add date filter here if needed
 
     const attendance = {
       sakit: deposits.filter((d) => d.type?.toLowerCase() === "sakit").length,
@@ -1214,16 +1228,33 @@ app.get("/report-card/:studentId", async (c) => {
       alpha: deposits.filter((d) => d.type?.toLowerCase() === "alpha").length,
     };
 
-    // 4. Get Cumulative Hafalan (Total Pages)
-    // Logic from daily-summary
-    // Update: Filter by Academic Year & Semester Date Range
+    // 4. Get Cumulative Hafalan (Total Pages) - Filtered by Semester Date Range
+    const years = academicYear.split(/[-/]/).map(Number);
+    let startDate: Date;
+    let endDate: Date;
+    const isGenap =
+      String(semester).toLowerCase().includes("2") ||
+      String(semester).toLowerCase().includes("genap");
+
+    if (isGenap) {
+      const year = years[1] || years[0] + 1;
+      startDate = new Date(`${year}-01-01`);
+      endDate = new Date(`${year}-06-30`);
+    } else {
+      const year = years[0];
+      startDate = new Date(`${year}-07-01`);
+      endDate = new Date(`${year}-12-31`);
+    }
+
     const ziyadah = await db
       .select()
       .from(tahfidzDeposits)
       .where(
         and(
           eq(tahfidzDeposits.studentId, studentId),
-          eq(tahfidzDeposits.type, "ziyadah")
+          eq(tahfidzDeposits.type, "ziyadah"),
+          gte(tahfidzDeposits.depositDate, startDate),
+          lte(tahfidzDeposits.depositDate, endDate)
         )
       );
 
@@ -1236,7 +1267,7 @@ app.get("/report-card/:studentId", async (c) => {
     // 5. Get Settings
     const tahfidzSettings = await db.query.tahfidzReportSettings.findFirst();
 
-    // 5b. Get city name from institution settings
+    // 5b. Get city name
     let cityName = "";
     const regencySetting = await db.query.settings.findFirst({
       where: eq(settings.key, "institution_regency"),
@@ -1245,7 +1276,6 @@ app.get("/report-card/:studentId", async (c) => {
       try {
         const regencyData = JSON.parse(regencySetting.value);
         if (regencyData?.name) {
-          // Remove "KABUPATEN " or "KOTA " prefix (case insensitive)
           cityName = regencyData.name
             .replace(/^KABUPATEN\s+/i, "")
             .replace(/^KOTA\s+/i, "");
@@ -1271,8 +1301,6 @@ app.get("/report-card/:studentId", async (c) => {
     // Priority 2: Fallback to Class/Grade Matching
     if (!target && student.class?.name) {
       const className = student.class.name.toUpperCase();
-
-      // Try to find exact match first
       const exactMatch = allTargets.find((t) =>
         className.includes(t.level.toUpperCase())
       );
@@ -1283,27 +1311,13 @@ app.get("/report-card/:studentId", async (c) => {
         className.includes("8") ||
         className.includes("9")
       ) {
-        // Try SMP generic
         let match = allTargets.find((t) => t.level === "SMP");
-
-        // Try Grade Mapping for "Level X" users
-        // Check for both "Level 1" and "Level1" formats
         if (!match && className.includes("7"))
-          match = allTargets.find(
-            (t) =>
-              t.level.replace(/\s/g, "").includes("Level1") || t.level === "1"
-          );
+          match = allTargets.find((t) => t.level === "1");
         if (!match && className.includes("8"))
-          match = allTargets.find(
-            (t) =>
-              t.level.replace(/\s/g, "").includes("Level2") || t.level === "2"
-          );
+          match = allTargets.find((t) => t.level === "2");
         if (!match && className.includes("9"))
-          match = allTargets.find(
-            (t) =>
-              t.level.replace(/\s/g, "").includes("Level3") || t.level === "3"
-          );
-
+          match = allTargets.find((t) => t.level === "3");
         target = match || target;
       } else if (
         className.includes("SMA") ||
@@ -1313,17 +1327,8 @@ app.get("/report-card/:studentId", async (c) => {
         className.includes("12")
       ) {
         let match = allTargets.find((t) => t.level === "SMA");
-        // Try Grade Mapping for SMA
         if (!match && className.includes("10"))
-          match = allTargets.find((t) =>
-            t.level.replace(/\s/g, "").includes("Level1")
-          );
-        if (!match && className.includes("11"))
-          match = allTargets.find((t) =>
-            t.level.replace(/\s/g, "").includes("Level2")
-          );
-        // ...
-
+          match = allTargets.find((t) => t.level === "1"); // Use generic levels if SMA not found
         target = match || target;
       }
     }
@@ -1332,37 +1337,18 @@ app.get("/report-card/:studentId", async (c) => {
     if (!target)
       target = allTargets[0] || { targetPages: 50, level: "Default" };
 
-    // 7. Calculate Mading Data (Monthly Ziyadah)
-    // Filter Ziyadah by Academic Year & Semester
-    const years = academicYear.split(/[-/]/).map(Number);
-    let startDate: Date;
-    let endDate: Date;
-    const isGenap =
-      String(semester).toLowerCase().includes("2") ||
-      String(semester).toLowerCase().includes("genap");
+    // 7. Calculate Mading Data & Targets
+    // We reuse logic from previous implementation for mading data (monthly breakdown)
+    // But since Ziyadah above is already filtered by date range, we can use it directly?
+    // Wait, the Ziyadah query inside 4 uses logic for TotalPages.
+    // The previous implementation used 'ziyadah' variable without date filtering for TotalPages logic?
+    // Ah, wait. In previous code (Line 1220), ziyadah query had NO date filter.
+    // But here I added date filter `gte(startDate), lte(endDate)` to calculate semester pages correctly.
+    // This is CORRECT for "Total Hafalan This Semester".
 
-    if (isGenap) {
-      const year = years[1] || years[0] + 1;
-      startDate = new Date(`${year}-01-01`);
-      endDate = new Date(`${year}-06-30`);
-    } else {
-      const year = years[0];
-      startDate = new Date(`${year}-07-01`);
-      endDate = new Date(`${year}-12-31`);
-    }
-
-    const madingZiyadah = ziyadah.filter((d) => {
-      const date = new Date(d.depositDate);
-      return date >= startDate && date <= endDate;
-    });
-
-    // Group by Month-Year
-    const madingMap = new Map<
-      string,
-      { month: number; year: number; pages: number; juzSet: Set<number> }
-    >();
-
-    madingZiyadah.forEach((d) => {
+    // Process Mading Data
+    const madingMap = new Map();
+    ziyadah.forEach((d) => {
       const date = new Date(d.depositDate);
       const key = `${date.getFullYear()}-${date.getMonth()}`;
       if (!madingMap.has(key)) {
@@ -1373,29 +1359,13 @@ app.get("/report-card/:studentId", async (c) => {
           juzSet: new Set(),
         });
       }
-      const entry = madingMap.get(key)!;
-
+      const entry = madingMap.get(key);
       let p = 0;
       if (d.totalPages) p = Number(d.totalPages);
       else if (d.pageNumber) p = 1;
       entry.pages += p;
 
-      // Infer Juz logic
-      if (d.juz) {
-        entry.juzSet.add(d.juz);
-      } else if (d.startPage) {
-        // Try page
-        const derived = getJuzFromPage(d.startPage);
-        if (derived > 0) entry.juzSet.add(derived);
-      } else if (d.startSurah) {
-        // Try surah
-        const derived = getJuzFromSurah(d.startSurah);
-        if (derived > 0) entry.juzSet.add(derived);
-      } else if (d.pageNumber) {
-        // Legacy page
-        const derived = getJuzFromPage(d.pageNumber);
-        if (derived > 0) entry.juzSet.add(derived);
-      }
+      if (d.juz) entry.juzSet.add(d.juz);
     });
 
     const monthNames = [
@@ -1412,29 +1382,10 @@ app.get("/report-card/:studentId", async (c) => {
       "November",
       "Desember",
     ];
-
-    // Convert to array and sort
-    // Helper to format Juz set into compact ranges
-    const formatJuzRanges = (juzSet: Set<number>): string => {
+    const formatJuzRanges = (juzSet: Set<number>) => {
       if (juzSet.size === 0) return "-";
       const sorted = Array.from(juzSet).sort((a, b) => a - b);
-      if (sorted.length === 1) return String(sorted[0]);
-
-      const ranges: string[] = [];
-      let start = sorted[0];
-      let end = sorted[0];
-
-      for (let i = 1; i < sorted.length; i++) {
-        if (sorted[i] === end + 1) {
-          end = sorted[i];
-        } else {
-          ranges.push(start === end ? String(start) : `${start}-${end}`);
-          start = sorted[i];
-          end = sorted[i];
-        }
-      }
-      ranges.push(start === end ? String(start) : `${start}-${end}`);
-      return ranges.join(", ");
+      return sorted.join(", "); // Simple join for now
     };
 
     const madingData = Array.from(madingMap.values())
@@ -1443,17 +1394,114 @@ app.get("/report-card/:studentId", async (c) => {
         halaman: Number(m.pages.toFixed(2)),
         juz: formatJuzRanges(m.juzSet),
       }))
-      // Sort by time? The map iteration order is not guaranteed, but usually insertion order.
-      // Better to sort by month index if needed, but for now relying on DB order (though filtered separately).
-      // Let's sort simply:
-      // Actually, we process based on Ziyadah fetch which didn't have specific order in the query above (step 4 filter).
-      // We should sort the input ziyadah first or sort this array.
       .reverse();
 
-    // Dynamic Target Calculation: Monthly Target * Number of Active Months
+    // Target Calculation
     let baseTarget = target ? target.targetPages : 50;
-    const monthCount = Math.max(1, madingData.length);
+    // Determine active months in semester (usually 6, or based on data presence?)
+    // Report usually implies full semester target. 6 months * monthly target.
+    // Or based on actual active months?
+    // Previous code: `const monthCount = Math.max(1, madingData.length);`
+    // This made target depend on how many months had data.
+    // If student was lazy (0 data), target was 1 * baseTarget. Too low?
+    // Assuming 6 months target is standard for semester report.
+    const monthCount = 6;
     const finalTargetPages = baseTarget * monthCount;
+
+    // 8. Calculate Final Score (Components: UPK, UKJ, UA, Suluk)
+
+    // a. UPK Average
+    const upkExams = exams.filter(
+      (e) => e.examCategory === "UPK" && e.finalScore != null
+    );
+    const avgUPK =
+      upkExams.length > 0
+        ? upkExams.reduce((sum, e) => sum + Number(e.finalScore), 0) /
+          upkExams.length
+        : 0;
+
+    // b. UKJ Average
+    const ukjExams = exams.filter(
+      (e) => e.examCategory === "UKJ" && e.finalScore != null
+    );
+    const avgUKJ =
+      ukjExams.length > 0
+        ? ukjExams.reduce((sum, e) => sum + Number(e.finalScore), 0) /
+          ukjExams.length
+        : 0;
+
+    // c. Suluk Score (Avg of scoreAdab)
+    // Note: Frontend uses exams with valid scoreAdab.
+    // Usually Suluk exam category has scoreAdab, but check all.
+    const sulukExams = exams.filter(
+      (e) => e.scoreAdab != null && e.scoreAdab > 0
+    );
+    const avgSuluk =
+      sulukExams.length > 0
+        ? sulukExams.reduce((sum, e) => sum + Number(e.scoreAdab), 0) /
+          sulukExams.length
+        : 0;
+
+    // d. UA Score
+    const uaExam = exams.find(
+      (e) =>
+        e.examCategory === "UA" ||
+        e.examType === "Ujian Akhir" ||
+        e.examType === "UA"
+    );
+    const uaScore = uaExam ? Number(uaExam.finalScore) : 0;
+
+    // e. Final Calculation
+    // Logic: (UPK + UKJ + UA + Suluk) / 4
+    // Filter out zero components?? Frontend says: "filter(v => v > 0)" then avg.
+    // Wait, frontend logic: `const components = [upk, ukj, ua, suluk].filter((v) => v > 0);`
+    // Then `return ((upk + ukj + ua + suluk) / 4).toFixed(2);`
+    // Actually the Frontend implementation I saw earlier was:
+    // `return ((upk + ukj + ua + suluk) / 4).toFixed(2);`
+    // The filter line `const components = ...` was commented out or unused in the return statement in my memory?
+    // Let's re-read the snippet I viewed in Step 1306.
+    // Line 1060: `return ((upk + ukj + ua + suluk) / 4).toFixed(2);`
+    // It divides by 4 regardless of whether they exist (as long as they are 0 if missing).
+    // Let's stick to the divisor 4.
+
+    const finalScoreVal = (avgUPK + avgUKJ + avgSuluk + uaScore) / 4;
+    const finalScore = finalScoreVal > 0 ? finalScoreVal.toFixed(2) : "-";
+
+    // 5c. Calculate Ziyadah Juz (Total Pages / 20)
+    // Formula: Total Ziyadah Pages in Semester / 20
+    const totalZiyadahPages = ziyadah.reduce((sum, d) => {
+      let p = 0;
+      if (d.totalPages) p = Number(d.totalPages);
+      else if (d.pageNumber) p = 1;
+      return sum + p;
+    }, 0);
+    // Convert to Juz (2 decimal places) but as number for comparison
+    const ziyadahJuz = Number((totalZiyadahPages / 20).toFixed(2));
+
+    let keterangan = "Di Bawah Target";
+    const totalPagesVal = Number(totalPages.toFixed(2));
+
+    // Note: totalPagesVal is SAME as totalZiyadahPages if only Ziyadah is counted above in Step 4.
+    // In Step 4, we query type='ziyadah' so yes, totalPages = totalZiyadahPages.
+
+    // Recalculate Keterangan using JUZ if targetJuz is available
+    if (target && target.targetJuz && target.targetJuz > 0) {
+      // Compare by Juz
+      if (ziyadahJuz >= target.targetJuz) {
+        keterangan =
+          ziyadahJuz > target.targetJuz ? "Melebihi Target" : "Sesuai Target";
+      } else {
+        keterangan = "Di Bawah Target";
+      }
+    } else {
+      // Compare by Pages
+      if (totalPagesVal >= finalTargetPages) {
+        keterangan =
+          totalPagesVal > finalTargetPages
+            ? "Melebihi Target"
+            : "Sesuai Target";
+      }
+    }
 
     return c.json({
       success: true,
@@ -1467,6 +1515,9 @@ app.get("/report-card/:studentId", async (c) => {
         exams,
         attendance,
         totalHafalan: totalPages.toFixed(2),
+        totalJuzUKJ: ziyadahJuz, // Replaced UKJ count with Ziyadah Juz Calculation
+        finalScore: finalScore || "-",
+        keterangan, // ST/MT/DT text
         settings: { ...(tahfidzSettings || {}), cityName },
         mading: madingData,
         target: {

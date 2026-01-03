@@ -1634,6 +1634,28 @@ export const academicSettingsApi = {
       method: "DELETE",
     });
   },
+
+  // Predicates
+  async getPredicates() {
+    return request("/api/academic/settings/predicates");
+  },
+  async createPredicate(data) {
+    return request("/api/academic/settings/predicates", {
+      method: "POST",
+      body: data,
+    });
+  },
+  async updatePredicate(id, data) {
+    return request(`/api/academic/settings/predicates/${id}`, {
+      method: "PUT",
+      body: data,
+    });
+  },
+  async deletePredicate(id) {
+    return request(`/api/academic/settings/predicates/${id}`, {
+      method: "DELETE",
+    });
+  },
 };
 
 // ============================================

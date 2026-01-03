@@ -644,8 +644,8 @@ import {
   academicSettingsApi,
   homeroomNotesApi,
   tahfidzApi,
-  pdfApi,
 } from "@/services/api";
+import { usePdfExport } from "@/composables/usePdfExport";
 import StatusModal from "@/components/ui/StatusModal.vue";
 
 const route = useRoute();
@@ -691,6 +691,7 @@ const attendance = ref({ sickDays: 0, permissionDays: 0, absentDays: 0 });
 const tahfidz = ref({ target: "", achieved: "", score: "" });
 const teacherNotes = ref("");
 const ranking = ref(null);
+const predicates = ref([]);
 
 // Header Settings
 const headerSettings = ref({});
@@ -743,6 +744,16 @@ const averageScore = computed(() => {
 
 const overallPredicate = computed(() => {
   const avg = Number(averageScore.value);
+
+  // Try dynamic predicates first
+  if (predicates.value.length > 0) {
+    const match = predicates.value.find(
+      (p) => avg >= Number(p.minScore) && avg <= Number(p.maxScore)
+    );
+    if (match) return match.description;
+  }
+
+  // Fallback defaults
   if (avg >= 92) return "Sangat Istimewa";
   if (avg >= 84) return "Baik";
   if (avg >= 75) return "Cukup";
@@ -751,9 +762,19 @@ const overallPredicate = computed(() => {
 
 const overallPredicateAr = computed(() => {
   const avg = Number(averageScore.value);
-  if (avg >= 92) return "جلد مرتفع";
-  if (avg >= 84) return "جيد";
-  if (avg >= 75) return "مقبول";
+
+  // Try dynamic predicates first
+  if (predicates.value.length > 0) {
+    const match = predicates.value.find(
+      (p) => avg >= Number(p.minScore) && avg <= Number(p.maxScore)
+    );
+    if (match) return match.descriptionAr || match.description;
+  }
+
+  // Fallback defaults
+  if (avg >= 92) return "ممتاز";
+  if (avg >= 84) return "جيد جدا";
+  if (avg >= 75) return "جيد";
   return "ضعيف";
 });
 
@@ -781,15 +802,17 @@ function toArabicNumeral(num) {
 
 async function loadFilters() {
   try {
-    const [semRes, yearRes, headerRes] = await Promise.all([
+    const [semRes, yearRes, headerRes, predRes] = await Promise.all([
       academicSettingsApi.getSemesters(),
       academicSettingsApi.getAcademicYears(),
       academicSettingsApi.getReportHeader(),
+      academicSettingsApi.getPredicates(),
     ]);
 
     semesters.value = semRes.data || [];
     academicYears.value = yearRes.data || [];
     headerSettings.value = headerRes.data || {};
+    predicates.value = predRes.data || [];
 
     const activeSem = semesters.value.find((s) => s.isActive);
     if (activeSem) semester.value = activeSem.id;
@@ -889,9 +912,26 @@ async function loadData() {
       });
       if (tahfidzRes.success && tahfidzRes.data) {
         tahfidz.value = {
-          target: tahfidzRes.data.targetHafalan || "-",
-          achieved: tahfidzRes.data.totalHafalan || "-",
+          target:
+            tahfidzRes.data.target?.targetJuz > 0
+              ? Number(tahfidzRes.data.target.targetJuz) % 1 === 0
+                ? Number(tahfidzRes.data.target.targetJuz).toFixed(0) + " Juz"
+                : Number(tahfidzRes.data.target.targetJuz).toFixed(1) + " Juz"
+              : tahfidzRes.data.target?.targetPages || "-",
+          achieved: tahfidzRes.data.totalJuzUKJ
+            ? (Number(tahfidzRes.data.totalJuzUKJ) % 1 === 0
+                ? Number(tahfidzRes.data.totalJuzUKJ).toFixed(0)
+                : Number(tahfidzRes.data.totalJuzUKJ).toFixed(1)) + " Juz"
+            : "-",
           score: tahfidzRes.data.finalScore || "-",
+          status:
+            tahfidzRes.data.target?.targetJuz > 0
+              ? tahfidzRes.data.totalJuzUKJ >= tahfidzRes.data.target.targetJuz
+                ? tahfidzRes.data.totalJuzUKJ > tahfidzRes.data.target.targetJuz
+                  ? "Melebihi Target"
+                  : "Sesuai Target"
+                : "Di Bawah Target"
+              : tahfidzRes.data.keterangan || "-",
         };
       }
     } catch (e) {
@@ -1019,176 +1059,23 @@ function fitReportToA4() {
   return { scale, offsetX, offsetY };
 }
 
-// PDF Generation
-const pdfLoading = ref(false);
+// PDF Generation using reusable composable
+const { exportToPdf, pdfLoading } = usePdfExport();
 
 async function handleDownloadPdf() {
   if (!student.value) return;
 
-  pdfLoading.value = true;
   try {
-    // Get the report-page element
-    const reportPage = document.getElementById("report-page");
-    if (!reportPage) {
-      throw new Error("Report page not found");
-    }
-
-    // Reset any transforms to get clean HTML
-    reportPage.style.transform = "";
-    reportPage.style.position = "";
-    reportPage.style.left = "";
-    reportPage.style.top = "";
-
-    // Get INNER HTML (content without wrapper inline styles)
-    const contentHtml = reportPage.innerHTML;
-
-    console.log("[PDF] Sending HTML to backend for auto-scaling...");
-
-    // Build simple HTML document - backend will handle scaling and centering
-    const html = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
-  <style>
-    /* Reset */
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    
-    html, body { 
-      margin: 0; 
-      padding: 0;
-      font-family: system-ui, -apple-system, sans-serif;
-      background: white;
-      font-size: 12px;
-    }
-    
-    /* Arabic font */
-    .font-arabic { font-family: "Cairo", sans-serif; }
-    
-    /* Container - backend will override with proper dimensions */
-    .print-a4 {
-      background: white;
-    }
-    
-    /* Content wrapper */
-    #report-page {
-      background: white;
-    }
-    
-    /* Table styles */
-    table { border-collapse: collapse; width: 100%; }
-    th, td { padding: 4px 8px; text-align: left; vertical-align: middle; }
-    
-    /* Text utilities - use !important to override table defaults */
-    .text-center { text-align: center !important; }
-    .text-right { text-align: right !important; }
-    .text-left { text-align: left !important; }
-    [dir="rtl"] { text-align: right !important; }
-    .text-xs { font-size: 10px; }
-    .text-sm { font-size: 12px; }
-    .text-base { font-size: 14px; }
-    .text-lg { font-size: 16px; }
-    .text-xl { font-size: 18px; }
-    
-    /* Font utilities */
-    .font-bold { font-weight: 700; }
-    .font-semibold { font-weight: 600; }
-    .font-medium { font-weight: 500; }
-    
-    /* Spacing */
-    .mb-1 { margin-bottom: 4px; }
-    .mb-2 { margin-bottom: 8px; }
-    .mb-4 { margin-bottom: 16px; }
-    .mb-6 { margin-bottom: 24px; }
-    .mb-11 { margin-bottom: 44px; }
-    .mb-12 { margin-bottom: 48px; }
-    .mt-6 { margin-top: 24px; }
-    .mx-4 { margin-left: 16px; margin-right: 16px; }
-    .ml-1 { margin-left: 4px; }
-    .px-1 { padding-left: 4px; padding-right: 4px; }
-    .px-2 { padding-left: 8px; padding-right: 8px; }
-    .px-4 { padding-left: 16px; padding-right: 16px; }
-    .py-1 { padding-top: 4px; padding-bottom: 4px; }
-    .py-2 { padding-top: 8px; padding-bottom: 8px; }
-    .py-3 { padding-top: 12px; padding-bottom: 12px; }
-    .pt-1 { padding-top: 4px; }
-    .p-6 { padding: 24px; }
-    
-    /* Background */
-    .bg-white { background: white; }
-    .bg-slate-50 { background: #f8fafc; }
-    .bg-slate-100 { background: #f1f5f9; }
-    
-    /* Colors */
-    .text-slate-800 { color: #1e293b; }
-    .text-slate-400 { color: #94a3b8; }
-    
-    /* Grid */
-    .grid { display: grid; }
-    .grid-cols-3 { grid-template-columns: repeat(3, 1fr); }
-    .gap-1 { gap: 4px; }
-    .gap-4 { gap: 16px; }
-    
-    /* Flex */
-    .flex { display: flex; }
-    .flex-1 { flex: 1; }
-    .items-center { align-items: center; }
-    .justify-center { justify-content: center; }
-    .justify-between { justify-content: space-between; }
-    .flex-col { flex-direction: column; }
-    
-    /* Width */
-    .w-full { width: 100%; }
-    
-    /* Border utilities */
-    .border { border: 1px solid #e2e8f0; }
-    .border-b { border-bottom: 1px solid #e2e8f0; }
-    .border-black { border-color: black; }
-    
-    /* Table column handling */
-    col { display: table-column; }
-    colgroup { display: table-column-group; }
-    
-    /* Images */
-    img { max-width: 100%; height: auto; }
-  </style>
-</head>
-<body>
-  <div id="report-area" class="print-a4">
-    <div id="report-page" class="bg-white text-slate-800">
-      ${contentHtml}
-    </div>
-  </div>
-</body>
-</html>`;
-
-    const blob = await pdfApi.generateFromHtml(html, {
+    await exportToPdf({
+      selector: "#report-page",
+      filename: `Rapor_${student.value.fullName}_Semester${semester.value}_${academicYear.value}.pdf`,
       paddingMm: 5,
-      waitForSelector: "#report-page",
-      printBackground: true,
-      waitTimeout: 30000,
+      includeArabicFont: true,
     });
-
-    // Create download link
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `Rapor_${student.value.fullName.replace(
-      /\s+/g,
-      "_"
-    )}_Semester${semester.value}_${academicYear.value}.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-
-    showStatus("Berhasil", "PDF berhasil di-download", "success");
+    // showStatus("Berhasil", "PDF berhasil di-download", "success");
   } catch (error) {
     console.error("PDF generation error:", error);
     showStatus("Gagal", error.message || "Gagal generate PDF", "error");
-  } finally {
-    pdfLoading.value = false;
   }
 }
 
@@ -1241,9 +1128,6 @@ onMounted(async () => {
 }
 
 /* Report page uses inline styles set by fitReportToA4() */
-#report-page {
-  /* Fallback styles - actual positioning is set by JavaScript */
-}
 
 @media print {
   /* Hide everything except report */

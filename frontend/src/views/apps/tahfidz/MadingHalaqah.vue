@@ -71,7 +71,7 @@
 
       <!-- Actions -->
       <div
-        class="mt-4 pt-4 border-t border-slate-100 flex justify-end gap-3 print:hidden"
+        class="mt-4 pt-4 border-t border-slate-100 flex flex-wrap justify-end gap-3 print:hidden"
         v-if="report"
       >
         <button
@@ -80,6 +80,20 @@
         >
           <Icon icon="solar:printer-bold-duotone" />
           Cetak
+        </button>
+        <button
+          @click="handleDownloadPdf"
+          :disabled="loading || pdfLoading"
+          class="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+        >
+          <Icon
+            :icon="
+              pdfLoading
+                ? 'svg-spinners:ring-resize'
+                : 'solar:file-download-bold'
+            "
+          />
+          {{ pdfLoading ? "Generating..." : "Download PDF" }}
         </button>
         <button
           @click="exportToExcel"
@@ -119,151 +133,161 @@
           class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm origin-top-left transition-transform duration-200"
           :style="reportStyle"
         >
-          <!-- Report Header -->
-          <div class="text-center border-b-2 border-slate-800 pb-4 mb-6">
-            <h2 class="text-xl font-bold uppercase">
-              Pencapaian Hafalan Santri
-            </h2>
-            <h3 class="text-lg">Pondok Pesantren Minhajul Haq</h3>
-          </div>
-
-          <!-- Report Info -->
-          <div class="grid grid-cols-2 gap-4 mb-6 text-sm">
-            <div>
-              <p>
-                <span class="font-semibold">Halaqah</span>:
-                {{ report?.halaqah?.name || "-" }}
-              </p>
-              <p>
-                <span class="font-semibold">Pengampu Halaqah</span>:
-                {{ report?.mentor?.fullName || "-" }}
-              </p>
+          <div class="pdf-page-wrapper">
+            <!-- Report Header -->
+            <div class="text-center border-b-2 border-slate-800 pb-4 mb-6">
+              <h2 class="text-xl font-bold uppercase">
+                Pencapaian Hafalan Santri
+              </h2>
+              <h3 class="text-lg">Pondok Pesantren Minhajul Haq</h3>
             </div>
-            <div class="text-right">
-              <p>
-                <span class="font-semibold">Target Minimal</span>:
-                {{ targetPages }} Halaman
-              </p>
-              <p>
-                <span class="font-semibold">Tanggal Rekap</span>:
-                {{ formatDateRange() }}
-              </p>
-            </div>
-          </div>
 
-          <!-- Table -->
-          <div class="overflow-x-auto">
-            <table class="w-full text-sm border-collapse">
-              <thead>
-                <tr class="bg-slate-100">
-                  <th class="border p-2 text-center" rowspan="2">No</th>
-                  <th class="border p-2 text-left" rowspan="2">Nama Lengkap</th>
-                  <th class="border p-2 text-center" colspan="4">Kehadiran</th>
-                  <th class="border p-2 text-center" rowspan="2">Target</th>
-                  <th class="border p-2 text-center" colspan="1">
-                    Hafalan Bulan Ini
-                  </th>
-                  <th class="border p-2 text-center" rowspan="2">
-                    Jumlah Halaman
-                  </th>
-                  <th class="border p-2 text-center" rowspan="2">Ket</th>
-                </tr>
-                <tr class="bg-slate-50 text-xs">
-                  <th class="border p-1">S</th>
-                  <th class="border p-1">I</th>
-                  <th class="border p-1">A</th>
-                  <th class="border p-1">T</th>
-                  <th class="border p-1">Rentang Halaman</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr
-                  v-for="(m, idx) in report?.members"
-                  :key="m.studentId"
-                  class="hover:bg-slate-50"
-                >
-                  <td class="border p-2 text-center">{{ idx + 1 }}</td>
-                  <td class="border p-2">{{ m.fullName }}</td>
-                  <td class="border p-2 text-center">
-                    {{ m.attendance?.sakit || 0 }}
-                  </td>
-                  <td class="border p-2 text-center">
-                    {{ m.attendance?.izin || 0 }}
-                  </td>
-                  <td class="border p-2 text-center">
-                    {{ m.attendance?.alpha || 0 }}
-                  </td>
-                  <td class="border p-2 text-center">
-                    {{ m.attendance?.terlambat || 0 }}
-                  </td>
-                  <td class="border p-2 text-center">{{ targetPages }} Hal</td>
-                  <td class="border p-2 text-center">
-                    {{ m.hafalanRanges || "-" }}
-                  </td>
-                  <td class="border p-2 text-center font-bold">
-                    {{ m.jumlahHalaman || 0 }}
-                  </td>
-                  <td class="border p-2 text-center">
-                    <span
-                      :class="getStatusClass(m.jumlahHalaman)"
-                      class="px-2 py-0.5 rounded text-xs font-medium"
-                    >
-                      {{ getStatus(m.jumlahHalaman) }}
-                    </span>
-                  </td>
-                </tr>
-                <tr v-if="!report?.members?.length">
-                  <td
-                    colspan="10"
-                    class="border p-4 text-center text-slate-500 italic"
+            <!-- Report Info -->
+            <div class="grid grid-cols-2 gap-4 mb-6 text-sm">
+              <div>
+                <p>
+                  <span class="font-semibold">Halaqah</span>:
+                  {{ report?.halaqah?.name || "-" }}
+                </p>
+                <p>
+                  <span class="font-semibold">Pengampu Halaqah</span>:
+                  {{ report?.mentor?.fullName || "-" }}
+                </p>
+              </div>
+              <div class="text-right">
+                <p>
+                  <span class="font-semibold">Target Minimal</span>:
+                  {{ targetPages }} Halaman
+                </p>
+                <p>
+                  <span class="font-semibold">Tanggal Rekap</span>:
+                  {{ formatDateRange() }}
+                </p>
+              </div>
+            </div>
+
+            <!-- Table -->
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm border-collapse">
+                <thead>
+                  <tr class="bg-slate-100">
+                    <th class="border p-2 text-center" rowspan="2">No</th>
+                    <th class="border p-2 text-left" rowspan="2">
+                      Nama Lengkap
+                    </th>
+                    <th class="border p-2 text-center" colspan="4">
+                      Kehadiran
+                    </th>
+                    <th class="border p-2 text-center" rowspan="2">Target</th>
+                    <th class="border p-2 text-center" colspan="1">
+                      Hafalan Bulan Ini
+                    </th>
+                    <th class="border p-2 text-center" rowspan="2">
+                      Jumlah Halaman
+                    </th>
+                    <th class="border p-2 text-center" rowspan="2">Ket</th>
+                  </tr>
+                  <tr class="bg-slate-50 text-xs">
+                    <th class="border p-1">S</th>
+                    <th class="border p-1">I</th>
+                    <th class="border p-1">A</th>
+                    <th class="border p-1">T</th>
+                    <th class="border p-1">Rentang Halaman</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="(m, idx) in report?.members"
+                    :key="m.studentId"
+                    class="hover:bg-slate-50"
                   >
-                    Tidak ada data anggota
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+                    <td class="border p-2 text-center">{{ idx + 1 }}</td>
+                    <td class="border p-2">{{ m.fullName }}</td>
+                    <td class="border p-2 text-center">
+                      {{ m.attendance?.sakit || 0 }}
+                    </td>
+                    <td class="border p-2 text-center">
+                      {{ m.attendance?.izin || 0 }}
+                    </td>
+                    <td class="border p-2 text-center">
+                      {{ m.attendance?.alpha || 0 }}
+                    </td>
+                    <td class="border p-2 text-center">
+                      {{ m.attendance?.terlambat || 0 }}
+                    </td>
+                    <td class="border p-2 text-center">
+                      {{ targetPages }} Hal
+                    </td>
+                    <td class="border p-2 text-center">
+                      {{ m.hafalanRanges || "-" }}
+                    </td>
+                    <td class="border p-2 text-center font-bold">
+                      {{ m.jumlahHalaman || 0 }}
+                    </td>
+                    <td class="border p-2 text-center">
+                      <span
+                        :class="getStatusClass(m.jumlahHalaman)"
+                        class="px-2 py-0.5 rounded text-xs font-medium"
+                      >
+                        {{ getStatus(m.jumlahHalaman) }}
+                      </span>
+                    </td>
+                  </tr>
+                  <tr v-if="!report?.members?.length">
+                    <td
+                      colspan="10"
+                      class="border p-4 text-center text-slate-500 italic"
+                    >
+                      Tidak ada data anggota
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
 
-          <!-- Legend -->
-          <div class="mt-6 grid grid-cols-2 gap-4 text-xs text-slate-600">
-            <div>
-              <p class="font-semibold mb-1">Keterangan Status:</p>
-              <p>
-                <span class="px-1 bg-green-100 text-green-700 rounded">ST</span>
-                : Sesuai Target
-              </p>
-              <p>
-                <span class="px-1 bg-yellow-100 text-yellow-700 rounded"
-                  >DT</span
+            <!-- Legend -->
+            <div class="mt-6 grid grid-cols-2 gap-4 text-xs text-slate-600">
+              <div>
+                <p class="font-semibold mb-1">Keterangan Status:</p>
+                <p>
+                  <span class="px-1 bg-green-100 text-green-700 rounded"
+                    >ST</span
+                  >
+                  : Sesuai Target
+                </p>
+                <p>
+                  <span class="px-1 bg-yellow-100 text-yellow-700 rounded"
+                    >DT</span
+                  >
+                  : Di Bawah Target
+                </p>
+                <p>
+                  <span class="px-1 bg-blue-100 text-blue-700 rounded">MT</span>
+                  : Melebihi Target
+                </p>
+              </div>
+              <div>
+                <p class="font-semibold mb-1">Keterangan Kehadiran:</p>
+                <p>
+                  <b>S</b> : Sakit | <b>I</b> : Izin | <b>A</b> : Alpha |
+                  <b>T</b> : Terlambat
+                </p>
+              </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="grid grid-cols-2 gap-8 text-center mt-12 text-sm">
+              <div></div>
+              <div>
+                <p class="mb-16">
+                  Purwakarta, {{ currentDate }}<br />Pengampu Halaqah,
+                </p>
+                <p
+                  class="font-bold border-b border-slate-800 inline-block min-w-[150px]"
                 >
-                : Di Bawah Target
-              </p>
-              <p>
-                <span class="px-1 bg-blue-100 text-blue-700 rounded">MT</span> :
-                Melebihi Target
-              </p>
-            </div>
-            <div>
-              <p class="font-semibold mb-1">Keterangan Kehadiran:</p>
-              <p>
-                <b>S</b> : Sakit | <b>I</b> : Izin | <b>A</b> : Alpha |
-                <b>T</b> : Terlambat
-              </p>
-            </div>
-          </div>
-
-          <!-- Footer -->
-          <div class="grid grid-cols-2 gap-8 text-center mt-12 text-sm">
-            <div></div>
-            <div>
-              <p class="mb-16">
-                Purwakarta, {{ currentDate }}<br />Pengampu Halaqah,
-              </p>
-              <p
-                class="font-bold border-b border-slate-800 inline-block min-w-[150px]"
-              >
-                {{ report?.mentor?.fullName || "_______________" }}
-              </p>
+                  {{ report?.mentor?.fullName || "_______________" }}
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -278,6 +302,7 @@ import { ref, reactive, computed, onMounted, watch } from "vue";
 import { Icon } from "@iconify/vue";
 import { useElementSize } from "@vueuse/core";
 import { tahfidzApi, halaqahApi } from "@/services/api";
+import { usePdfExport } from "@/composables/usePdfExport";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 
@@ -691,6 +716,28 @@ function getStatusClass(pages) {
 
 function handlePrint() {
   window.print();
+}
+
+// PDF Download
+const { exportToPdf, pdfLoading } = usePdfExport();
+
+async function handleDownloadPdf() {
+  if (!report.value || !report.value.members.length) return;
+
+  try {
+    await exportToPdf({
+      selector: "#print-area",
+      filename: `Mading_Halaqah_${report.value.halaqah.name.replace(
+        /\s+/g,
+        "_"
+      )}_${filters.startDate}.pdf`,
+      paddingMm: 0,
+      includeArabicFont: false,
+    });
+  } catch (error) {
+    console.error("PDF generation error:", error);
+    alert("Gagal generate PDF: " + error.message);
+  }
 }
 
 onMounted(() => {

@@ -108,6 +108,21 @@
             </button>
 
             <button
+              @click="handleDownloadPdf"
+              :disabled="!student || pdfLoading"
+              class="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <Icon
+                :icon="
+                  pdfLoading
+                    ? 'svg-spinners:ring-resize'
+                    : 'solar:file-download-bold'
+                "
+              />
+              {{ pdfLoading ? "Generating..." : "Download PDF" }}
+            </button>
+
+            <button
               @click="handlePrint"
               :disabled="!student"
               class="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-white bg-[#602515] hover:bg-[#4a1c10] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -602,7 +617,7 @@
                 <div class="col-span-4">
                   <!-- Spacer to align with Mading Hafalan title -->
                   <h5 class="text-center font-bold mb-2 opacity-0 select-none">
-                    Spacer
+                    Total Hafalan
                   </h5>
                   <table class="w-full border-collapse">
                     <!-- Merged Header Row -->
@@ -668,7 +683,7 @@
                 <div class="col-span-3">
                   <!-- Spacer to align with Mading Hafalan title -->
                   <h5 class="text-center font-bold mb-2 opacity-0 select-none">
-                    Spacer
+                    Kehadiran
                   </h5>
                   <table class="w-full border-collapse">
                     <!-- Merged Header Row -->
@@ -856,6 +871,7 @@ import { ref, reactive, computed, onMounted, watch } from "vue";
 import { Icon } from "@iconify/vue";
 import { useElementSize } from "@vueuse/core";
 import { studentsApi, tahfidzApi, academicSettingsApi } from "@/services/api";
+import { usePdfExport } from "@/composables/usePdfExport";
 import { exportTahfidzReportToExcel } from "@/services/exports/tahfidzReportExporter";
 
 const loading = ref(false);
@@ -1242,6 +1258,25 @@ async function exportToExcel() {
 
 function handlePrint() {
   window.print();
+}
+
+// PDF Download using reusable composable
+const { exportToPdf, pdfLoading } = usePdfExport();
+
+async function handleDownloadPdf() {
+  if (!student.value) return;
+
+  try {
+    await exportToPdf({
+      selector: "#report-area",
+      filename: `Rapor_Tahfidz_${student.value.fullName}_${semester.value}_${academicYear.value}.pdf`,
+      paddingMm: 10,
+      includeArabicFont: false,
+    });
+  } catch (error) {
+    console.error("PDF generation error:", error);
+    alert("Gagal generate PDF: " + error.message);
+  }
 }
 
 // --- LIFECYCLE ---

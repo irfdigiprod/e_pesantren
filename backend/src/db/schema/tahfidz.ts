@@ -112,6 +112,7 @@ export const tahfidzTargets = mysqlTable("tahfidz_targets", {
   id: int("id").primaryKey().autoincrement(),
   level: varchar("level", { length: 50 }).notNull().unique(), // e.g., "SD", "SMP", "SMA", "Tahfidz"
   targetPages: int("target_pages").notNull(), // Target halaman per bulan
+  targetJuz: decimal("target_juz", { precision: 4, scale: 2 }), // Target juz per semester
   description: text("description"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),

@@ -11,6 +11,9 @@ import {
   createStudentSchema,
   updateStudentSchema,
 } from "../validators/students";
+import { halaqahMembers, halaqahGroups } from "../db/schema/halaqah";
+import { rooms } from "../db/schema/rooms";
+import { classes } from "../db/schema/academic";
 
 const studentsRoute = new Hono();
 
@@ -74,12 +77,6 @@ studentsRoute.get("/", async (c) => {
     }
 
     // Enrich students with halaqah, room, and class info
-    const { halaqahMembers, halaqahGroups } = await import(
-      "../db/schema/halaqah"
-    );
-    const { rooms } = await import("../db/schema/rooms");
-    const { classes } = await import("../db/schema/academic");
-
     const enrichedStudents = await Promise.all(
       allStudents.map(async (student) => {
         // Get halaqah membership

@@ -73,6 +73,9 @@
               <th class="p-3 text-center font-medium text-slate-700">
                 Target (Halaman/Bulan)
               </th>
+              <th class="p-3 text-center font-medium text-slate-700">
+                Target (Juz/Smt)
+              </th>
               <th class="p-3 text-left font-medium text-slate-700">
                 Keterangan
               </th>
@@ -88,6 +91,15 @@
                 >
                   {{ t.targetPages }}
                 </span>
+              </td>
+              <td class="p-3 text-center">
+                <span
+                  v-if="t.targetJuz"
+                  class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full font-bold"
+                >
+                  {{ t.targetJuz }}
+                </span>
+                <span v-else class="text-slate-400">-</span>
               </td>
               <td class="p-3 text-slate-600">{{ t.description || "-" }}</td>
               <td class="p-3 text-center">
@@ -142,6 +154,12 @@
                 class="inline-block mt-1 px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-xs font-bold"
               >
                 Target: {{ t.targetPages }} Halaman/Bulan
+              </span>
+              <span
+                v-if="t.targetJuz"
+                class="inline-block mt-1 ml-1 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-bold"
+              >
+                {{ t.targetJuz }} Juz/Smt
               </span>
             </div>
             <div class="flex gap-1">
@@ -581,6 +599,20 @@
           </div>
 
           <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">
+              Target (Juz per Semester)
+            </label>
+            <input
+              v-model.number="form.targetJuz"
+              type="number"
+              step="0.1"
+              min="0"
+              placeholder="misal: 1 atau 0.5"
+              class="w-full px-3 py-2 border rounded-lg focus:ring-2 ring-[#602515]/20 outline-none"
+            />
+          </div>
+
+          <div>
             <label class="block text-sm font-medium text-slate-700 mb-1"
               >Keterangan (Opsional)</label
             >
@@ -670,6 +702,7 @@ const form = reactive({
   id: null,
   level: "",
   targetPages: 6,
+  targetJuz: 1,
   description: "",
 });
 
@@ -726,11 +759,13 @@ function openModal(item = null) {
     form.id = item.id;
     form.level = item.level;
     form.targetPages = item.targetPages;
+    form.targetJuz = item.targetJuz || 0;
     form.description = item.description || "";
   } else {
     form.id = null;
     form.level = "";
     form.targetPages = 6;
+    form.targetJuz = 1;
     form.description = "";
   }
   showModal.value = true;
@@ -747,6 +782,7 @@ async function saveTarget() {
     const payload = {
       level: form.level,
       targetPages: form.targetPages,
+      targetJuz: form.targetJuz,
       description: form.description || null,
     };
 

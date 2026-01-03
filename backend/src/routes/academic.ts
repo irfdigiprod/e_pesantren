@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, desc } from "drizzle-orm";
 import { db } from "../db";
 import {
   classes,
@@ -8,6 +8,7 @@ import {
   schedules,
   grades,
   reports,
+  reportCardPredicates,
 } from "../db/schema/academic";
 import { authMiddleware, requireRole } from "../middleware/auth";
 import {
@@ -1149,29 +1150,43 @@ academicRoute.get("/grades", async (c) => {
     const gradeMap = new Map(existingGrades.map((g) => [g.subjectId, g]));
 
     // Merge: all subjects with their grades (or null if no grade)
-    const mergedData = subjectsForGrade.map((subject) => {
-      const grade = gradeMap.get(subject.id);
-      return {
-        subjectId: subject.id,
-        subjectName: subject.name,
-        subjectNameAr: subject.nameAr || "",
-        kkm: subject.kkm,
-        sortOrder: subject.sortOrder,
-        // Grade data (null if not exists)
-        id: grade?.id || null,
-        averageScore: grade?.averageScore || null,
-        letterGrade: grade?.letterGrade || null,
-        letterGradeAr: grade?.letterGradeAr || null,
-        predicate: grade?.predicate || null,
-        dailyScore: grade?.dailyScore || null,
-        homeworkScore: grade?.homeworkScore || null,
-        midtermScore: grade?.midtermScore || null,
-        finalScore: grade?.finalScore || null,
-        practiceScore: grade?.practiceScore || null,
-        notes: grade?.notes || null,
-        subject,
-      };
-    });
+    const mergedData = await Promise.all(
+      subjectsForGrade.map(async (subject) => {
+        const grade = gradeMap.get(subject.id);
+
+        let calculatedGrade = null;
+        if (grade?.averageScore) {
+          calculatedGrade = await calculateGrade(
+            Number(grade.averageScore),
+            subject.id
+          );
+        }
+
+        return {
+          subjectId: subject.id,
+          subjectName: subject.name,
+          subjectNameAr: subject.nameAr || "",
+          kkm: subject.kkm,
+          sortOrder: subject.sortOrder,
+          // Grade data (null if not exists)
+          id: grade?.id || null,
+          averageScore: grade?.averageScore || null,
+          // Use calculated values if available, otherwise fallback to stored or null
+          letterGrade:
+            calculatedGrade?.letterGrade || grade?.letterGrade || null,
+          letterGradeAr:
+            calculatedGrade?.letterGradeAr || grade?.letterGradeAr || null,
+          predicate: calculatedGrade?.predicate || grade?.predicate || null,
+          dailyScore: grade?.dailyScore || null,
+          homeworkScore: grade?.homeworkScore || null,
+          midtermScore: grade?.midtermScore || null,
+          finalScore: grade?.finalScore || null,
+          practiceScore: grade?.practiceScore || null,
+          notes: grade?.notes || null,
+          subject,
+        };
+      })
+    );
 
     return c.json({ success: true, data: mergedData });
   } catch (error) {
@@ -1570,97 +1585,211 @@ const getArabicGrade = (letter: string) => {
   return map[letter] || "هـ";
 };
 
-// Helper: Calculate Grade based on Rules
+// Helper: Calculate Grade based on Predicates
 async function calculateGrade(
   score: number,
   subjectId: number
 ): Promise<{ letterGrade: string; predicate: string; letterGradeAr: string }> {
+  // 1. Try to get grading_rules setting (Legacy KKM-based / JSON)
+  // This supports "Per KKM" (Specific) or "Global" mode from the old UI
   const rulesJson = await getSetting("grading_rules");
 
-  // Default Fallback
+  if (rulesJson) {
+    try {
+      const parsed = JSON.parse(rulesJson);
+      // Handle New Structure
+      const setting = Array.isArray(parsed)
+        ? { mode: "SPECIFIC", globalRules: [], specificRules: parsed }
+        : parsed;
+
+      let rulesToApply: any[] = [];
+
+      if (setting.mode === "GLOBAL") {
+        rulesToApply = setting.globalRules || [];
+      } else {
+        // SPECIFIC Mode: Need Subject KKM
+        const subject = await db.query.subjects.findFirst({
+          where: eq(subjects.id, subjectId),
+        });
+
+        // KKM from subject or default 75
+        const kkm = subject?.kkm ? parseFloat(String(subject.kkm)) : 75;
+
+        // Find rules for this KKM
+        const specific = setting.specificRules?.find((r: any) => r.kkm === kkm);
+
+        if (specific) {
+          rulesToApply = specific.rules;
+        } else {
+          // If no specific rule for this KKM, maybe fallback to global or empty
+          rulesToApply = setting.globalRules || [];
+        }
+      }
+
+      // Find matching rule in the applied set
+      const match = rulesToApply.find(
+        (r: any) => score >= r.min && score <= r.max
+      );
+
+      if (match) {
+        return {
+          letterGrade: match.predicate, // e.g. "A" or "A+"
+          predicate: match.descriptionId, // e.g. "Sangat Baik"
+          letterGradeAr: match.predicateAr || getArabicGrade(match.predicate),
+        };
+      }
+    } catch (e) {
+      console.error("Error parsing grading_rules:", e);
+    }
+  }
+
+  // 2. Try to get dynamic predicates from DB (New Simple Table)
+  // Used if no JSON rules found or no match in JSON rules
+  const predicates = await db
+    .select()
+    .from(reportCardPredicates)
+    .orderBy(desc(reportCardPredicates.minScore));
+
+  if (predicates.length > 0) {
+    // Find the matching range
+    const match = predicates.find(
+      (p) => score >= Number(p.minScore) && score <= Number(p.maxScore)
+    );
+
+    if (match) {
+      return {
+        letterGrade: match.grade,
+        predicate: match.description || "",
+        letterGradeAr: match.descriptionAr || getArabicGrade(match.grade),
+      };
+    }
+  }
+
+  // 3. Fallback to Hardcoded (if no predicates set anywhere)
   let letterGrade = "E";
   let predicate = "Sangat Kurang";
   let letterGradeAr = "هـ";
 
-  if (!rulesJson) {
-    if (score >= 90) {
-      letterGrade = "A";
-      predicate = "Sangat Baik";
-      letterGradeAr = "أ";
-    } else if (score >= 80) {
-      letterGrade = "B";
-      predicate = "Baik";
-      letterGradeAr = "ب";
-    } else if (score >= 70) {
-      letterGrade = "C";
-      predicate = "Cukup";
-      letterGradeAr = "ج";
-    } else if (score >= 60) {
-      letterGrade = "D";
-      predicate = "Kurang";
-      letterGradeAr = "د";
-    }
-    return { letterGrade, predicate, letterGradeAr };
-  }
-
-  const parsed = JSON.parse(rulesJson);
-  let activeRules: any[] = [];
-
-  // Determine which rules to use
-  if (Array.isArray(parsed)) {
-    // Legacy Format (Specific Rules only, assume implicitly)
-    // Actually legacy might just be an array of rules??
-    // Let's assume parsed is [ { kkm: 75, rules: [...] }, ... ] OR just rules??
-    // Based on academic-settings.ts, legacy was likely just SpecificRules array or maybe just unsupported.
-    // The previous frontend implementation implies it supports `school_grading_settings` vs `grading_rules`
-    // Let's check the structure returned by `grading-rules` endpoint in `academic-settings.ts`
-    // It returns { mode, globalRules, specificRules }
-    // If invalid/missing, it returns default global rules.
-    activeRules = []; // Logic below handles this
-  }
-
-  // Handle New Structure
-  const setting = Array.isArray(parsed)
-    ? { mode: "SPECIFIC", globalRules: [], specificRules: parsed }
-    : parsed;
-
-  let rulesToApply: any[] = [];
-
-  if (setting.mode === "GLOBAL") {
-    rulesToApply = setting.globalRules;
-  } else {
-    // SPECIFIC Mode: Need Subject KKM
-    const subject = await db.query.subjects.findFirst({
-      where: eq(subjects.id, subjectId),
-    });
-
-    // KKM from subject or default 75
-    // Make sure we parse KKM correctly (it's decimal string)
-    const kkm = subject?.kkm ? parseFloat(String(subject.kkm)) : 75;
-
-    const specific = setting.specificRules?.find((r: any) => r.kkm === kkm);
-
-    if (specific) {
-      rulesToApply = specific.rules;
-    } else {
-      // Fallback if no specific rule for this KKM found?
-      // Maybe fall back to a default set or closest KKM?
-      // Frontend typically handles this by showing "No Rules".
-      // Here we might fallback to Global or Hardcoded.
-      rulesToApply = setting.globalRules;
-    }
-  }
-
-  // Find matching rule
-  const match = rulesToApply.find((r: any) => score >= r.min && score <= r.max);
-  if (match) {
-    letterGrade = match.predicate; // e.g. "A" or "A+"
-    predicate = match.descriptionId; // e.g. "Sangat Baik"
-    letterGradeAr = match.predicateAr || getArabicGrade(match.predicate);
+  if (score >= 90) {
+    letterGrade = "A";
+    predicate = "Sangat Baik";
+    letterGradeAr = "أ";
+  } else if (score >= 80) {
+    letterGrade = "B";
+    predicate = "Baik";
+    letterGradeAr = "ب";
+  } else if (score >= 70) {
+    letterGrade = "C";
+    predicate = "Cukup";
+    letterGradeAr = "ج";
+  } else if (score >= 60) {
+    letterGrade = "D";
+    predicate = "Kurang";
+    letterGradeAr = "د";
   }
 
   return { letterGrade, predicate, letterGradeAr };
 }
+
+// ============ REPORT CARD PREDICATES ============
+
+// Get all predicates
+academicRoute.get(
+  "/settings/predicates",
+  requireRole("admin", "teacher", "staff"),
+  async (c) => {
+    try {
+      const data = await db
+        .select()
+        .from(reportCardPredicates)
+        .orderBy(desc(reportCardPredicates.minScore));
+      // Sort desc by score so A is top
+      return c.json({ success: true, data });
+    } catch (e: any) {
+      return c.json({ success: false, message: e.message }, 500);
+    }
+  }
+);
+
+// Create predicate
+academicRoute.post("/settings/predicates", requireRole("admin"), async (c) => {
+  try {
+    const body = await c.req.json();
+    // Basic validation
+    if (
+      !body.grade ||
+      body.minScore === undefined ||
+      body.maxScore === undefined
+    ) {
+      return c.json(
+        { success: false, message: "Missing required fields" },
+        400
+      );
+    }
+
+    const res = await db.insert(reportCardPredicates).values({
+      grade: body.grade,
+      minScore: String(body.minScore),
+      maxScore: String(body.maxScore),
+      description: body.description,
+      descriptionAr: body.descriptionAr,
+      sortOrder: body.sortOrder || 0,
+    });
+
+    return c.json({
+      success: true,
+      message: "Predikat berhasil ditambahkan",
+      id: res[0].insertId,
+    });
+  } catch (e: any) {
+    return c.json({ success: false, message: e.message }, 500);
+  }
+});
+
+// Update predicate
+academicRoute.put(
+  "/settings/predicates/:id",
+  requireRole("admin"),
+  async (c) => {
+    try {
+      const id = parseInt(c.req.param("id"));
+      const body = await c.req.json();
+
+      await db
+        .update(reportCardPredicates)
+        .set({
+          grade: body.grade,
+          minScore: String(body.minScore),
+          maxScore: String(body.maxScore),
+          description: body.description,
+          descriptionAr: body.descriptionAr,
+          sortOrder: body.sortOrder,
+        })
+        .where(eq(reportCardPredicates.id, id));
+
+      return c.json({ success: true, message: "Predikat berhasil diupdate" });
+    } catch (e: any) {
+      return c.json({ success: false, message: e.message }, 500);
+    }
+  }
+);
+
+// Delete predicate
+academicRoute.delete(
+  "/settings/predicates/:id",
+  requireRole("admin"),
+  async (c) => {
+    try {
+      const id = parseInt(c.req.param("id"));
+      await db
+        .delete(reportCardPredicates)
+        .where(eq(reportCardPredicates.id, id));
+      return c.json({ success: true, message: "Predikat berhasil dihapus" });
+    } catch (e: any) {
+      return c.json({ success: false, message: e.message }, 500);
+    }
+  }
+);
 
 // ============ IMPORT SUBJECTS ============
 

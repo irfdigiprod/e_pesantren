@@ -118,7 +118,7 @@
       </div>
     </div>
 
-    <!-- Grading Rules Section -->
+    <!-- Grading Rules Section (Restored) -->
     <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-6">
       <div
         class="mb-4 flex flex-col sm:flex-row gap-4 sm:items-center justify-between"
@@ -127,7 +127,7 @@
           class="text-lg font-semibold text-slate-800 flex items-center gap-2"
         >
           <Icon icon="solar:diploma-verified-bold" class="text-[#602515]" />
-          Aturan Penilaian & Predikat
+          Aturan Penilaian & Predikat (Legacy)
         </h2>
 
         <!-- Mode Toggle -->
@@ -185,7 +185,7 @@
               </button>
             </div>
 
-            <!-- Rules Table (Reusable Block logic would be better but keeping inline for simplicity) -->
+            <!-- Rules Table -->
             <div class="overflow-x-auto">
               <table class="w-full text-sm text-left">
                 <thead class="text-xs text-slate-500 uppercase bg-slate-100">
@@ -410,6 +410,78 @@
           <Icon v-else icon="solar:diskette-bold" />
           Simpan Perubahan
         </button>
+      </div>
+    </div>
+
+    <!-- Predicate Settings (New Table-Based) -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-6">
+      <div
+        class="mb-4 flex flex-col sm:flex-row gap-4 sm:items-center justify-between"
+      >
+        <h2
+          class="text-lg font-semibold text-slate-800 flex items-center gap-2"
+        >
+          <Icon icon="solar:diploma-verified-bold" class="text-[#602515]" />
+          Aturan Predikat Nilai
+        </h2>
+        <button
+          @click="openPredicateModal()"
+          class="px-4 py-2 bg-[#602515] text-white text-sm rounded-lg hover:bg-[#4a1c10] flex items-center gap-2"
+        >
+          <Icon icon="solar:add-circle-bold" />
+          Tambah Predikat
+        </button>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left">
+          <thead class="text-xs text-slate-500 uppercase bg-slate-100">
+            <tr>
+              <th class="px-3 py-2">Grade</th>
+              <th class="px-3 py-2">Min</th>
+              <th class="px-3 py-2">Max</th>
+              <th class="px-3 py-2">Keterangan</th>
+              <th class="px-3 py-2">Keterangan (Arab)</th>
+              <th class="px-3 py-2 text-center">Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="p in predicates"
+              :key="p.id"
+              class="bg-white border-b hover:bg-slate-50"
+            >
+              <td class="px-3 py-2 font-bold">{{ p.grade }}</td>
+              <td class="px-3 py-2">{{ p.minScore }}</td>
+              <td class="px-3 py-2">{{ p.maxScore }}</td>
+              <td class="px-3 py-2">{{ p.description }}</td>
+              <td class="px-3 py-2 font-akkurat-arabic text-right">
+                {{ p.descriptionAr }}
+              </td>
+              <td class="px-3 py-2 text-center">
+                <button
+                  @click="openPredicateModal(p)"
+                  class="text-blue-600 hover:text-blue-800 mr-2"
+                  title="Edit"
+                >
+                  <Icon icon="solar:pen-bold" />
+                </button>
+                <button
+                  @click="deletePredicate(p.id)"
+                  class="text-red-500 hover:text-red-700"
+                  title="Hapus"
+                >
+                  <Icon icon="solar:trash-bin-trash-bold" />
+                </button>
+              </td>
+            </tr>
+            <tr v-if="predicates.length === 0">
+              <td colspan="6" class="px-3 py-4 text-center text-slate-500">
+                Belum ada data predikat.
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
 
@@ -691,6 +763,91 @@
       :type="statusType"
       @close="showStatusModal = false"
     />
+
+    <!-- Predicate Modal -->
+    <div
+      v-if="showPredicateModal"
+      class="fixed inset-0 z-[1000] flex items-center justify-center p-4"
+    >
+      <div
+        class="absolute inset-0 bg-black/50"
+        @click="showPredicateModal = false"
+      ></div>
+      <div class="relative bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+        <h3 class="text-lg font-bold mb-4">
+          {{ editingPredicate ? "Edit" : "Tambah" }} Predikat
+        </h3>
+
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium mb-1">Grade</label>
+            <input
+              v-model="predicateForm.grade"
+              type="text"
+              placeholder="A, B, C..."
+              class="w-full px-3 py-2 border rounded-lg"
+            />
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium mb-1">Min Score</label>
+              <input
+                v-model.number="predicateForm.minScore"
+                type="number"
+                step="0.01"
+                class="w-full px-3 py-2 border rounded-lg"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1">Max Score</label>
+              <input
+                v-model.number="predicateForm.maxScore"
+                type="number"
+                step="0.01"
+                class="w-full px-3 py-2 border rounded-lg"
+              />
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Keterangan</label>
+            <input
+              v-model="predicateForm.description"
+              type="text"
+              placeholder="Sangat Baik"
+              class="w-full px-3 py-2 border rounded-lg"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1"
+              >Keterangan (Arab)</label
+            >
+            <input
+              v-model="predicateForm.descriptionAr"
+              type="text"
+              dir="rtl"
+              placeholder="ممتاز"
+              class="w-full px-3 py-2 border rounded-lg font-akkurat-arabic text-right"
+            />
+          </div>
+        </div>
+
+        <div class="mt-6 flex justify-end gap-2">
+          <button
+            @click="showPredicateModal = false"
+            class="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg"
+          >
+            Batal
+          </button>
+          <button
+            @click="savePredicate"
+            :disabled="savingPredicate"
+            class="px-4 py-2 bg-[#602515] text-white rounded-lg hover:bg-[#4a1c10] disabled:opacity-50"
+          >
+            {{ savingPredicate ? "Menyimpan..." : "Simpan" }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -768,16 +925,189 @@ async function loadData() {
     semesters.value = semestersRes.data || [];
     activeYear.value = activeRes.data?.academicYear || "";
     activeSemester.value = activeRes.data?.semester || "";
-    gradingRules.value = rulesRes.data || {
-      mode: "SPECIFIC",
-      globalRules: [],
-      specificRules: [],
-    };
+    // Load predicates
+    await fetchPredicates();
+    if (rulesRes.success && rulesRes.data) {
+      gradingRules.value = rulesRes.data;
+    } else {
+      gradingRules.value = {
+        mode: "SPECIFIC",
+        globalRules: getDefaultRules(),
+        specificRules: [],
+      };
+    }
   } catch (e) {
     console.error("Failed to load academic settings:", e);
   } finally {
     loading.value = false;
   }
+}
+
+// Predicates Logic
+const predicates = ref([]);
+const showPredicateModal = ref(false);
+const editingPredicate = ref(null);
+const savingPredicate = ref(false);
+const predicateForm = ref({
+  grade: "",
+  minScore: 0,
+  maxScore: 100,
+  description: "",
+  descriptionAr: "",
+});
+
+async function fetchPredicates() {
+  try {
+    const res = await academicSettingsApi.getPredicates();
+    predicates.value = res.data || [];
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+function openPredicateModal(p = null) {
+  editingPredicate.value = p;
+  if (p) {
+    predicateForm.value = {
+      ...p,
+      minScore: Number(p.minScore),
+      maxScore: Number(p.maxScore),
+    };
+  } else {
+    predicateForm.value = {
+      grade: "",
+      minScore: 0,
+      maxScore: 100,
+      description: "",
+      descriptionAr: "",
+    };
+  }
+  showPredicateModal.value = true;
+}
+
+async function savePredicate() {
+  if (!predicateForm.value.grade) return;
+  savingPredicate.value = true;
+  try {
+    if (editingPredicate.value) {
+      await academicSettingsApi.updatePredicate(
+        editingPredicate.value.id,
+        predicateForm.value
+      );
+      showStatus("Berhasil", "Predikat berhasil diupdate");
+    } else {
+      await academicSettingsApi.createPredicate(predicateForm.value);
+      showStatus("Berhasil", "Predikat berhasil ditambahkan");
+    }
+    showPredicateModal.value = false;
+    await fetchPredicates();
+  } catch (e) {
+    showStatus("Error", e.message || "Gagal menyimpan", "error");
+  } finally {
+    savingPredicate.value = false;
+  }
+}
+
+async function deletePredicate(id) {
+  if (!confirm("Hapus predikat ini?")) return;
+  try {
+    await academicSettingsApi.deletePredicate(id);
+    await fetchPredicates();
+    showStatus("Berhasil", "Predikat dihapus");
+  } catch (e) {
+    showStatus("Error", e.message, "error");
+  }
+}
+
+// Helper for default rules if empty
+function getDefaultRules() {
+  return [
+    {
+      min: 91,
+      max: 100,
+      predicate: "A",
+      predicateAr: "أ",
+      descriptionId: "Sangat Baik",
+      descriptionAr: "ممتاز",
+    },
+    {
+      min: 81,
+      max: 90,
+      predicate: "B",
+      predicateAr: "ب",
+      descriptionId: "Baik",
+      descriptionAr: "جيد جدا",
+    },
+    {
+      min: 71,
+      max: 80,
+      predicate: "C",
+      predicateAr: "ج",
+      descriptionId: "Cukup",
+      descriptionAr: "جيد",
+    },
+    {
+      min: 0,
+      max: 70,
+      predicate: "D",
+      predicateAr: "د",
+      descriptionId: "Kurang",
+      descriptionAr: "مقبول",
+    },
+  ];
+}
+
+async function saveGradingRules() {
+  savingRules.value = true;
+  try {
+    await academicSettingsApi.saveGradingRules(gradingRules.value);
+    showStatus("Berhasil", "Aturan penilaian berhasil disimpan");
+  } catch (e) {
+    showStatus("Error", e.message || "Gagal menyimpan aturan", "error");
+  } finally {
+    savingRules.value = false;
+  }
+}
+
+function addKkmConfig() {
+  if (!newKkmValue.value) return;
+  // Check duplicate
+  const exists = gradingRules.value.specificRules?.find(
+    (r) => r.kkm === newKkmValue.value
+  );
+  if (exists) {
+    showStatus("Error", "Aturan untuk KKM ini sudah ada", "error");
+    return;
+  }
+
+  if (!gradingRules.value.specificRules) gradingRules.value.specificRules = [];
+  gradingRules.value.specificRules.push({
+    kkm: newKkmValue.value,
+    rules: getDefaultRules(),
+  });
+  // Sort by KKM
+  gradingRules.value.specificRules.sort((a, b) => b.kkm - a.kkm);
+  newKkmValue.value = "";
+}
+
+function removeKkmConfig(index) {
+  if (!confirm("Hapus aturan KKM ini?")) return;
+  gradingRules.value.specificRules.splice(index, 1);
+}
+
+function addRuleRow(rulesArray) {
+  rulesArray.push({
+    min: 0,
+    max: 0,
+    predicate: "",
+    predicateAr: "",
+    descriptionId: "",
+    descriptionAr: "",
+  });
+}
+
+function removeRuleRow(rulesArray, index) {
+  rulesArray.splice(index, 1);
 }
 
 // Header Image Helpers
@@ -990,103 +1320,6 @@ async function setActiveSemester(semesterId) {
     showStatus("Gagal", e.message || "Gagal mengubah semester aktif", "error");
   } finally {
     loading.value = false;
-  }
-}
-
-async function addKkmConfig() {
-  const kkm = Number(newKkmValue.value);
-  if (!kkm) return;
-
-  // Check unique
-  if (
-    gradingRules.value.specificRules &&
-    gradingRules.value.specificRules.find((r) => r.kkm === kkm)
-  ) {
-    showStatus("Gagal", `Aturan untuk KKM ${kkm} sudah ada!`, "error");
-    return;
-  }
-
-  if (!gradingRules.value.specificRules) gradingRules.value.specificRules = [];
-
-  // Default Template
-  gradingRules.value.specificRules.push({
-    kkm,
-    rules: [
-      {
-        min: 92,
-        max: 100,
-        predicate: "A",
-        descriptionId: "Sangat Baik",
-        descriptionAr: "ممتاز",
-      },
-      {
-        min: 84,
-        max: 91,
-        predicate: "B",
-        descriptionId: "Baik",
-        descriptionAr: "جيد جدا",
-      },
-      {
-        min: 75,
-        max: 83,
-        predicate: "C",
-        descriptionId: "Cukup",
-        descriptionAr: "جيد",
-      },
-      {
-        min: 0,
-        max: 74,
-        predicate: "D",
-        descriptionId: "Kurang",
-        descriptionAr: "مقبول",
-      },
-      {
-        min: 0,
-        max: 0,
-        predicate: "E",
-        descriptionId: "Sangat Kurang",
-        descriptionAr: "ضعيف",
-      },
-    ],
-  });
-
-  newKkmValue.value = "";
-}
-
-function removeKkmConfig(index) {
-  if (confirm("Hapus aturan penilaian ini?")) {
-    gradingRules.value.specificRules.splice(index, 1);
-  }
-}
-
-function addRuleRow(rulesArray) {
-  rulesArray.push({
-    min: 0,
-    max: 0,
-    predicate: "",
-    predicateAr: "",
-    descriptionId: "",
-    descriptionAr: "",
-  });
-}
-
-function removeRuleRow(rulesArray, rIndex) {
-  rulesArray.splice(rIndex, 1);
-}
-
-async function saveGradingRules() {
-  savingRules.value = true;
-  try {
-    const res = await academicSettingsApi.saveGradingRules(gradingRules.value);
-    if (res.success) {
-      showStatus("Berhasil", "Aturan penilaian berhasil disimpan", "success");
-    } else {
-      throw new Error(res.message);
-    }
-  } catch (e) {
-    showStatus("Gagal", e.message || "Gagal menyimpan aturan", "error");
-  } finally {
-    savingRules.value = false;
   }
 }
 
