@@ -92,10 +92,9 @@ const submenuByMain = {
         children: [
           { label: "Kelas", route: "/apps/academic/classes" },
           { label: "Mata Pelajaran", route: "/apps/academic/subjects" },
-          { label: "Jadwal", route: "/apps/academic/schedules" },
+          // { label: "Jadwal", route: "/apps/academic/schedules" },
           { label: "Nilai", route: "/apps/academic/grades" },
-          { label: "Rapor", route: "/apps/academic/reports" },
-          { label: "Cetak Rapor", route: "/apps/academic/report-card" },
+          { label: "Rapor", route: "/apps/academic/report-card" },
           {
             label: "Catatan Wali Kelas",
             route: "/apps/academic/homeroom-notes",
@@ -110,7 +109,7 @@ const submenuByMain = {
           { label: "Mutaba'ah", route: "/apps/tahfidz/dashboard" },
           { label: "Input per Halaqah", route: "/apps/tahfidz/halaqah" },
           { label: "Ujian Tahfidz", route: "/apps/tahfidz/exams" },
-          { label: "Laporan & Sertifikat", route: "/apps/tahfidz/reports" },
+          { label: "Rapor", route: "/apps/tahfidz/reports" },
           { label: "Mading Halaqah", route: "/apps/tahfidz/mading" },
           { label: "Pengaturan Tahfidz", route: "/apps/tahfidz/settings" },
         ],

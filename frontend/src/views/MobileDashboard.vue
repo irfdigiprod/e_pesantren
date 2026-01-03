@@ -226,11 +226,11 @@ const groupedMenuItems = [
         icon: "solar:book-2-line-duotone",
         route: "/mobile-dashboard/subjects",
       },
-      {
-        label: "Jadwal",
-        icon: "solar:calendar-date-line-duotone",
-        route: "/mobile-dashboard/schedules",
-      },
+      // {
+      //   label: "Jadwal",
+      //   icon: "solar:calendar-date-line-duotone",
+      //   route: "/mobile-dashboard/schedules",
+      // },
       {
         label: "Nilai",
         icon: "solar:diploma-verified-line-duotone",
@@ -239,13 +239,13 @@ const groupedMenuItems = [
       {
         label: "Rapor",
         icon: "solar:document-text-line-duotone",
-        route: "/mobile-dashboard/academic-reports",
-      },
-      {
-        label: "Cetak Rapor",
-        icon: "solar:printer-line-duotone",
         route: "/mobile-dashboard/report-card",
       },
+      // {
+      //   label: "Cetak Rapor",
+      //   icon: "solar:printer-line-duotone",
+      //   route: "/mobile-dashboard/report-card",
+      // },
       {
         label: "Catatan", // Shortened for mobile grid
         icon: "solar:notebook-line-duotone",

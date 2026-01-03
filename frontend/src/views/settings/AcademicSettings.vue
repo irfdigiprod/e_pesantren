@@ -1165,7 +1165,7 @@ async function uploadFile(file) {
     const res = await uploadsApi.upload(file);
     if (res.success && res.data?.filePath) {
       headerForm.value.institutionLogo = res.data.filePath;
-      await saveHeaderSettings();
+      await saveHeaderSettings(false);
       showStatus("Berhasil", "Gambar kop surat berhasil diupload", "success");
     } else {
       throw new Error(res.message || "Upload gagal");
@@ -1184,11 +1184,11 @@ async function uploadFile(file) {
 
 async function removeHeader() {
   headerForm.value.institutionLogo = "";
-  await saveHeaderSettings();
+  await saveHeaderSettings(false);
   showStatus("Berhasil", "Gambar kop surat berhasil dihapus", "success");
 }
 
-async function saveHeaderSettings() {
+async function saveHeaderSettings(showSuccess = true) {
   savingHeader.value = true;
   try {
     await academicSettingsApi.updateReportHeader({
@@ -1196,6 +1196,9 @@ async function saveHeaderSettings() {
       principalName: headerForm.value.principalName,
       cityName: headerForm.value.cityName,
     });
+    if (showSuccess) {
+      showStatus("Berhasil", "Pengaturan header berhasil disimpan", "success");
+    }
   } catch (e) {
     console.error("Save header error:", e);
     showStatus(
