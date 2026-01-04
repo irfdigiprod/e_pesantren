@@ -198,6 +198,7 @@ function buildPdfHtml(
     .text-right { text-align: right !important; }
     .text-left { text-align: left !important; }
     [dir="rtl"] { text-align: right !important; }
+    .text-center[dir="rtl"] { text-align: center !important; }
     .text-xs { font-size: 10px; }
     .text-sm { font-size: 12px; }
     .text-base { font-size: 14px; }

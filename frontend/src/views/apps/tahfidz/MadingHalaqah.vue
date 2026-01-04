@@ -135,7 +135,7 @@
         >
           <div class="pdf-page-wrapper">
             <!-- Report Header -->
-            <div class="text-center border-b-2 border-slate-800 pb-4 mb-6">
+            <div class="text-center pb-4 mb-6">
               <h2 class="text-xl font-bold uppercase">
                 Pencapaian Hafalan Santri
               </h2>
@@ -282,9 +282,7 @@
                 <p class="mb-16">
                   Purwakarta, {{ currentDate }}<br />Pengampu Halaqah,
                 </p>
-                <p
-                  class="font-bold border-b border-slate-800 inline-block min-w-[150px]"
-                >
+                <p class="font-bold inline-block min-w-[150px]">
                   {{ report?.mentor?.fullName || "_______________" }}
                 </p>
               </div>
@@ -672,7 +670,6 @@ async function exportToExcel() {
   worksheet.getCell(`${signCol}${signRow}`).value = mentorName;
   worksheet.getCell(`${signCol}${signRow}`).font = {
     bold: true,
-    underline: true,
   };
 
   // Export

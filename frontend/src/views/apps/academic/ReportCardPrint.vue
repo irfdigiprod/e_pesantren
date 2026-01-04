@@ -1103,7 +1103,7 @@ async function handleDownloadPdf() {
       selector: "#report-page",
       filename: `Rapor_Akademik_${student.value.fullName}_${semester.value}_${academicYear.value}.pdf`,
       paddingMm: 10,
-      includeArabicFont: false,
+      includeArabicFont: true,
     });
   } catch (error) {
     console.error("PDF generation error:", error);
