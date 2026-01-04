@@ -2,7 +2,10 @@ import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { eq, and } from "drizzle-orm";
 import { db } from "../db";
-import { rewardsPunishments } from "../db/schema/rewards-punishments";
+import {
+  rewardsPunishments,
+  pointImages,
+} from "../db/schema/rewards-punishments";
 import { authMiddleware, requireRole } from "../middleware/auth";
 import {
   createRewardPunishmentSchema,
@@ -28,10 +31,12 @@ rewardsRoute.get("/rewards", async (c) => {
           eq(rewardsPunishments.type, "reward"),
           eq(rewardsPunishments.studentId, parseInt(studentId))
         ),
+        with: { student: { with: { class: true, room: true } } },
       });
     } else {
       records = await db.query.rewardsPunishments.findMany({
         where: eq(rewardsPunishments.type, "reward"),
+        with: { student: { with: { class: true, room: true } } },
       });
     }
 
@@ -90,7 +95,20 @@ rewardsRoute.post(
         date: data.date ? new Date(data.date) : new Date(),
         givenBy: user.userId,
         notes: data.notes,
+        ruleId: data.ruleId,
       });
+
+      const newId = Number(result[0].insertId);
+
+      // Insert images if present
+      if (data.images && data.images.length > 0) {
+        await db.insert(pointImages).values(
+          data.images.map((url) => ({
+            pointId: newId,
+            imageUrl: url,
+          }))
+        );
+      }
 
       const newRecord = await db.query.rewardsPunishments.findFirst({
         where: eq(rewardsPunishments.id, Number(result[0].insertId)),
@@ -207,10 +225,12 @@ rewardsRoute.get("/punishments", async (c) => {
           eq(rewardsPunishments.type, "punishment"),
           eq(rewardsPunishments.studentId, parseInt(studentId))
         ),
+        with: { student: { with: { class: true, room: true } } },
       });
     } else {
       records = await db.query.rewardsPunishments.findMany({
         where: eq(rewardsPunishments.type, "punishment"),
+        with: { student: { with: { class: true, room: true } } },
       });
     }
 
@@ -275,7 +295,20 @@ rewardsRoute.post(
         date: data.date ? new Date(data.date) : new Date(),
         givenBy: user.userId,
         notes: data.notes,
+        ruleId: data.ruleId,
       });
+
+      const newId = Number(result[0].insertId);
+
+      // Insert images if present
+      if (data.images && data.images.length > 0) {
+        await db.insert(pointImages).values(
+          data.images.map((url) => ({
+            pointId: newId,
+            imageUrl: url,
+          }))
+        );
+      }
 
       const newRecord = await db.query.rewardsPunishments.findFirst({
         where: eq(rewardsPunishments.id, Number(result[0].insertId)),
@@ -399,8 +432,11 @@ rewardsRoute.get("/", async (c) => {
         ? await db.query.rewardsPunishments.findMany({
             // @ts-ignore
             where: conditions.length === 1 ? conditions[0] : conditions,
+            with: { student: { with: { class: true, room: true } } },
           })
-        : await db.query.rewardsPunishments.findMany();
+        : await db.query.rewardsPunishments.findMany({
+            with: { student: { with: { class: true, room: true } } },
+          });
 
     return c.json({
       success: true,
@@ -452,5 +488,65 @@ rewardsRoute.get("/student/:studentId", async (c) => {
     return c.json({ success: false, message: "Failed to get records" }, 500);
   }
 });
+
+// Generic Create (handles both based on type)
+rewardsRoute.post(
+  "/",
+  requireRole("admin", "teacher", "staff"),
+  zValidator("json", createRewardPunishmentSchema),
+  async (c) => {
+    try {
+      const data = c.req.valid("json");
+      const user = c.get("user");
+
+      const type = data.type || "reward";
+      // Ensure points polarity
+      let points = data.points || 0;
+      if (type === "reward") {
+        points = Math.abs(points);
+      } else {
+        points = -Math.abs(points);
+      }
+
+      const result = await db.insert(rewardsPunishments).values({
+        studentId: data.studentId,
+        type: type as any,
+        category: data.category,
+        title: data.title,
+        description: data.description,
+        points: points,
+        date: data.date ? new Date(data.date) : new Date(),
+        givenBy: user.userId,
+        notes: data.notes,
+        ruleId: data.ruleId,
+      });
+
+      const newId = Number(result[0].insertId);
+
+      // Insert images if present
+      if (data.images && data.images.length > 0) {
+        await db.insert(pointImages).values(
+          data.images.map((url) => ({
+            pointId: newId,
+            imageUrl: url,
+          }))
+        );
+      }
+
+      const newRecord = await db.query.rewardsPunishments.findFirst({
+        where: eq(rewardsPunishments.id, Number(result[0].insertId)),
+      });
+
+      return c.json({
+        success: true,
+        message: type === "reward" ? "Reward added" : "Punishment added",
+        data: newRecord,
+      });
+    } catch (error) {
+      console.error("Create reward/punishment error:", error);
+      return c.json({ success: false, message: "Failed to save data" }, 500);
+    }
+  }
+);
 
 export default rewardsRoute;

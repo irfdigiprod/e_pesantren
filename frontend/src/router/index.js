@@ -468,9 +468,24 @@ const router = createRouter({
           meta: { requiresAdmin: true },
         },
         {
-          path: "apps/rewards",
-          name: "Rewards",
-          component: () => import("@/views/apps/Rewards.vue"),
+          path: "apps/rewards/rules",
+          name: "RulesSettings",
+          component: () => import("@/views/apps/rewards/RulesSettings.vue"),
+        },
+        {
+          path: "apps/rewards/entry",
+          name: "PointEntry",
+          component: () => import("@/views/apps/rewards/PointEntry.vue"),
+        },
+        {
+          path: "apps/rewards/warnings",
+          name: "WarningLetters",
+          component: () => import("@/views/apps/rewards/WarningLetters.vue"),
+        },
+        {
+          path: "apps/rewards/reports",
+          name: "RewardReport",
+          component: () => import("@/views/apps/rewards/RewardReport.vue"),
         },
         {
           path: "apps/halaqah",

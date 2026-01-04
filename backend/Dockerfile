@@ -8,6 +8,8 @@ RUN bun install --production
 # Install Chromium for PDF generation
 RUN apt-get update && apt-get install -y chromium \
     fonts-liberation \
+    fonts-noto \
+    fonts-noto-cjk \
     libasound2 \
     libatk-bridge2.0-0 \
     libatk1.0-0 \
@@ -47,6 +49,8 @@ RUN apt-get update && apt-get install -y chromium \
 ENV CHROME_PATH=/usr/bin/chromium
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+# Force use of installed fonts
+ENV LANG=C.UTF-8
 
 # Copy source code
 COPY . .

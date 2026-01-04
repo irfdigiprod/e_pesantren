@@ -48,10 +48,15 @@ export const permissionRequestsRelations = relations(
 
 import { students } from "./students";
 import { classes } from "./academic";
+import { rooms } from "./rooms";
 
 export const studentsRelations = relations(students, ({ one }) => ({
   class: one(classes, {
     fields: [students.classId],
     references: [classes.id],
+  }),
+  room: one(rooms, {
+    fields: [students.roomId],
+    references: [rooms.id],
   }),
 }));

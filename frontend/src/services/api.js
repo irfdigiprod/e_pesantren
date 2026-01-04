@@ -579,11 +579,85 @@ export const rewardsApi = {
   },
 
   async update(id, data) {
-    return request(`/api/rewards/${id}`, { method: "PUT", body: data });
+    const isPunishment = (data.type || "").toLowerCase() === "punishment";
+    const endpoint = isPunishment
+      ? `/api/punishments/${id}`
+      : `/api/rewards/rewards/${id}`;
+    return request(endpoint, { method: "PUT", body: data });
   },
 
+  async delete(id, type = "reward") {
+    const isPunishment = (type || "").toLowerCase() === "punishment";
+    const endpoint = isPunishment
+      ? `/api/punishments/${id}`
+      : `/api/rewards/rewards/${id}`;
+    return request(endpoint, { method: "DELETE" });
+  },
+};
+
+export const rulesApi = {
+  async getAll(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    const endpoint = query ? `/api/rules?${query}` : "/api/rules";
+    return request(endpoint);
+  },
+  async create(data) {
+    return request("/api/rules", { method: "POST", body: data });
+  },
+  async update(id, data) {
+    return request(`/api/rules/${id}`, { method: "PUT", body: data });
+  },
+  delete: (id) => request(`/api/rules/${id}`, { method: "DELETE" }),
+
+  async importPreview(formData) {
+    const token = getToken();
+    const res = await fetch(`${BASE_URL}/api/rules/import-preview`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data?.message || data?.error || "Preview failed");
+    }
+    return data;
+  },
+
+  async import(formData) {
+    const token = getToken();
+    const res = await fetch(`${BASE_URL}/api/rules/import`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data?.message || data?.error || "Import failed");
+    }
+    return data;
+  },
+};
+
+export const warningsApi = {
+  async getAll(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    const endpoint = query ? `/api/warnings?${query}` : "/api/warnings";
+    return request(endpoint);
+  },
+  async create(data) {
+    return request("/api/warnings", { method: "POST", body: data });
+  },
+  async update(id, data) {
+    return request(`/api/warnings/${id}`, { method: "PUT", body: data });
+  },
   async delete(id) {
-    return request(`/api/rewards/${id}`, { method: "DELETE" });
+    return request(`/api/warnings/${id}`, { method: "DELETE" });
   },
 };
 

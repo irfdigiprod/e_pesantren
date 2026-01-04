@@ -33,6 +33,8 @@ import {
   academicSettingsRoute,
   homeroomNotesRoute,
   pdfRoute,
+  rulesRoute,
+  warningsRoute,
 } from "./routes";
 
 import {
@@ -116,6 +118,8 @@ app.route("/api/information-board", informationBoardRoute);
 app.route("/api/academic-settings", academicSettingsRoute);
 app.route("/api/homeroom-notes", homeroomNotesRoute);
 app.route("/api/pdf", pdfRoute);
+app.route("/api/rules", rulesRoute);
+app.route("/api/warnings", warningsRoute);
 
 // 404 handler
 app.notFound((c) => {

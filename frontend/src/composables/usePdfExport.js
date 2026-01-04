@@ -153,19 +153,23 @@ function buildPdfHtml(
   ${latinFontLink}
   ${arabicFontLink}
   <style>
+    /* Import Fonts */
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&family=Noto+Sans:wght@400;600;700&display=swap');
+
     /* Reset */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     
     html, body { 
       margin: 0; 
       padding: 0;
-      font-family: 'Noto Sans', system-ui, -apple-system, sans-serif;
+      /* Ensure Cairo is in the global stack for fallbacks */
+      font-family: 'Noto Sans', 'Cairo', 'Arial', system-ui, -apple-system, sans-serif;
       background: white;
       font-size: 12px;
     }
     
-    /* Arabic font */
-    .font-arabic { font-family: "Cairo", sans-serif; }
+    /* Arabic font - explicit override with fallback */
+    .font-arabic { font-family: "Cairo", "Arial", "Segoe UI", sans-serif; }
     
     /* Container - backend will override with proper dimensions */
     .print-a4, #report-area, #print-area, #pdf-wrapper-root {

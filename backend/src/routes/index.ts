@@ -28,6 +28,8 @@ import informationBoardRoute from "./information-board";
 import academicSettingsRoute from "./academic-settings";
 import homeroomNotesRoute from "./homeroom-notes";
 import pdfRoute from "./pdf";
+import rulesRoute from "./rules";
+import warningsRoute from "./warnings";
 
 export {
   authRoute,
@@ -59,4 +61,6 @@ export {
   academicSettingsRoute,
   homeroomNotesRoute,
   pdfRoute,
+  rulesRoute,
+  warningsRoute,
 };

@@ -81,9 +81,18 @@ const submenuByMain = {
         icon: "solar:user-circle-line-duotone",
         children: [
           { label: "Data Santri", route: "/apps/students" },
-          { label: "Kamar", route: "/apps/rooms" },
-          { label: "Penghargaan", route: "/apps/rewards" },
           { label: "Absensi Santri", route: "/apps/attendance" },
+          { label: "Kamar", route: "/apps/rooms" },
+        ],
+      },
+      {
+        label: "Kedisiplinan",
+        icon: "solar:medal-ribbons-star-line-duotone",
+        children: [
+          { label: "Input Poin", route: "/apps/rewards/entry" },
+          { label: "SP (Surat Peringatan)", route: "/apps/rewards/warnings" },
+          { label: "Laporan", route: "/apps/rewards/reports" },
+          { label: "Aturan Poin", route: "/apps/rewards/rules" },
         ],
       },
       {

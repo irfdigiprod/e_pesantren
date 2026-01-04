@@ -2,7 +2,10 @@ import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { eq, and } from "drizzle-orm";
 import { db } from "../db";
-import { rewardsPunishments } from "../db/schema/rewards-punishments";
+import {
+  rewardsPunishments,
+  pointImages,
+} from "../db/schema/rewards-punishments";
 import { authMiddleware, requireRole } from "../middleware/auth";
 import {
   createRewardPunishmentSchema,
@@ -127,7 +130,20 @@ punishmentsRoute.post(
         date: data.date ? new Date(data.date) : new Date(),
         givenBy: user.userId,
         notes: data.notes,
+        ruleId: data.ruleId,
       });
+
+      const newId = Number(result[0].insertId);
+
+      // Insert images if present
+      if (data.images && data.images.length > 0) {
+        await db.insert(pointImages).values(
+          data.images.map((url) => ({
+            pointId: newId,
+            imageUrl: url,
+          }))
+        );
+      }
 
       const newRecord = await db.query.rewardsPunishments.findFirst({
         where: eq(rewardsPunishments.id, Number(result[0].insertId)),
