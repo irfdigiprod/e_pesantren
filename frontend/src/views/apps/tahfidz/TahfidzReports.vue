@@ -26,8 +26,21 @@
                   v-model="searchQuery"
                   @focus="showDropdown = true"
                   @input="filterStudents"
-                  placeholder="Cari santri..."
-                  class="w-full px-3 py-2 border rounded-lg focus:ring-2 ring-[#602515]/20 outline-none"
+                  :placeholder="
+                    isLoadingStudents ? 'Memuat data...' : 'Cari Nama/NIS...'
+                  "
+                  :disabled="isLoadingStudents"
+                  class="pl-10 pr-4 py-2 border rounded-lg focus:ring-2 ring-emerald-500/20 focus:border-emerald-500 w-full disabled:bg-slate-50 disabled:text-slate-400"
+                />
+                <Icon
+                  v-if="isLoadingStudents"
+                  icon="svg-spinners:ring-resize"
+                  class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                />
+                <Icon
+                  v-else
+                  icon="solar:magnifer-linear"
+                  class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
                 />
                 <button
                   v-if="student"
@@ -42,8 +55,9 @@
                 v-if="showDropdown && filteredStudents.length > 0"
                 class="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto"
               >
+                <!-- Limit to 20 results for performance -->
                 <div
-                  v-for="s in filteredStudents"
+                  v-for="s in filteredStudents.slice(0, 20)"
                   :key="s.id"
                   @click="selectStudent(s)"
                   class="px-4 py-2 hover:bg-slate-50 cursor-pointer text-sm text-slate-700 border-b border-slate-50 flex flex-col"
@@ -53,6 +67,13 @@
                     >{{ s.nis || "-" }} •
                     {{ s.class?.name || "Belum ada kelas" }}</span
                   >
+                </div>
+                <div
+                  v-if="filteredStudents.length > 20"
+                  class="px-4 py-2 text-xs text-center text-slate-400 italic bg-slate-50"
+                >
+                  Ditampilkan 20 dari {{ filteredStudents.length }} santri.
+                  Ketik untuk mencari.
                 </div>
               </div>
             </div>
@@ -1142,7 +1163,10 @@ function getUkjPredicate(juz) {
 }
 
 // --- DATA LOADING ---
+const isLoadingStudents = ref(false);
+
 async function loadStudents() {
+  isLoadingStudents.value = true;
   try {
     const res = await studentsApi.getAll({ limit: 1000 });
     if (res.data) {
@@ -1151,6 +1175,8 @@ async function loadStudents() {
     }
   } catch (e) {
     console.error("Failed to load students:", e);
+  } finally {
+    isLoadingStudents.value = false;
   }
 }
 
@@ -1265,6 +1291,13 @@ const { exportToPdf, pdfLoading } = usePdfExport();
 
 async function handleDownloadPdf() {
   if (!student.value) return;
+
+  // Verify element exists
+  const element = document.getElementById("report-area");
+  if (!element) {
+    alert("Halaman rapor belum siap. Mohon tunggu sebentar.");
+    return;
+  }
 
   try {
     await exportToPdf({

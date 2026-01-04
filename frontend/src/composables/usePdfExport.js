@@ -37,30 +37,51 @@ export function usePdfExport() {
       throw new Error(`Element not found: ${selector}`);
     }
 
+    // Helper to convert images to Base64
+    async function convertImagesToBase64(element) {
+      const images = element.querySelectorAll("img");
+      const promises = Array.from(images).map(async (img) => {
+        try {
+          // If already base64, skip
+          if (img.src.startsWith("data:")) return;
+
+          // Fetch blob
+          const response = await fetch(img.src);
+          const blob = await response.blob();
+
+          // Convert to base64
+          return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              img.src = reader.result;
+              resolve();
+            };
+            reader.readAsDataURL(blob);
+          });
+        } catch (e) {
+          console.warn("[PDF] Failed to convert image to base64:", img.src, e);
+        }
+      });
+      await Promise.all(promises);
+    }
+
     pdfLoading.value = true;
     try {
-      // Reset any transforms to get clean HTML
-      const originalStyles = {
-        transform: element.style.transform,
-        position: element.style.position,
-        left: element.style.left,
-        top: element.style.top,
-      };
+      // 1. Clone element to avoid modifying the DOM visibly
+      const clone = element.cloneNode(true);
 
-      element.style.transform = "";
-      element.style.position = "";
-      element.style.left = "";
-      element.style.top = "";
+      // 2. Convert images in the clone
+      await convertImagesToBase64(clone);
 
-      // Get INNER HTML and className
-      const contentHtml = element.innerHTML;
-      const className = element.className;
+      // 3. Reset transforms on clone (if copied from source)
+      clone.style.transform = "";
+      clone.style.position = "";
+      clone.style.left = "";
+      clone.style.top = "";
 
-      // Restore original styles
-      element.style.transform = originalStyles.transform;
-      element.style.position = originalStyles.position;
-      element.style.left = originalStyles.left;
-      element.style.top = originalStyles.top;
+      // 4. Get HTML from clone
+      const contentHtml = clone.innerHTML;
+      const className = element.className; // Use original class name
 
       console.log("[PDF] Sending HTML to backend for auto-scaling...");
 
@@ -117,6 +138,10 @@ function buildPdfHtml(
     ? '<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">'
     : "";
 
+  // Inject Latin font (Noto Sans) for consistent rendering on server
+  const latinFontLink =
+    '<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600;700&display=swap" rel="stylesheet">';
+
   // Extract element ID from selector (e.g., #report-page -> report-page)
   const elementId = selector.startsWith("#") ? selector.slice(1) : "content";
 
@@ -125,6 +150,7 @@ function buildPdfHtml(
 <html>
 <head>
   <meta charset="UTF-8">
+  ${latinFontLink}
   ${arabicFontLink}
   <style>
     /* Reset */
@@ -133,7 +159,7 @@ function buildPdfHtml(
     html, body { 
       margin: 0; 
       padding: 0;
-      font-family: system-ui, -apple-system, sans-serif;
+      font-family: 'Noto Sans', system-ui, -apple-system, sans-serif;
       background: white;
       font-size: 12px;
     }

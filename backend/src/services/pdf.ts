@@ -206,27 +206,21 @@ export async function generatePdfFromHtml(
       )}px`
     );
 
-    // Step 3: Calculate scale to fit
+    // Calculate scale to fit width/height
     const scaleW = printableW / contentSize.width;
     const scaleH = printableH / contentSize.height;
     const scale = Math.min(scaleW, scaleH, 1);
 
-    // Calculate visual size after scaling
-    const visualW = contentSize.width * scale;
-    const visualH = contentSize.height * scale;
+    // Use full A4 dimensions for centering
+    // For vertical centering, we can still use offset or just top margin
+    // But for horizontal, let's use robust CSS transform: left 50% + translateX(-50%)
 
-    // Calculate offset for PERFECT centering within full A4 page
-    // Use full A4 dimensions for centering (not printable area)
-    const offsetX = (A4_W - visualW) / 2;
+    // Recalculate vertical offset if we want vertical centering
+    const visualH = contentSize.height * scale;
     const offsetY = (A4_H - visualH) / 2;
 
     console.log(`[PDF] Scale: ${scale.toFixed(5)}`);
-    console.log(
-      `[PDF] Visual size: ${visualW.toFixed(0)}x${visualH.toFixed(0)}px`
-    );
-    console.log(
-      `[PDF] Offset: X=${offsetX.toFixed(1)}px, Y=${offsetY.toFixed(1)}px`
-    );
+    // console.log(`[PDF] Offset Y: ${offsetY.toFixed(1)}px`);
 
     // Step 4: Set viewport to A4 size
     await page.setViewport({
@@ -251,11 +245,12 @@ export async function generatePdfFromHtml(
         
         /* Apply scale and position to content */
         ${waitForSelector} {
+          width: ${contentSize.width}px !important; /* Force width to prevent collapse */
           position: absolute !important;
-          left: ${offsetX}px !important;
-          top: ${offsetY}px !important;
-          transform: scale(${scale}) !important;
-          transform-origin: top left !important;
+          left: 50% !important;
+          top: ${offsetY}px !important; /* Vertically centered */
+          transform: translateX(-50%) scale(${scale}) !important;
+          transform-origin: top center !important;
           margin: 0 !important;
         }
       `,

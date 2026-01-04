@@ -724,6 +724,13 @@ const { exportToPdf, pdfLoading } = usePdfExport();
 async function handleDownloadPdf() {
   if (!report.value || !report.value.members.length) return;
 
+  // Verify element exists
+  const element = document.getElementById("print-area");
+  if (!element) {
+    alert("Halaman mading belum siap. Mohon tunggu sebentar.");
+    return;
+  }
+
   try {
     await exportToPdf({
       selector: "#print-area",

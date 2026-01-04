@@ -14,20 +14,32 @@
           <label class="block text-sm font-medium text-slate-700 mb-1"
             >Pilih Santri</label
           >
-          <input
-            type="text"
-            v-model="searchQuery"
-            @focus="showDropdown = true"
-            @input="filterStudents"
-            placeholder="Cari santri..."
-            class="w-full px-3 py-2 border rounded-lg focus:ring-2 ring-[#602515]/20 outline-none"
-          />
+          <div class="relative">
+            <input
+              type="text"
+              v-model="searchQuery"
+              @focus="showDropdown = true"
+              @input="filterStudents"
+              :placeholder="
+                isLoadingStudents ? 'Memuat data...' : 'Cari santri...'
+              "
+              :disabled="isLoadingStudents"
+              class="w-full px-3 py-2 border rounded-lg focus:ring-2 ring-[#602515]/20 outline-none disabled:bg-slate-50 disabled:text-slate-400"
+            />
+            <div
+              v-if="isLoadingStudents"
+              class="absolute right-3 top-1/2 -translate-y-1/2"
+            >
+              <Icon icon="svg-spinners:ring-resize" class="text-slate-400" />
+            </div>
+          </div>
           <div
             v-if="showDropdown && filteredStudents.length > 0"
             class="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto"
           >
+            <!-- Limit rendering to top 20 for performance -->
             <div
-              v-for="s in filteredStudents"
+              v-for="s in filteredStudents.slice(0, 20)"
               :key="s.id"
               @click="selectStudent(s)"
               class="flex align-center flex-col px-4 py-2 hover:bg-slate-50 cursor-pointer text-sm"
@@ -36,6 +48,13 @@
               <span class="text-xs text-slate-400"
                 >{{ s.nis }} • {{ s.class?.name || "-" }}</span
               >
+            </div>
+            <div
+              v-if="filteredStudents.length > 20"
+              class="px-4 py-2 text-xs text-center text-slate-400 italic bg-slate-50 border-t"
+            >
+              Ditampilkan 20 dari {{ filteredStudents.length }} santri. Ketik
+              untuk mencari.
             </div>
           </div>
         </div>
@@ -824,13 +843,20 @@ async function loadFilters() {
   }
 }
 
+const isLoadingStudents = ref(false);
+
 async function loadStudents() {
+  isLoadingStudents.value = true;
   try {
     const res = await studentsApi.getAll({ limit: 1000 });
-    allStudents.value = res.data || [];
-    filteredStudents.value = allStudents.value.slice(0, 10);
+    if (res.data) {
+      allStudents.value = res.data;
+      filteredStudents.value = res.data;
+    }
   } catch (e) {
-    console.error("Error loading students:", e);
+    console.error("Failed to load students:", e);
+  } finally {
+    isLoadingStudents.value = false;
   }
 }
 
@@ -1065,17 +1091,23 @@ const { exportToPdf, pdfLoading } = usePdfExport();
 async function handleDownloadPdf() {
   if (!student.value) return;
 
+  // Verify element exists
+  const element = document.getElementById("report-page");
+  if (!element) {
+    alert("Halaman rapor belum siap. Mohon tunggu sebentar.");
+    return;
+  }
+
   try {
     await exportToPdf({
       selector: "#report-page",
-      filename: `Rapor_${student.value.fullName}_Semester${semester.value}_${academicYear.value}.pdf`,
-      paddingMm: 5,
-      includeArabicFont: true,
+      filename: `Rapor_Akademik_${student.value.fullName}_${semester.value}_${academicYear.value}.pdf`,
+      paddingMm: 10,
+      includeArabicFont: false,
     });
-    // showStatus("Berhasil", "PDF berhasil di-download", "success");
   } catch (error) {
     console.error("PDF generation error:", error);
-    showStatus("Gagal", error.message || "Gagal generate PDF", "error");
+    alert("Gagal generate PDF: " + error.message);
   }
 }
 
