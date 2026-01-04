@@ -509,6 +509,25 @@ const router = createRouter({
         },
         // Clinic Routes
         {
+          path: "apps/clinic",
+          redirect: "apps/clinic/dashboard",
+        },
+        {
+          path: "apps/clinic/dashboard",
+          name: "ClinicDashboard",
+          component: () => import("@/views/apps/clinic/Dashboard.vue"),
+        },
+        {
+          path: "apps/clinic/patients",
+          name: "ClinicPatients",
+          component: () => import("@/views/apps/clinic/Patients.vue"),
+        },
+        {
+          path: "apps/clinic/reports",
+          name: "ClinicReports",
+          component: () => import("@/views/apps/clinic/Reports.vue"),
+        },
+        {
           path: "apps/clinic/medicines",
           name: "Medicines",
           component: () => import("@/views/apps/clinic/Medicines.vue"),
@@ -522,6 +541,11 @@ const router = createRouter({
           path: "apps/clinic/examinations",
           name: "Examinations",
           component: () => import("@/views/apps/clinic/Examinations.vue"),
+        },
+        {
+          path: "apps/clinic/rooms",
+          name: "ClinicRooms",
+          component: () => import("@/views/apps/clinic/Rooms.vue"),
         },
         // Academic Routes
         {

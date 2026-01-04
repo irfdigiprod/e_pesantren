@@ -10,7 +10,7 @@
           Rekapitulasi poin penghargaan dan pelanggaran santri.
         </p>
       </div>
-      <div class="flex gap-2">
+      <!-- <div class="flex gap-2">
         <button
           @click="printReport"
           class="px-4 py-2 border border-slate-300 rounded-lg text-slate-700 bg-white hover:bg-slate-50 flex items-center gap-2"
@@ -18,7 +18,7 @@
           <Icon icon="solar:printer-bold" />
           Cetak Laporan
         </button>
-      </div>
+      </div> -->
     </div>
 
     <!-- Stats Cards -->

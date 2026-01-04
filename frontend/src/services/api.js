@@ -88,7 +88,7 @@ async function parseResponse(res) {
 /**
  * Make API request
  */
-async function request(endpoint, options = {}) {
+export async function request(endpoint, options = {}) {
   const {
     method = "GET",
     body = null,
@@ -727,6 +727,22 @@ export const clinicApi = {
   },
   async deleteExamination(id) {
     return request(`/api/clinic/examinations/${id}`, { method: "DELETE" });
+  },
+
+  // Rooms
+  async getRooms(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    const endpoint = query ? `/api/clinic/rooms?${query}` : "/api/clinic/rooms";
+    return request(endpoint);
+  },
+  async createRoom(data) {
+    return request("/api/clinic/rooms", { method: "POST", body: data });
+  },
+  async updateRoom(id, data) {
+    return request(`/api/clinic/rooms/${id}`, { method: "PUT", body: data });
+  },
+  async deleteRoom(id) {
+    return request(`/api/clinic/rooms/${id}`, { method: "DELETE" });
   },
 };
 

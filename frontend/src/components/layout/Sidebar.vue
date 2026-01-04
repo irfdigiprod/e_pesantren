@@ -91,7 +91,7 @@ const submenuByMain = {
         children: [
           { label: "Input Poin", route: "/apps/rewards/entry" },
           { label: "SP (Surat Peringatan)", route: "/apps/rewards/warnings" },
-          { label: "Laporan", route: "/apps/rewards/reports" },
+          { label: "Data R&P", route: "/apps/rewards/reports" },
           { label: "Aturan Poin", route: "/apps/rewards/rules" },
         ],
       },
@@ -127,8 +127,12 @@ const submenuByMain = {
         label: "Klinik",
         icon: "solar:stethoscope-line-duotone",
         children: [
+          { label: "Dashboard", route: "/apps/clinic/dashboard" },
+          { label: "Data Pasien", route: "/apps/clinic/patients" },
           { label: "Obat-obatan", route: "/apps/clinic/medicines" },
+          { label: "Laporan", route: "/apps/clinic/reports" },
           { label: "Rawat Inap", route: "/apps/clinic/inpatients" },
+          { label: "Manajemen Kamar", route: "/apps/clinic/rooms" },
           { label: "Pemeriksaan", route: "/apps/clinic/examinations" },
         ],
       },
