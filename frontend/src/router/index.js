@@ -81,7 +81,7 @@ const router = createRouter({
           path: "attendance",
           name: "MobileAttendance",
           component: () => import("@/views/apps/TeacherAttendance.vue"),
-          meta: { title: "Absensi Guru" },
+          meta: { title: "Absensi Guru", blockedRoles: ["student", "parent"] },
         },
         {
           path: "permissions",
@@ -502,6 +502,7 @@ const router = createRouter({
           path: "apps/teacher-attendance",
           name: "TeacherAttendance",
           component: () => import("@/views/apps/TeacherAttendance.vue"),
+          meta: { blockedRoles: ["student", "parent"] },
         },
         {
           path: "apps/salary-report",
@@ -802,6 +803,23 @@ router.beforeEach((to, from, next) => {
   // User login mencoba ke login/register → redirect ke dashboard
   if (token && isAuthPage) {
     return next("/apps/teacher-attendance");
+  }
+
+  // Check blockedRoles - redirect blocked users
+  if (to.meta.blockedRoles) {
+    const userStr = localStorage.getItem("user");
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        if (to.meta.blockedRoles.includes(user.role)) {
+          // Redirect based on current path context
+          const isMobile = to.path.startsWith("/mobile-dashboard");
+          return next(isMobile ? "/mobile-dashboard" : "/");
+        }
+      } catch (e) {
+        console.error("Failed to parse user from localStorage", e);
+      }
+    }
   }
 
   // Lainnya → lanjut

@@ -66,8 +66,136 @@
       </div>
     </div>
 
-    <!-- Real Content Wrapper -->
-    <div v-else class="space-y-4">
+    <!-- Access Denied: No Teacher Record (Admin/Staff/Clinic without attendance obligation) -->
+    <div
+      v-else-if="accessStatus === 'no_teacher_record'"
+      class="bg-white rounded-2xl shadow-sm p-6 text-center"
+    >
+      <div
+        class="w-16 h-16 mx-auto mb-4 rounded-full bg-amber-100 flex items-center justify-center"
+      >
+        <Icon icon="lucide:info" class="w-8 h-8 text-amber-600" />
+      </div>
+      <h2 class="text-lg font-semibold text-slate-800 mb-2">Informasi</h2>
+      <p class="text-slate-600 text-sm mb-4">
+        Anda login sebagai
+        <span class="font-medium capitalize">{{ currentUser?.role }}</span
+        >.
+      </p>
+      <p class="text-slate-500 text-sm mb-6">
+        Halaman ini ditujukan untuk guru/pengajar yang wajib melakukan absensi
+        harian. Untuk melihat dan mengelola data absensi seluruh guru, silakan
+        kunjungi halaman Rekap Absensi.
+      </p>
+      <button
+        @click="router.push('/mobile-dashboard/attendance-recap')"
+        class="px-6 py-2.5 bg-amber-600 text-white font-medium rounded-full hover:bg-amber-700 transition-colors inline-flex items-center gap-2"
+      >
+        <Icon icon="lucide:bar-chart-3" class="w-4 h-4" />
+        Lihat Rekap Absensi
+      </button>
+    </div>
+
+    <!-- Access Denied: Data Error (Teacher role but no teacher record) -->
+    <div
+      v-else-if="accessStatus === 'data_error'"
+      class="bg-white rounded-2xl shadow-sm p-6 text-center"
+    >
+      <div
+        class="w-16 h-16 mx-auto mb-4 rounded-full bg-rose-100 flex items-center justify-center"
+      >
+        <Icon icon="lucide:alert-triangle" class="w-8 h-8 text-rose-600" />
+      </div>
+      <h2 class="text-lg font-semibold text-slate-800 mb-2">
+        Data Tidak Lengkap
+      </h2>
+      <p class="text-slate-600 text-sm mb-4">
+        Akun Anda terdaftar sebagai guru, namun data kepegawaian belum tersedia
+        di sistem.
+      </p>
+      <p class="text-slate-500 text-sm mb-6">
+        Silakan hubungi administrator untuk melengkapi data kepegawaian Anda
+        agar dapat melakukan absensi.
+      </p>
+      <button
+        @click="router.push('/mobile-dashboard')"
+        class="px-6 py-2.5 bg-slate-600 text-white font-medium rounded-full hover:bg-slate-700 transition-colors inline-flex items-center gap-2"
+      >
+        <Icon icon="lucide:arrow-left" class="w-4 h-4" />
+        Kembali ke Dashboard
+      </button>
+    </div>
+
+    <!-- Real Content Wrapper (only shown when authorized) -->
+    <div v-else-if="accessStatus === 'authorized'" class="space-y-4">
+      <!-- GPS Accuracy Status Bar -->
+      <div
+        class="bg-white rounded-xl px-4 py-3 shadow-sm flex items-center justify-between"
+      >
+        <div class="flex items-center gap-3">
+          <Icon icon="lucide:satellite" class="w-5 h-5 text-slate-400" />
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-medium text-slate-700">
+                GPS:
+                <span :class="accuracyStatus.color">{{
+                  accuracyStatus.label
+                }}</span>
+              </span>
+              <span v-if="gpsAccuracy !== null" class="text-xs text-slate-400">
+                (±{{ Math.round(gpsAccuracy) }}m)
+              </span>
+            </div>
+            <!-- Message based on accuracy status -->
+            <p
+              v-if="accuracyStatus.level === 'exceeded'"
+              class="text-xs text-rose-600 mt-0.5 font-medium"
+            >
+              ⛔ Akurasi melebihi batas (max ±{{
+                settings.accuracyTolerance
+              }}m). Absen tidak dapat dilakukan.
+            </p>
+            <p
+              v-else-if="
+                accuracyStatus.level === 'poor' ||
+                accuracyStatus.level === 'very_poor'
+              "
+              class="text-xs text-orange-600 mt-0.5"
+            >
+              💡 Coba ke area terbuka untuk akurasi lebih baik
+            </p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <!-- Show distance or "tidak dapat dikonfirmasi" if exceeded -->
+          <template v-if="accuracyStatus.level === 'exceeded'">
+            <span class="text-sm font-medium text-rose-600"
+              >Tidak dapat dikonfirmasi</span
+            >
+            <Icon icon="lucide:alert-triangle" class="w-4 h-4 text-rose-500" />
+          </template>
+          <template v-else>
+            <span class="text-xs text-slate-400">Jarak:</span>
+            <span
+              class="text-sm font-semibold"
+              :class="isWithinRadius ? 'text-emerald-600' : 'text-slate-600'"
+            >
+              {{ distance !== null ? formatDistance(distance) : "..." }}
+            </span>
+            <Icon
+              v-if="isWithinRadius"
+              icon="lucide:check-circle"
+              class="w-4 h-4 text-emerald-500"
+            />
+            <Icon
+              v-else-if="distance !== null"
+              icon="lucide:x-circle"
+              class="w-4 h-4 text-rose-400"
+            />
+          </template>
+        </div>
+      </div>
+
       <!-- Check In/Out Cards -->
       <div class="grid grid-cols-2 gap-3">
         <!-- Masuk Card -->
@@ -709,6 +837,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, computed, reactive } from "vue";
+import { useRouter } from "vue-router";
 import { Icon } from "@iconify/vue";
 import {
   attendanceApi,
@@ -723,16 +852,23 @@ import StatusModal from "@/components/ui/StatusModal.vue";
 import { VueDatePicker } from "@vuepic/vue-datepicker";
 import "@vuepic/vue-datepicker/dist/main.css";
 
+// Router for redirects
+const router = useRouter();
+
 // State
 const attendances = ref([]);
 const loading = ref(true);
 const savingCheckIn = ref(false);
 const savingCheckOut = ref(false);
 const distance = ref(null);
+const gpsAccuracy = ref(null); // GPS accuracy in meters
 const locationError = ref("");
 // Reactive current time (full Date object)
 const now = useNow();
 const isComponentMounted = ref(false);
+
+// Access Status: 'loading' | 'authorized' | 'no_teacher_record' | 'data_error'
+const accessStatus = ref("loading");
 
 // Formatted time string for header clock
 const currentTime = useDateFormat(now, "HH:mm:ss");
@@ -746,6 +882,7 @@ const settings = ref({
   latitude: 0,
   longitude: 0,
   radius: 100,
+  accuracyTolerance: 50, // Max GPS accuracy tolerance in meters
   activityTypes: [],
   periodStart: 25, // Default cutoff
   periodEnd: 24,
@@ -992,6 +1129,7 @@ async function fetchSettings() {
       "attendance_latitude",
       "attendance_longitude",
       "attendance_radius",
+      "attendance_accuracy_tolerance",
       "attendance_activities",
       "attendance_period_start",
       "attendance_period_end",
@@ -1006,6 +1144,10 @@ async function fetchSettings() {
         settings.value.longitude = parseFloat(res.data.attendance_longitude);
       if (res.data.attendance_radius)
         settings.value.radius = parseInt(res.data.attendance_radius);
+      if (res.data.attendance_accuracy_tolerance)
+        settings.value.accuracyTolerance = parseInt(
+          res.data.attendance_accuracy_tolerance
+        );
       if (res.data.attendance_activities)
         settings.value.activityTypes = JSON.parse(
           res.data.attendance_activities
@@ -1036,9 +1178,65 @@ async function fetchSettings() {
 let geoId;
 const currentPos = ref({ lat: null, lng: null });
 
+// Smart tolerance: Consider GPS accuracy when determining if user is within radius
+// Uses "minimum possible distance" = calculated distance - accuracy (benefit of the doubt)
+// Accuracy tolerance is now configurable via settings
+
+// Check if GPS accuracy exceeds configured tolerance (too poor to use)
+const isGpsAccuracyTooLow = computed(() => {
+  if (gpsAccuracy.value === null) return false;
+  return gpsAccuracy.value > settings.value.accuracyTolerance;
+});
+
 const isWithinRadius = computed(() => {
   if (distance.value === null) return false;
-  return distance.value <= settings.value.radius;
+
+  // If GPS accuracy is too poor, we can't reliably determine location
+  if (isGpsAccuracyTooLow.value) return false;
+
+  // Calculate effective distance considering GPS accuracy
+  let effectiveDistance = distance.value;
+
+  if (gpsAccuracy.value !== null && gpsAccuracy.value > 0) {
+    // Apply tolerance: use minimum possible distance (capped at configured tolerance)
+    const tolerance = Math.min(
+      gpsAccuracy.value,
+      settings.value.accuracyTolerance
+    );
+    effectiveDistance = Math.max(0, distance.value - tolerance);
+  }
+
+  return effectiveDistance <= settings.value.radius;
+});
+
+// Computed for accuracy status display
+const accuracyStatus = computed(() => {
+  const tolerance = settings.value.accuracyTolerance;
+
+  if (gpsAccuracy.value === null)
+    return { level: "unknown", label: "Mencari...", color: "text-slate-400" };
+
+  // Check if exceeds configured tolerance
+  if (gpsAccuracy.value > tolerance)
+    return {
+      level: "exceeded",
+      label: "Terlalu Rendah",
+      color: "text-rose-600",
+    };
+
+  if (gpsAccuracy.value <= 10)
+    return {
+      level: "excellent",
+      label: "Sangat Akurat",
+      color: "text-emerald-600",
+    };
+  if (gpsAccuracy.value <= 30)
+    return { level: "good", label: "Akurat", color: "text-emerald-500" };
+  if (gpsAccuracy.value <= 50)
+    return { level: "fair", label: "Cukup", color: "text-amber-500" };
+  if (gpsAccuracy.value <= 100)
+    return { level: "poor", label: "Rendah", color: "text-orange-500" };
+  return { level: "very_poor", label: "Sangat Rendah", color: "text-rose-500" };
 });
 
 const canCheckIn = computed(() => {
@@ -1079,7 +1277,8 @@ const formattedToday = computed(() => {
 
 // Helper: Haversine Formula
 function getDistanceFromLatLonInMeters(lat1, lon1, lat2, lon2) {
-  if (!lat1 || !lon1 || !lat2 || !lon2) return 0;
+  // Use proper null/undefined check instead of truthy (0 is a valid coordinate)
+  if (lat1 == null || lon1 == null || lat2 == null || lon2 == null) return null;
   const R = 6371e3;
   const dLat = deg2rad(lat2 - lat1);
   const dLon = deg2rad(lon2 - lon1);
@@ -1129,10 +1328,23 @@ async function fetchUser() {
       });
       if (teacherRes?.data?.length > 0) {
         currentTeacher.value = teacherRes.data[0];
+        accessStatus.value = "authorized";
+      } else {
+        // No teacher record found
+        if (currentUser.value.role === "teacher") {
+          // Role is teacher but no data in teachers table - this is a data error
+          accessStatus.value = "data_error";
+        } else {
+          // Admin/Staff/Clinic without teacher record - they just can't check attendance
+          accessStatus.value = "no_teacher_record";
+        }
       }
+    } else {
+      accessStatus.value = "no_teacher_record";
     }
   } catch (e) {
     console.error("Failed to get user", e);
+    accessStatus.value = "no_teacher_record";
   }
 }
 
@@ -1290,6 +1502,7 @@ async function handleCheckIn() {
     const pos = await getCurrentPosition();
     const lat = pos.coords.latitude;
     const lng = pos.coords.longitude;
+    const accuracy = pos.coords.accuracy; // GPS accuracy in meters
 
     // Validate distance locally
     const dist = getDistanceFromLatLonInMeters(
@@ -1301,8 +1514,24 @@ async function handleCheckIn() {
 
     distance.value = dist; // Update UI distance
     currentPos.value = { lat, lng }; // Update UI position
+    gpsAccuracy.value = accuracy; // Update UI accuracy
 
-    if (dist > settings.value.radius) {
+    // Apply smart tolerance to local validation (same as backend)
+    const configuredTolerance = settings.value.accuracyTolerance;
+
+    // Check if GPS accuracy exceeds configured tolerance
+    if (accuracy > configuredTolerance) {
+      throw new Error(
+        `Akurasi GPS terlalu rendah (±${Math.round(
+          accuracy
+        )}m). Maksimum: ±${configuredTolerance}m. Coba pindah ke area terbuka.`
+      );
+    }
+
+    const tolerance = Math.min(accuracy, configuredTolerance);
+    const effectiveDistance = Math.max(0, dist - tolerance);
+
+    if (effectiveDistance > settings.value.radius) {
       throw new Error(
         `Anda berada di luar radius absensi (${formatDistance(dist)})`
       );
@@ -1313,6 +1542,7 @@ async function handleCheckIn() {
       checkInTime: new Date().toTimeString().slice(0, 5),
       latitude: lat,
       longitude: lng,
+      accuracy: accuracy, // Send accuracy to backend
       distance: dist,
       activity: selectedActivity.value,
     };
@@ -1347,6 +1577,7 @@ async function handleCheckOut() {
     const pos = await getCurrentPosition();
     const lat = pos.coords.latitude;
     const lng = pos.coords.longitude;
+    const accuracy = pos.coords.accuracy; // GPS accuracy in meters
 
     // Validate distance locally
     const dist = getDistanceFromLatLonInMeters(
@@ -1358,8 +1589,24 @@ async function handleCheckOut() {
 
     distance.value = dist;
     currentPos.value = { lat, lng };
+    gpsAccuracy.value = accuracy; // Update UI accuracy
 
-    if (dist > settings.value.radius) {
+    // Apply smart tolerance to local validation (same as backend)
+    const configuredTolerance = settings.value.accuracyTolerance;
+
+    // Check if GPS accuracy exceeds configured tolerance
+    if (accuracy > configuredTolerance) {
+      throw new Error(
+        `Akurasi GPS terlalu rendah (±${Math.round(
+          accuracy
+        )}m). Maksimum: ±${configuredTolerance}m. Coba pindah ke area terbuka.`
+      );
+    }
+
+    const tolerance = Math.min(accuracy, configuredTolerance);
+    const effectiveDistance = Math.max(0, dist - tolerance);
+
+    if (effectiveDistance > settings.value.radius) {
       throw new Error(
         `Anda berada di luar radius absensi (${formatDistance(dist)})`
       );
@@ -1370,6 +1617,7 @@ async function handleCheckOut() {
       checkOutTime: new Date().toTimeString().slice(0, 5),
       latitude: lat,
       longitude: lng,
+      accuracy: accuracy, // Send accuracy to backend
       distance: dist,
     };
     await attendanceApi.teacherCheckOut(payload);
@@ -1391,44 +1639,71 @@ async function startNewSession() {
   await handleCheckIn();
 }
 
+// Helper to update location (used by interval)
+async function updateLocation() {
+  if (!isComponentMounted.value || !navigator.geolocation) return;
+
+  try {
+    const pos = await getCurrentPosition(); // Use our robust helper
+
+    currentPos.value = {
+      lat: pos.coords.latitude,
+      lng: pos.coords.longitude,
+    };
+
+    // Capture GPS accuracy
+    gpsAccuracy.value = pos.coords.accuracy;
+
+    // Check if settings are properly configured (use null check, not truthy)
+    if (
+      settings.value &&
+      settings.value.latitude != null &&
+      settings.value.longitude != null
+    ) {
+      const calculatedDistance = getDistanceFromLatLonInMeters(
+        currentPos.value.lat,
+        currentPos.value.lng,
+        settings.value.latitude,
+        settings.value.longitude
+      );
+
+      if (calculatedDistance !== null) {
+        distance.value = calculatedDistance;
+        locationError.value = ""; // Clear error only on success
+      } else {
+        // Settings coordinates might be invalid
+        locationError.value = "Koordinat pusat absensi belum dikonfigurasi.";
+      }
+    } else {
+      // Settings not configured
+      locationError.value =
+        "Pengaturan lokasi absensi belum dikonfigurasi. Hubungi admin.";
+    }
+  } catch (err) {
+    console.debug("Location poll error:", err.message);
+    if (currentPos.value.lat == null) {
+      locationError.value = "Sedang mencari lokasi... (" + err.message + ")";
+    }
+  }
+}
+
 function startGeolocation() {
   if (!navigator.geolocation) {
     locationError.value = "Browser tidak mendukung Geolocation.";
     return;
   }
 
-  geoId = navigator.geolocation.watchPosition(
-    (pos) => {
-      if (!isComponentMounted.value) return;
-      currentPos.value = {
-        lat: pos.coords.latitude,
-        lng: pos.coords.longitude,
-      };
+  // Initial update
+  updateLocation();
 
-      if (
-        settings.value &&
-        settings.value.latitude &&
-        settings.value.longitude
-      ) {
-        distance.value = getDistanceFromLatLonInMeters(
-          currentPos.value.lat,
-          currentPos.value.lng,
-          settings.value.latitude,
-          settings.value.longitude
-        );
-      }
-      locationError.value = "";
-    },
-    (err) => {
-      if (!isComponentMounted.value) return;
-      console.debug("WatchPosition Info:", err.message);
-      // Only show visible error if we haven't locked location yet
-      if (!currentPos.value) {
-        locationError.value = "Sedang mencari lokasi... (" + err.message + ")";
-      }
-    },
-    { enableHighAccuracy: true, timeout: 30000, maximumAge: 10000 }
-  );
+  // Set interval for polling (every 5 seconds)
+  geoId = setInterval(() => {
+    if (!isComponentMounted.value) {
+      clearInterval(geoId);
+      return;
+    }
+    updateLocation();
+  }, 5000);
 }
 
 onMounted(async () => {
@@ -1441,6 +1716,6 @@ onMounted(async () => {
 
 onUnmounted(() => {
   isComponentMounted.value = false;
-  if (geoId) navigator.geolocation.clearWatch(geoId);
+  if (geoId) clearInterval(geoId); // Clear interval instead of clearWatch
 });
 </script>

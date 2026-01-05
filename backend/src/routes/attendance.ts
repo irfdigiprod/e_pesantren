@@ -48,13 +48,16 @@ function deg2rad(deg: number) {
   return deg * (Math.PI / 180);
 }
 
-// Helper: Validate Location
-async function validateLocation(lat: number, lng: number) {
+// Helper: Validate Location with Smart Tolerance
+// accuracy: GPS accuracy in meters (optional, from device)
+
+async function validateLocation(lat: number, lng: number, accuracy?: number) {
   const settingsList = await db.query.settings.findMany({
     where: inArray(settings.key, [
       "attendance_latitude",
       "attendance_longitude",
       "attendance_radius",
+      "attendance_accuracy_tolerance",
     ]),
   });
 
@@ -63,14 +66,33 @@ async function validateLocation(lat: number, lng: number) {
     return acc;
   }, {} as Record<string, string | null>);
 
-  const centerLat = parseFloat(settingsMap["attendance_latitude"] || "0");
-  const centerLng = parseFloat(settingsMap["attendance_longitude"] || "0");
+  const centerLat = parseFloat(settingsMap["attendance_latitude"] || "");
+  const centerLng = parseFloat(settingsMap["attendance_longitude"] || "");
   const radius = parseFloat(settingsMap["attendance_radius"] || "100");
+  const maxAccuracyTolerance = parseFloat(
+    settingsMap["attendance_accuracy_tolerance"] || "50"
+  );
 
-  // If settings are not configured properly, we might want to skip validation or fail safe.
-  // For security, let's log a warning but allow if settings are missing (or block? usually block is safer, but might break app if not set up).
-  // Given we just seeded, we assume they exist.
-  if (!centerLat || !centerLng) return { valid: true, distance: 0 };
+  // Check if settings are properly configured (use isNaN instead of truthy check)
+  if (isNaN(centerLat) || isNaN(centerLng)) {
+    console.warn("Attendance location settings not configured!");
+    return {
+      valid: false,
+      distance: 0,
+      error: "Pengaturan lokasi belum dikonfigurasi",
+    };
+  }
+
+  // Check if GPS accuracy is too poor (exceeds tolerance)
+  if (accuracy !== undefined && accuracy > maxAccuracyTolerance) {
+    return {
+      valid: false,
+      distance: 0,
+      error: `Akurasi GPS terlalu rendah (±${Math.round(
+        accuracy
+      )}m). Maksimum: ±${maxAccuracyTolerance}m. Coba pindah ke area terbuka.`,
+    };
+  }
 
   const distance = getDistanceFromLatLonInMeters(
     lat,
@@ -79,10 +101,19 @@ async function validateLocation(lat: number, lng: number) {
     centerLng
   );
 
+  // Apply smart tolerance if accuracy is provided
+  let effectiveDistance = distance;
+  if (accuracy !== undefined && accuracy > 0) {
+    const tolerance = Math.min(accuracy, maxAccuracyTolerance);
+    effectiveDistance = Math.max(0, distance - tolerance);
+  }
+
   return {
-    valid: distance <= radius,
+    valid: effectiveDistance <= radius,
     distance,
+    effectiveDistance,
     radius,
+    accuracy,
   };
 }
 
@@ -343,19 +374,38 @@ attendanceRoute.post(
         timeZone: "Asia/Jakarta",
       }); // HH:MM:SS
 
-      // Validate Location
-      if (data.latitude && data.longitude) {
-        const { valid, distance, radius } = await validateLocation(
-          data.latitude,
-          data.longitude
+      const user = c.get("user");
+      // Security: Verify teacherId belongs to authenticated user
+      const teacher = await db.query.teachers.findFirst({
+        where: eq(teachers.id, data.teacherId),
+      });
+
+      if (!teacher || teacher.userId !== user.userId) {
+        return c.json(
+          { success: false, message: "Unauthorized: Invalid teacher ID" },
+          403
         );
-        if (!valid) {
+      }
+
+      // Validate Location with smart tolerance
+      if (data.latitude && data.longitude) {
+        const result = await validateLocation(
+          data.latitude,
+          data.longitude,
+          data.accuracy // GPS accuracy from device
+        );
+
+        if (result.error) {
+          return c.json({ success: false, message: result.error }, 400);
+        }
+
+        if (!result.valid) {
           return c.json(
             {
               success: false,
               message: `Anda berada di luar jangkauan absensi. Jarak: ${Math.round(
-                distance
-              )}m, Max: ${radius}m`,
+                result.distance
+              )}m, Max: ${result.radius}m`,
             },
             400
           );
@@ -391,10 +441,10 @@ attendanceRoute.post(
       }
       // If existing checkOut is present, we allow creating a NEW session.
 
-      // Fetch teacher info (now includes divisionId and department)
-      const teacher = await db.query.teachers.findFirst({
-        where: eq(teachers.id, data.teacherId),
-      });
+      // Fetch teacher info (already fetched for validation above)
+      // const teacher = await db.query.teachers.findFirst({
+      //   where: eq(teachers.id, data.teacherId),
+      // });
 
       const result = await db.insert(teacherAttendances).values({
         teacherId: data.teacherId,
@@ -443,19 +493,38 @@ attendanceRoute.post(
         timeZone: "Asia/Jakarta",
       }); // HH:MM:SS
 
-      // Validate Location
-      if (data.latitude && data.longitude) {
-        const { valid, distance, radius } = await validateLocation(
-          data.latitude,
-          data.longitude
+      const user = c.get("user");
+      // Security: Verify teacherId belongs to authenticated user
+      const teacher = await db.query.teachers.findFirst({
+        where: eq(teachers.id, data.teacherId),
+      });
+
+      if (!teacher || teacher.userId !== user.userId) {
+        return c.json(
+          { success: false, message: "Unauthorized: Invalid teacher ID" },
+          403
         );
-        if (!valid) {
+      }
+
+      // Validate Location with smart tolerance
+      if (data.latitude && data.longitude) {
+        const result = await validateLocation(
+          data.latitude,
+          data.longitude,
+          data.accuracy // GPS accuracy from device
+        );
+
+        if (result.error) {
+          return c.json({ success: false, message: result.error }, 400);
+        }
+
+        if (!result.valid) {
           return c.json(
             {
               success: false,
               message: `Anda berada di luar jangkauan absensi. Jarak: ${Math.round(
-                distance
-              )}m, Max: ${radius}m`,
+                result.distance
+              )}m, Max: ${result.radius}m`,
             },
             400
           );
@@ -801,9 +870,18 @@ attendanceRoute.post(
       // User says "creates record in teacher_attendance table like normal".
       // We should allow basic duplicates if it's different times, but mainly we just insert.
 
+      const user = c.get("user");
+      // Security: Verify teacherId belongs to authenticated user
       const teacher = await db.query.teachers.findFirst({
         where: eq(teachers.id, data.teacherId),
       });
+
+      if (!teacher || teacher.userId !== user.userId) {
+        return c.json(
+          { success: false, message: "Unauthorized: Invalid teacher ID" },
+          403
+        );
+      }
 
       const result = await db.insert(teacherAttendances).values({
         teacherId: data.teacherId,

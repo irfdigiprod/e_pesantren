@@ -86,14 +86,25 @@
                     step="any"
                     inputmode="decimal"
                     placeholder="-6.123456"
-                    class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all outline-none"
+                    :class="[
+                      'w-full pl-10 pr-4 py-2.5 rounded-lg border transition-all outline-none',
+                      settings.latitude == null
+                        ? 'border-rose-300 bg-rose-50 focus:border-rose-500 focus:ring-2 focus:ring-rose-200'
+                        : 'border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200',
+                    ]"
                   />
                   <Icon
                     icon="lucide:globe"
                     class="absolute left-3 top-3 w-4 h-4 text-slate-400"
                   />
                 </div>
-                <p class="text-xs text-slate-500">Contoh: -6.9175</p>
+                <p
+                  v-if="settings.latitude == null"
+                  class="text-xs text-rose-600 font-medium"
+                >
+                  ⚠️ Belum dikonfigurasi - wajib diisi!
+                </p>
+                <p v-else class="text-xs text-slate-500">Contoh: -6.9175</p>
               </div>
 
               <!-- Longitude -->
@@ -108,14 +119,25 @@
                     step="any"
                     inputmode="decimal"
                     placeholder="106.123456"
-                    class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all outline-none"
+                    :class="[
+                      'w-full pl-10 pr-4 py-2.5 rounded-lg border transition-all outline-none',
+                      settings.longitude == null
+                        ? 'border-rose-300 bg-rose-50 focus:border-rose-500 focus:ring-2 focus:ring-rose-200'
+                        : 'border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200',
+                    ]"
                   />
                   <Icon
                     icon="lucide:globe"
                     class="absolute left-3 top-3 w-4 h-4 text-slate-400"
                   />
                 </div>
-                <p class="text-xs text-slate-500">Contoh: 107.6191</p>
+                <p
+                  v-if="settings.longitude == null"
+                  class="text-xs text-rose-600 font-medium"
+                >
+                  ⚠️ Belum dikonfigurasi - wajib diisi!
+                </p>
+                <p v-else class="text-xs text-slate-500">Contoh: 107.6191</p>
               </div>
 
               <!-- Radius -->
@@ -139,6 +161,33 @@
                 </div>
                 <p class="text-xs text-slate-500">
                   Jarak toleransi absensi dari titik pusat.
+                </p>
+              </div>
+
+              <!-- Accuracy Tolerance -->
+              <div class="space-y-2">
+                <label class="text-sm font-medium text-slate-700"
+                  >Toleransi Akurasi GPS (Meter)</label
+                >
+                <div class="relative">
+                  <input
+                    v-model.number="settings.accuracyTolerance"
+                    type="number"
+                    min="0"
+                    max="500"
+                    inputmode="numeric"
+                    placeholder="50"
+                    class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all outline-none"
+                  />
+                  <Icon
+                    icon="lucide:satellite"
+                    class="absolute left-3 top-3 w-4 h-4 text-slate-400"
+                  />
+                </div>
+                <p class="text-xs text-slate-500">
+                  Toleransi maksimum untuk GPS dengan akurasi rendah (maks
+                  500m). Jika akurasi lebih buruk dari ini, absensi tidak
+                  diizinkan.
                 </p>
               </div>
             </div>
@@ -468,9 +517,10 @@ import { settingsApi } from "@/services/api";
 import StatusModal from "@/components/ui/StatusModal.vue";
 
 const settings = ref({
-  latitude: -6.175392,
-  longitude: 106.827153,
+  latitude: null, // Null = belum dikonfigurasi
+  longitude: null, // Null = belum dikonfigurasi
   radius: 100,
+  accuracyTolerance: 50, // Default 50m tolerance for low accuracy GPS
   activityTypes: ["Mengajar", "Piket", "Rapat", "Kegiatan Lainnya"],
   periodStart: 25,
   periodEnd: 24,
@@ -507,6 +557,7 @@ async function fetchSettings() {
       "attendance_latitude",
       "attendance_longitude",
       "attendance_radius",
+      "attendance_accuracy_tolerance",
       "attendance_activities",
       "attendance_period_start",
       "attendance_period_end",
@@ -515,19 +566,42 @@ async function fetchSettings() {
     ]);
 
     if (res.data) {
-      if (res.data.attendance_latitude)
+      // Use != null to properly handle "0" string values
+      if (
+        res.data.attendance_latitude != null &&
+        res.data.attendance_latitude !== ""
+      )
         settings.value.latitude = parseFloat(res.data.attendance_latitude);
-      if (res.data.attendance_longitude)
+      if (
+        res.data.attendance_longitude != null &&
+        res.data.attendance_longitude !== ""
+      )
         settings.value.longitude = parseFloat(res.data.attendance_longitude);
-      if (res.data.attendance_radius)
+      if (
+        res.data.attendance_radius != null &&
+        res.data.attendance_radius !== ""
+      )
         settings.value.radius = parseInt(res.data.attendance_radius);
+      if (
+        res.data.attendance_accuracy_tolerance != null &&
+        res.data.attendance_accuracy_tolerance !== ""
+      )
+        settings.value.accuracyTolerance = parseInt(
+          res.data.attendance_accuracy_tolerance
+        );
       if (res.data.attendance_activities)
         settings.value.activityTypes = JSON.parse(
           res.data.attendance_activities
         );
-      if (res.data.attendance_period_start)
+      if (
+        res.data.attendance_period_start != null &&
+        res.data.attendance_period_start !== ""
+      )
         settings.value.periodStart = parseInt(res.data.attendance_period_start);
-      if (res.data.attendance_period_end)
+      if (
+        res.data.attendance_period_end != null &&
+        res.data.attendance_period_end !== ""
+      )
         settings.value.periodEnd = parseInt(res.data.attendance_period_end);
       if (res.data.attendance_period_type)
         settings.value.periodType = res.data.attendance_period_type;
@@ -548,6 +622,35 @@ async function fetchSettings() {
   }
 }
 
+// Helper to get current position with promise and fallback
+function getCurrentPosition() {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error("Browser tidak mendukung Geolocation"));
+      return;
+    }
+
+    // Try high accuracy first (GPS) - 10s timeout
+    navigator.geolocation.getCurrentPosition(
+      (pos) => resolve(pos),
+      (err) => {
+        console.debug(
+          "High accuracy location failed in settings, retrying with low accuracy...",
+          err.message
+        );
+        // Fallback: Low accuracy (Network/WiFi) - Faster, more reliable indoors
+        // Allow cached positions up to 2 minutes old
+        navigator.geolocation.getCurrentPosition(
+          (pos) => resolve(pos),
+          (err2) => reject(err2),
+          { enableHighAccuracy: false, timeout: 15000, maximumAge: 120000 }
+        );
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  });
+}
+
 function useCurrentLocation() {
   loadingLoc.value = true;
   locError.value = "";
@@ -558,19 +661,24 @@ function useCurrentLocation() {
     return;
   }
 
-  navigator.geolocation.getCurrentPosition(
-    (position) => {
+  getCurrentPosition()
+    .then((position) => {
       settings.value.latitude = position.coords.latitude;
       settings.value.longitude = position.coords.longitude;
-      loadingLoc.value = false;
-    },
-    (err) => {
+      // Also update map if we have one? (Currently just inputs)
+    })
+    .catch((err) => {
       console.error(err);
-      locError.value = "Gagal mengambil lokasi: " + err.message;
+      let msg = err.message;
+      if (err.code === 1) msg = "Izin lokasi ditolak.";
+      else if (err.code === 2) msg = "Lokasi tidak tersedia.";
+      else if (err.code === 3) msg = "Waktu permintaan lokasi habis.";
+
+      locError.value = "Gagal mengambil lokasi: " + msg;
+    })
+    .finally(() => {
       loadingLoc.value = false;
-    },
-    { enableHighAccuracy: true }
-  );
+    });
 }
 
 async function addActivity() {
@@ -590,6 +698,57 @@ async function removeActivity(index) {
 async function saveSettings(silent = false) {
   loading.value = true;
   error.value = "";
+
+  // Validation (skip for silent saves like activity changes)
+  if (!silent) {
+    // Validate latitude
+    if (settings.value.latitude == null || isNaN(settings.value.latitude)) {
+      showStatus(
+        "error",
+        "Validasi Gagal",
+        "Latitude harus diisi dengan angka yang valid."
+      );
+      loading.value = false;
+      return;
+    }
+    if (settings.value.latitude < -90 || settings.value.latitude > 90) {
+      showStatus(
+        "error",
+        "Validasi Gagal",
+        "Latitude harus antara -90 dan 90."
+      );
+      loading.value = false;
+      return;
+    }
+
+    // Validate longitude
+    if (settings.value.longitude == null || isNaN(settings.value.longitude)) {
+      showStatus(
+        "error",
+        "Validasi Gagal",
+        "Longitude harus diisi dengan angka yang valid."
+      );
+      loading.value = false;
+      return;
+    }
+    if (settings.value.longitude < -180 || settings.value.longitude > 180) {
+      showStatus(
+        "error",
+        "Validasi Gagal",
+        "Longitude harus antara -180 dan 180."
+      );
+      loading.value = false;
+      return;
+    }
+
+    // Validate radius
+    if (settings.value.radius == null || settings.value.radius <= 0) {
+      showStatus("error", "Validasi Gagal", "Radius harus lebih dari 0 meter.");
+      loading.value = false;
+      return;
+    }
+  }
+
   try {
     const payload = [
       {
@@ -603,6 +762,10 @@ async function saveSettings(silent = false) {
       {
         key: "attendance_radius",
         value: settings.value.radius.toString(),
+      },
+      {
+        key: "attendance_accuracy_tolerance",
+        value: settings.value.accuracyTolerance.toString(),
       },
       {
         key: "attendance_activities",

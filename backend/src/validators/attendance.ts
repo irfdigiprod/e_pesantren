@@ -43,6 +43,7 @@ export const teacherCheckInSchema = z.object({
   teacherId: z.number().min(1, "Teacher ID is required"),
   latitude: z.number().min(-90).max(90).optional(),
   longitude: z.number().min(-180).max(180).optional(),
+  accuracy: z.number().min(0).optional(), // GPS accuracy in meters
   activity: z.string().optional(),
   notes: z.string().optional(),
 });
@@ -51,6 +52,7 @@ export const teacherCheckOutSchema = z.object({
   teacherId: z.number().min(1, "Teacher ID is required"),
   latitude: z.number().min(-90).max(90).optional(),
   longitude: z.number().min(-180).max(180).optional(),
+  accuracy: z.number().min(0).optional(), // GPS accuracy in meters
   notes: z.string().optional(),
 });
 
