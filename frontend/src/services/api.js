@@ -240,12 +240,60 @@ export const authApi = {
 // ============================================
 
 export const usersApi = {
-  async getAll() {
-    return request("/api/auth/users");
+  async getAll(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    const endpoint = query ? `/api/users?${query}` : "/api/users";
+    return request(endpoint);
   },
 
   async getCurrent() {
     return request("/api/users/current");
+  },
+
+  async create(data) {
+    return request("/api/users", { method: "POST", body: data });
+  },
+
+  async update(id, data) {
+    return request(`/api/users/${id}`, { method: "PATCH", body: data });
+  },
+
+  async delete(id) {
+    return request(`/api/users/${id}`, { method: "DELETE" });
+  },
+
+  async importPreview(formData) {
+    const token = getToken();
+    const res = await fetch(`${BASE_URL}/api/users/import/preview`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data?.message || data?.error || "Preview failed");
+    }
+    return data;
+  },
+
+  async import(formData) {
+    const token = getToken();
+    const res = await fetch(`${BASE_URL}/api/users/import`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data?.message || data?.error || "Import failed");
+    }
+    return data;
   },
 };
 

@@ -195,6 +195,11 @@ const submenuByMain = {
     title: "Security",
     items: [
       {
+        label: "Users",
+        icon: "solar:users-group-rounded-line-duotone",
+        route: "/security/users",
+      },
+      {
         label: "Roles",
         icon: "solar:lock-password-line-duotone",
         route: "/security/roles",

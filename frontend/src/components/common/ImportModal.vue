@@ -565,7 +565,15 @@ async function confirmImport() {
 function downloadTemplate() {
   if (!props.templateHeader || props.templateHeader.length === 0) return;
 
-  const ws = XLSX.utils.json_to_sheet(props.templateHeader);
+  // Extract headers
+  const headers = props.templateHeader.map((col) => col.header);
+
+  // Create sheet with just the headers
+  const ws = XLSX.utils.aoa_to_sheet([headers]);
+
+  // Apply column widths
+  ws["!cols"] = props.templateHeader.map((col) => ({ wch: col.width || 15 }));
+
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Template");
   XLSX.writeFile(wb, `${props.templateName}.xlsx`);

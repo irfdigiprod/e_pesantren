@@ -10,6 +10,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@headlessui/vue": "^1.7.23",
     "@iconify/json": "^2.2.410",
     "@tailwindcss/vite": "^4.1.17",
     "@tiptap/extension-placeholder": "^3.14.0",

@@ -297,6 +297,16 @@ const groupedMenuItems = [
     title: "Klinik",
     items: [
       {
+        label: "Dashboard",
+        icon: "solar:chart-line-duotone",
+        route: "/mobile-dashboard/clinic-dashboard",
+      },
+      {
+        label: "Pasien",
+        icon: "solar:user-check-line-duotone",
+        route: "/mobile-dashboard/clinic-patients",
+      },
+      {
         label: "Obat",
         icon: "solar:pill-line-duotone",
         route: "/mobile-dashboard/clinic-medicines",
@@ -307,9 +317,44 @@ const groupedMenuItems = [
         route: "/mobile-dashboard/clinic-inpatients",
       },
       {
+        label: "Kamar",
+        icon: "solar:sleeping-line-duotone",
+        route: "/mobile-dashboard/clinic-rooms",
+      },
+      {
         label: "Periksa",
         icon: "solar:stethoscope-line-duotone",
         route: "/mobile-dashboard/clinic-examinations",
+      },
+      {
+        label: "Laporan",
+        icon: "solar:document-text-line-duotone",
+        route: "/mobile-dashboard/clinic-reports",
+      },
+    ],
+  },
+  {
+    title: "Kedisiplinan",
+    items: [
+      {
+        label: "Input Poin",
+        icon: "solar:pen-new-square-line-duotone",
+        route: "/mobile-dashboard/rewards-entry",
+      },
+      {
+        label: "SP",
+        icon: "solar:danger-triangle-line-duotone",
+        route: "/mobile-dashboard/rewards-warnings",
+      },
+      {
+        label: "Data R&P",
+        icon: "solar:document-add-line-duotone",
+        route: "/mobile-dashboard/rewards-reports",
+      },
+      {
+        label: "Aturan",
+        icon: "solar:checklist-minimalistic-line-duotone",
+        route: "/mobile-dashboard/rewards-rules",
       },
     ],
   },
@@ -375,6 +420,11 @@ const groupedMenuItems = [
         label: "Chat",
         icon: "solar:chat-round-dots-line-duotone",
         route: "/mobile-dashboard/chat",
+      },
+      {
+        label: "Users",
+        icon: "solar:users-group-rounded-line-duotone",
+        route: "/mobile-dashboard/users",
       },
       {
         label: "Roles",

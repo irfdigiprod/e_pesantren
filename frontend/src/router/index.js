@@ -194,6 +194,18 @@ const router = createRouter({
         },
         // Clinic
         {
+          path: "clinic-dashboard",
+          name: "MobileClinicDashboard",
+          component: () => import("@/views/apps/clinic/Dashboard.vue"),
+          meta: { title: "Dashboard Klinik" },
+        },
+        {
+          path: "clinic-patients",
+          name: "MobileClinicPatients",
+          component: () => import("@/views/apps/clinic/Patients.vue"),
+          meta: { title: "Data Pasien" },
+        },
+        {
           path: "clinic-medicines",
           name: "MobileMedicines",
           component: () => import("@/views/apps/clinic/Medicines.vue"),
@@ -206,14 +218,60 @@ const router = createRouter({
           meta: { title: "Rawat Inap" },
         },
         {
+          path: "clinic-rooms",
+          name: "MobileClinicRooms",
+          component: () => import("@/views/apps/clinic/Rooms.vue"),
+          meta: { title: "Manajemen Kamar" },
+        },
+        {
           path: "clinic-examinations",
           name: "MobileExaminations",
           component: () => import("@/views/apps/clinic/Examinations.vue"),
           meta: { title: "Pemeriksaan" },
         },
         {
+          path: "clinic-reports",
+          name: "MobileClinicReports",
+          component: () => import("@/views/apps/clinic/Reports.vue"),
+          meta: { title: "Laporan Klinik" },
+        },
+        {
           path: "clinic", // Keep for backward compat if needed, or redirect
           redirect: "clinic-examinations",
+        },
+
+        // Kedisiplinan (Rewards & Punishments)
+        {
+          path: "rewards-entry",
+          name: "MobileRewardsEntry",
+          component: () => import("@/views/apps/rewards/PointEntry.vue"),
+          meta: { title: "Input Poin" },
+        },
+        {
+          path: "rewards-warnings",
+          name: "MobileRewardsWarnings",
+          component: () => import("@/views/apps/rewards/WarningLetters.vue"),
+          meta: { title: "Surat Peringatan" },
+        },
+        {
+          path: "rewards-reports",
+          name: "MobileRewardsReports",
+          component: () => import("@/views/apps/rewards/RewardReport.vue"),
+          meta: { title: "Data R&P" },
+        },
+        {
+          path: "rewards-rules",
+          name: "MobileRewardsRules",
+          component: () => import("@/views/apps/rewards/RulesSettings.vue"),
+          meta: { title: "Aturan Poin" },
+        },
+
+        // User Management
+        {
+          path: "users",
+          name: "MobileUsers",
+          component: () => import("@/views/security/Users.vue"),
+          meta: { title: "Manajemen User" },
         },
 
         // Analytics
@@ -690,6 +748,11 @@ const router = createRouter({
           path: "security/roles",
           name: "SecurityRoles",
           component: () => import("@/views/security/SecurityRoles.vue"),
+        },
+        {
+          path: "security/users",
+          name: "SecurityUsers",
+          component: () => import("@/views/security/Users.vue"),
         },
 
         //

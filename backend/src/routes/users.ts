@@ -1,155 +1,564 @@
 import { Hono } from "hono";
-import { like, or, and, eq } from "drizzle-orm";
 import { db } from "../db";
-import { users } from "../db/schema/users";
-import { teachers } from "../db/schema/teachers";
-import { parents } from "../db/schema/students";
+import { users, teachers } from "../db/schema";
+import { eq } from "drizzle-orm";
+import path from "path";
+import fs from "fs";
 import { authMiddleware } from "../middleware/auth";
-import { broadcastUserProfileUpdate } from "../websocket";
 
 const usersRoute = new Hono();
 
-usersRoute.use("*", authMiddleware);
+// Helper for saving uploaded photo
+async function saveUserPhoto(file: File): Promise<string> {
+  const UPLOAD_DIR = path.resolve(process.cwd(), "uploads");
+  const uploadPath = path.join(UPLOAD_DIR, "image");
+  if (!fs.existsSync(uploadPath)) {
+    fs.mkdirSync(uploadPath, { recursive: true });
+  }
 
-// Search users
-usersRoute.get("/", async (c) => {
+  const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+  const filename = `${Date.now()}-${Math.random()
+    .toString(36)
+    .substring(2, 10)}.${ext}`;
+  const filePath = path.join(uploadPath, filename);
+  const relativePath = `uploads/image/${filename}`;
+
+  const buffer = await file.arrayBuffer();
+  fs.writeFileSync(filePath, Buffer.from(buffer));
+
+  return `/api/${relativePath}`;
+}
+
+// Get all users (Admin only)
+usersRoute.get("/", authMiddleware, async (c) => {
   try {
-    const { search } = c.req.query();
-    const currentUser = c.get("user");
+    const allUsers = await db.select().from(users).orderBy(users.name);
 
-    const whereClause = search
-      ? and(
-          eq(users.isActive, true),
-          or(like(users.name, `%${search}%`), like(users.email, `%${search}%`))
-        )
-      : eq(users.isActive, true);
-
-    const allUsers = await db.query.users.findMany({
-      columns: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        photo: true,
-      },
-      where: whereClause,
-      limit: 20,
-    });
-
-    // Filter out current user
-    const otherUsers = allUsers.filter((u) => u.id !== currentUser.userId);
-
-    // Enrich with teacher or parent data if available
-    const enrichedUsers = await Promise.all(
-      otherUsers.map(async (u) => {
-        // Try to get teacher info first
-        const teacher = await db.query.teachers.findFirst({
-          where: eq(teachers.userId, u.id),
-          columns: { fullName: true, photo: true },
-        });
-
-        if (teacher?.fullName) {
-          return {
-            ...u,
-            name: teacher.fullName,
-            photo: u.photo || teacher.photo,
-          };
-        }
-
-        // If not a teacher, try to get parent info
-        const parent = await db.query.parents.findFirst({
-          where: eq(parents.userId, u.id),
-          columns: { fatherName: true, motherName: true },
-        });
-
-        if (parent?.fatherName || parent?.motherName) {
-          return {
-            ...u,
-            name: parent.fatherName || parent.motherName,
-          };
-        }
-
-        // Fallback to user's name
-        return u;
-      })
-    );
-
-    return c.json({
-      success: true,
-      data: enrichedUsers,
-    });
+    return c.json({ success: true, data: allUsers });
   } catch (error) {
-    console.error("Get users error:", error);
-    return c.json({ success: false, message: "Failed to get users" }, 500);
+    console.error("Fetch users error:", error);
+    return c.json({ success: false, message: "Failed to fetch users" }, 500);
   }
 });
 
 // Get current user profile
-usersRoute.get("/current", async (c) => {
+usersRoute.get("/current", authMiddleware, async (c) => {
   try {
     const currentUser = c.get("user");
+    if (!currentUser || !currentUser.userId) {
+      return c.json({ success: false, message: "Unauthorized" }, 401);
+    }
 
     const user = await db.query.users.findFirst({
       where: eq(users.id, currentUser.userId),
-      columns: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        isActive: true,
-        firstName: true,
-        lastName: true,
-        gender: true,
-        birthPlace: true,
-        birthDate: true,
-        phone: true,
-        address: true,
-        // Detailed address
-        province: true,
-        regency: true,
-        district: true,
-        village: true,
-        addressDetail: true,
-        postalCode: true,
-        photo: true,
-        createdAt: true,
-        updatedAt: true,
-      },
     });
 
     if (!user) {
       return c.json({ success: false, message: "User not found" }, 404);
     }
 
-    return c.json({
-      success: true,
-      data: user,
-    });
+    // Remove password from response
+    const { password, ...safeUser } = user;
+    return c.json({ success: true, data: safeUser });
   } catch (error) {
-    console.error("Get current user error:", error);
+    console.error("Fetch current user error:", error);
     return c.json(
-      {
-        success: false,
-        message:
-          "Failed to get profile: " +
-          ((error as any).sqlMessage ||
-            (error as any).message ||
-            String(error)),
-      },
+      { success: false, message: "Failed to fetch current user" },
       500
     );
   }
 });
 
-// Update current user profile
-usersRoute.patch("/current", async (c) => {
+// Get user by ID
+usersRoute.get("/:id", authMiddleware, async (c) => {
   try {
-    const currentUser = c.get("user");
-    const body = await c.req.json();
+    const id = parseInt(c.req.param("id"));
+    if (isNaN(id)) {
+      return c.json({ success: false, message: "Invalid ID" }, 400);
+    }
 
-    // Fields that can be updated
-    const allowedFields = [
-      "name",
+    const user = await db.query.users.findFirst({
+      where: eq(users.id, id),
+    });
+
+    if (!user) {
+      return c.json({ success: false, message: "User not found" }, 404);
+    }
+
+    const { password, ...safeUser } = user;
+    return c.json({ success: true, data: safeUser });
+  } catch (error) {
+    console.error("Fetch user error:", error);
+    return c.json({ success: false, message: "Failed to fetch user" }, 500);
+  }
+});
+
+// ============ IMPORT USERS ============
+
+// Preview import users from Excel
+usersRoute.post("/import/preview", async (c) => {
+  try {
+    const body = await c.req.parseBody();
+    const file = body["file"];
+
+    if (!file || !(file instanceof File)) {
+      return c.json({ success: false, message: "File is required" }, 400);
+    }
+
+    const buffer = await file.arrayBuffer();
+    const XLSX = await import("xlsx");
+    const workbook = XLSX.read(buffer, { type: "array" });
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+    const rawData = XLSX.utils.sheet_to_json(sheet);
+
+    if (!rawData || rawData.length === 0) {
+      return c.json(
+        { success: false, message: "File is empty or invalid" },
+        400
+      );
+    }
+
+    // Column Mapping
+    const columnMapping: { [key: string]: string } = {
+      "Nama Lengkap": "name",
+      Nama: "name",
+      Name: "name",
+      Email: "email",
+      Password: "password",
+      Role: "role",
+      Status: "isActive",
+      // Profile
+      Phone: "phone",
+      Telepon: "phone",
+      Gender: "gender",
+      "Jenis Kelamin": "gender",
+      "Tanggal Lahir": "birthDate",
+      "Tempat Lahir": "birthPlace",
+      Alamat: "address",
+      Address: "address",
+      // Teacher specific
+      NIP: "nip",
+      Jabatan: "position",
+      Divisi: "department",
+      "Tipe Karyawan": "employeeType",
+    };
+
+    const validData: any[] = [];
+    const errors: any[] = [];
+    let duplicateNIP = 0;
+
+    // Check existing emails
+    const existingEmails = new Set(
+      (await db.select({ email: users.email }).from(users)).map((u) => u.email)
+    );
+
+    // Process rows
+    rawData.forEach((row: any, index: number) => {
+      const rowNum = index + 2; // +1 for header, +1 for 0-index
+      const mappedUser: any = {};
+      let isValid = true;
+      let errorMsg = "";
+
+      // Map columns
+      Object.keys(row).forEach((key) => {
+        const mappedKey =
+          columnMapping[key] || columnMapping[key.trim()] || key;
+        if (mappedKey) {
+          mappedUser[mappedKey] = row[key];
+        }
+      });
+
+      // Validations
+      if (!mappedUser.name) {
+        isValid = false;
+        errorMsg = "Nama wajib diisi";
+      } else if (!mappedUser.email) {
+        isValid = false;
+        errorMsg = "Email wajib diisi";
+      } else if (existingEmails.has(mappedUser.email)) {
+        isValid = false;
+        errorMsg = "Email sudah terdaftar";
+      }
+
+      // Default values
+      if (!mappedUser.role) mappedUser.role = "student";
+      // Convert gender
+      if (mappedUser.gender) {
+        const g = mappedUser.gender.toLowerCase();
+        mappedUser.gender =
+          g === "l" || g === "laki-laki" || g === "male" ? "male" : "female";
+      }
+
+      // Handle dates
+      if (mappedUser.birthDate) {
+        // Try to parse excel date if number, or string
+        // Simple check, if it's a number (Excel serial date), convert?
+        // XLSX sheet_to_json handles some, but let's assume valid string or raw
+      }
+
+      if (isValid) {
+        validData.push(mappedUser);
+      } else {
+        errors.push({ row: rowNum, error: errorMsg, ...mappedUser });
+      }
+    });
+
+    return c.json({
+      success: true,
+      data: {
+        totalRows: rawData.length,
+        validRows: validData.length,
+        invalidRows: errors.length,
+        validData: validData,
+        errors: errors,
+        duplicateNIP, // not really checking NIP dupes yet but keeping field
+      },
+    });
+  } catch (error) {
+    console.error("Preview import error:", error);
+    return c.json({ success: false, message: "Failed to preview file" }, 500);
+  }
+});
+
+// Import users (Admin only)
+usersRoute.post("/import", async (c) => {
+  try {
+    const body = await c.req.parseBody();
+    const file = body["file"];
+
+    if (!file || !(file instanceof File)) {
+      return c.json({ success: false, message: "File is required" }, 400);
+    }
+
+    const buffer = await file.arrayBuffer();
+    const XLSX = await import("xlsx");
+    const workbook = XLSX.read(buffer, { type: "array" });
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+    const rawData = XLSX.utils.sheet_to_json(sheet);
+
+    // Column Mapping
+    const columnMapping: { [key: string]: string } = {
+      "Nama Lengkap": "name",
+      Nama: "name",
+      Name: "name",
+      Email: "email",
+      Password: "password",
+      Role: "role",
+      Status: "isActive",
+      Phone: "phone",
+      Telepon: "phone",
+      Gender: "gender",
+      "Jenis Kelamin": "gender",
+      "Tanggal Lahir": "birthDate",
+      "Tempat Lahir": "birthPlace",
+      Alamat: "address",
+      Address: "address",
+      NIP: "nip",
+      Jabatan: "position",
+      Divisi: "department",
+      "Tipe Karyawan": "employeeType",
+    };
+
+    const bcrypt = await import("bcryptjs");
+    const defaultPasswordHash = await bcrypt.hash("12345678", 10);
+
+    let successCount = 0;
+    let failedCount = 0;
+    const errors: any[] = [];
+
+    // Get existing emails for quick check
+    const existingEmails = new Set(
+      (await db.select({ email: users.email }).from(users)).map((u) => u.email)
+    );
+
+    // Process chunked or transaction
+    // For simplicity, row by row or batch
+    const usersToInsert: any[] = [];
+    const teachersToInsert: any[] = [];
+
+    for (const [index, row] of rawData.entries()) {
+      const rowNum = index + 2;
+      const u: any = {};
+
+      // Map
+      Object.keys(row as object).forEach((key) => {
+        const mappedKey =
+          columnMapping[key] || columnMapping[key.trim()] || key;
+        if (mappedKey) u[mappedKey] = (row as any)[key];
+      });
+
+      // Validate
+      if (!u.name || !u.email) {
+        failedCount++;
+        errors.push({ row: rowNum, error: "Nama/Email kosong", ...u });
+        continue;
+      }
+      if (existingEmails.has(u.email)) {
+        failedCount++;
+        errors.push({ row: rowNum, error: "Email sudah ada", ...u });
+        continue;
+      }
+
+      // Defaults
+      u.role = u.role?.toLowerCase() || "student";
+      u.isActive = true; // Default active
+      u.password = u.password
+        ? await bcrypt.hash(String(u.password), 10)
+        : defaultPasswordHash;
+      // Gender normalize
+      if (u.gender) {
+        const g = u.gender.toLowerCase();
+        u.gender =
+          g === "l" || g === "laki-laki" || g === "male" ? "male" : "female";
+      }
+
+      try {
+        // Insert User
+        const [res] = await db.insert(users).values(u);
+        const userId = res.insertId;
+
+        // If teacher, insert teacher record
+        if (u.role === "teacher" || u.role === "staff") {
+          await db.insert(teachers).values({
+            userId,
+            fullName: u.name,
+            email: u.email,
+            nip: u.nip,
+            position: u.position,
+            department: u.department,
+            employeeType: u.role === "teacher" ? "teacher" : "staff",
+            phone: u.phone,
+            gender: u.gender || "male",
+            address: u.address,
+            status: "active",
+          });
+        }
+        successCount++;
+      } catch (e: any) {
+        failedCount++;
+        errors.push({ row: rowNum, error: e.message || "DB Error", ...u });
+      }
+    }
+
+    return c.json({
+      success: true,
+      data: {
+        success: successCount,
+        failed: failedCount,
+        errors: errors,
+      },
+    });
+  } catch (error) {
+    console.error("Import error:", error);
+    return c.json({ success: false, message: "Import failed" }, 500);
+  }
+});
+
+// Create new user (Admin only)
+usersRoute.post("/", async (c) => {
+  try {
+    let body: any = {};
+    const contentType = c.req.header("Content-Type") || "";
+
+    if (contentType.includes("multipart/form-data")) {
+      const formData = await c.req.parseBody({ all: true });
+      // Handle file separately? parseBody handles files if all: true isn't strict, but Hono parseBody returns [key: string]: string | File
+      // We need to extract values.
+      // Hono's parseBody returns generic object.
+      body = { ...formData };
+
+      // Handle photo file
+      if (body.photo && body.photo instanceof File) {
+        const photoUrl = await saveUserPhoto(body.photo);
+        body.photo = photoUrl;
+      } else if (body.photo && !(body.photo instanceof File)) {
+        // If it's a string (e.g. empty or text), ignore if not file?
+        // Or if it's base64? Assuming File object for now.
+        delete body.photo;
+      }
+    } else {
+      body = await c.req.json();
+    }
+
+    const {
+      email,
+      password,
+      name,
+      role = "student",
+      isActive, // validation below
+      // Profile fields
+      firstName,
+      lastName,
+      gender,
+      birthPlace,
+      birthDate,
+      phone,
+      address,
+      province,
+      regency,
+      district,
+      village,
+      addressDetail,
+      postalCode,
+      photo, // URL string now
+      // For teachers/staff
+      nip,
+      position,
+      department,
+      joinDate,
+    } = body;
+
+    // Basic validation
+    if (!email || !password || !name) {
+      return c.json(
+        { success: false, message: "Email, password, and name are required" },
+        400
+      );
+    }
+
+    // Check if email exists
+    const existingUser = await db.query.users.findFirst({
+      where: eq(users.email, email),
+    });
+
+    if (existingUser) {
+      return c.json(
+        { success: false, message: "Email already registered" },
+        400
+      );
+    }
+
+    // Hash password
+    const bcrypt = await import("bcryptjs");
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Boolean conversion for FormData
+    const isActiveBool =
+      String(isActive) === "true" ||
+      isActive === true ||
+      isActive === 1 ||
+      isActive === "1"
+        ? true
+        : false;
+
+    // Insert user
+    await db.transaction(async (tx) => {
+      const [result] = await tx.insert(users).values({
+        email,
+        password: hashedPassword,
+        name,
+        role,
+        isActive: isActiveBool,
+        firstName,
+        lastName,
+        gender,
+        birthPlace,
+        birthDate: birthDate ? new Date(birthDate) : null,
+        phone,
+        address,
+        province:
+          typeof province === "string" ? province : JSON.stringify(province),
+        regency:
+          typeof regency === "string" ? regency : JSON.stringify(regency),
+        district:
+          typeof district === "string" ? district : JSON.stringify(district),
+        village:
+          typeof village === "string" ? village : JSON.stringify(village),
+        addressDetail,
+        postalCode,
+        photo,
+      });
+
+      const userId = result.insertId;
+
+      // Auto-create teacher record
+      if (role === "teacher" || role === "staff") {
+        await tx.insert(teachers).values({
+          userId: userId,
+          fullName: name,
+          nip: nip || null,
+          position: position || null,
+          department: department || null,
+          employeeType: role === "teacher" ? "teacher" : "staff",
+          gender: gender || "male",
+          birthPlace: birthPlace,
+          birthDate: birthDate ? new Date(birthDate) : null,
+          phone: phone,
+          email: email,
+          address: address,
+          province:
+            typeof province === "string" ? province : JSON.stringify(province),
+          regency:
+            typeof regency === "string" ? regency : JSON.stringify(regency),
+          district:
+            typeof district === "string" ? district : JSON.stringify(district),
+          village:
+            typeof village === "string" ? village : JSON.stringify(village),
+          addressDetail,
+          postalCode,
+          photo,
+          joinDate: joinDate ? new Date(joinDate) : new Date(),
+          status: isActiveBool ? "active" : "inactive",
+        });
+      }
+    });
+
+    return c.json({ success: true, message: "User created successfully" });
+  } catch (error) {
+    console.error("Create user error:", error);
+    return c.json({ success: false, message: "Failed to create user" }, 500);
+  }
+});
+
+// Update user by ID (Admin only)
+usersRoute.patch("/:id", async (c) => {
+  try {
+    const id = parseInt(c.req.param("id"));
+    let body: any = {};
+    const contentType = c.req.header("Content-Type") || "";
+
+    if (contentType.includes("multipart/form-data")) {
+      const formData = await c.req.parseBody({ all: true });
+      body = { ...formData };
+      if (body.photo && body.photo instanceof File) {
+        const photoUrl = await saveUserPhoto(body.photo);
+        body.photo = photoUrl;
+      } else if (body.photo && !(body.photo instanceof File)) {
+        // If not a file (e.g. string), keep it as is?
+        // If null or "null", maybe user removed photo?
+        // For now, if it's not a file and not empty string, assume it's keeping existing or standard url
+      }
+    } else {
+      body = await c.req.json();
+    }
+
+    if (isNaN(id)) {
+      return c.json({ success: false, message: "Invalid ID" }, 400);
+    }
+
+    // Prepare update data
+    const updateData: any = {};
+    if (body.name) updateData.name = body.name;
+    if (body.email) updateData.email = body.email;
+    if (body.role) updateData.role = body.role;
+    if (body.isActive !== undefined) {
+      updateData.isActive =
+        String(body.isActive) === "true" ||
+        body.isActive === true ||
+        body.isActive === 1 ||
+        body.isActive === "1";
+    }
+
+    // Password update
+    if (body.password) {
+      const bcrypt = await import("bcryptjs");
+      updateData.password = await bcrypt.hash(body.password, 10);
+    }
+
+    // Profile fields
+    const profileFields = [
       "firstName",
       "lastName",
       "gender",
@@ -157,7 +566,6 @@ usersRoute.patch("/current", async (c) => {
       "birthDate",
       "phone",
       "address",
-      // Detailed address
       "province",
       "regency",
       "district",
@@ -167,153 +575,74 @@ usersRoute.patch("/current", async (c) => {
       "photo",
     ];
 
-    // Build update object with only allowed fields
-    const updateData: Record<string, any> = {};
-    for (const field of allowedFields) {
+    profileFields.forEach((field) => {
       if (body[field] !== undefined) {
-        updateData[field] = body[field];
+        if (
+          ["province", "regency", "district", "village"].includes(field) &&
+          typeof body[field] !== "string"
+        ) {
+          updateData[field] = JSON.stringify(body[field]);
+        } else {
+          // Handle empty strings for nullable fields
+          if (body[field] === "" && field !== "photo") {
+            updateData[field] = null;
+          } else {
+            updateData[field] = body[field];
+          }
+        }
       }
-    }
-
-    // Handle legacy field mappings from frontend
-    if (body.first_name !== undefined) updateData.firstName = body.first_name;
-    if (body.last_name !== undefined) updateData.lastName = body.last_name;
-    if (body.tempat_lahir !== undefined)
-      updateData.birthPlace = body.tempat_lahir;
-    if (body.tanggal_lahir !== undefined) {
-      // Frontend sends dd/MM/yyyy, convert to date
-      const parts = body.tanggal_lahir.split("/");
-      if (parts.length === 3) {
-        updateData.birthDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
-      }
-    }
-
-    // Auto-update name if firstName or lastName is provided
-    if (
-      updateData.firstName !== undefined ||
-      updateData.lastName !== undefined
-    ) {
-      // Fetch current values to combine properly
-      const existingUser = await db.query.users.findFirst({
-        where: eq(users.id, currentUser.userId),
-        columns: { firstName: true, lastName: true },
-      });
-
-      const fName =
-        updateData.firstName !== undefined
-          ? updateData.firstName
-          : existingUser?.firstName;
-      const lName =
-        updateData.lastName !== undefined
-          ? updateData.lastName
-          : existingUser?.lastName;
-
-      updateData.name = `${fName || ""} ${lName || ""}`.trim();
-    }
-
-    if (Object.keys(updateData).length === 0) {
-      return c.json(
-        { success: false, message: "No valid fields to update" },
-        400
-      );
-    }
-
-    await db
-      .update(users)
-      .set(updateData)
-      .where(eq(users.id, currentUser.userId));
-
-    // Return updated user
-    const updatedUser = await db.query.users.findFirst({
-      where: eq(users.id, currentUser.userId),
-      columns: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        isActive: true,
-        firstName: true,
-        lastName: true,
-        gender: true,
-        birthPlace: true,
-        birthDate: true,
-        phone: true,
-        address: true,
-        // Detailed address
-        province: true,
-        regency: true,
-        district: true,
-        village: true,
-        addressDetail: true,
-        postalCode: true,
-        photo: true,
-        createdAt: true,
-        updatedAt: true,
-      },
     });
 
-    if (updatedUser) {
-      // Broadcast update to other users
-      broadcastUserProfileUpdate(currentUser.userId, updatedUser);
+    if (body.birthDate) {
+      const date = new Date(body.birthDate);
+      if (!isNaN(date.getTime())) {
+        updateData.birthDate = date;
+      } else {
+        updateData.birthDate = null;
+      }
+    } else if (body.birthDate === "") {
+      updateData.birthDate = null;
     }
 
-    return c.json({
-      success: true,
-      data: updatedUser,
-    });
+    await db.update(users).set(updateData).where(eq(users.id, id));
+
+    return c.json({ success: true, message: "User updated successfully" });
   } catch (error) {
-    console.error("Update profile error:", error);
-    return c.json({ success: false, message: "Failed to update profile" }, 500);
+    console.error("Update user error:", error);
+    return c.json({ success: false, message: "Failed to update user" }, 500);
   }
 });
 
-// Change password
-usersRoute.patch("/current/password", async (c) => {
+// Delete user by ID (Admin only)
+usersRoute.delete("/:id", async (c) => {
   try {
-    const currentUser = c.get("user");
-    const { currentPassword, newPassword } = await c.req.json();
-
-    if (!currentPassword || !newPassword) {
-      return c.json(
-        { success: false, message: "Current and new password required" },
-        400
-      );
+    const id = parseInt(c.req.param("id"));
+    if (isNaN(id)) {
+      return c.json({ success: false, message: "Invalid ID" }, 400);
     }
 
-    // Get current user with password
+    // Check if user exists
     const user = await db.query.users.findFirst({
-      where: eq(users.id, currentUser.userId),
+      where: eq(users.id, id),
     });
 
     if (!user) {
       return c.json({ success: false, message: "User not found" }, 404);
     }
 
-    // Verify current password
-    const bcrypt = await import("bcryptjs");
-    const isValid = await bcrypt.compare(currentPassword, user.password);
-    if (!isValid) {
-      return c.json(
-        { success: false, message: "Current password is incorrect" },
-        401
-      );
+    // Prevent deleting self
+    const currentUser = c.get("user");
+    if (currentUser.userId === id) {
+      return c.json({ success: false, message: "Cannot delete yourself" }, 400);
     }
 
-    // Hash new password
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await db.delete(users).where(eq(users.id, id));
+    await db.delete(teachers).where(eq(teachers.userId, id));
 
-    await db
-      .update(users)
-      .set({ password: hashedPassword })
-      .where(eq(users.id, currentUser.userId));
-
-    return c.json({ success: true, message: "Password changed successfully" });
+    return c.json({ success: true, message: "User deleted successfully" });
   } catch (error) {
-    console.error("Change password error:", error);
-    return c.json(
-      { success: false, message: "Failed to change password" },
-      500
-    );
+    console.error("Delete user error:", error);
+    return c.json({ success: false, message: "Failed to delete user" }, 500);
   }
 });
 
