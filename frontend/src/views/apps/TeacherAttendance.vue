@@ -804,7 +804,7 @@
       <!-- New Session Button (when checked out) -->
       <!-- New Session FAB -->
       <button
-        v-if="todayAttendance?.checkOut && !newShiftAllowed && isWithinRadius"
+        v-if="todayAttendance?.checkOut && !newShiftAllowed"
         @click="enableNewShift"
         class="fixed bottom-24 right-6 z-50 w-14 h-14 bg-amber-900 text-white rounded-full shadow-xl flex items-center justify-center hover:bg-amber-800 transition-transform active:scale-95"
       >
