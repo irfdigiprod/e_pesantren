@@ -30,6 +30,7 @@ import homeroomNotesRoute from "./homeroom-notes";
 import pdfRoute from "./pdf";
 import rulesRoute from "./rules";
 import warningsRoute from "./warnings";
+import rolesRoute from "./roles";
 
 export {
   authRoute,
@@ -63,4 +64,5 @@ export {
   pdfRoute,
   rulesRoute,
   warningsRoute,
+  rolesRoute,
 };

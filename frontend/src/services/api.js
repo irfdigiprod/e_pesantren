@@ -1892,3 +1892,61 @@ export const pdfApi = {
     return response.blob();
   },
 };
+
+// ===================== ROLES (RBAC) API =====================
+export const rolesApi = {
+  /**
+   * Get all available routes
+   */
+  async getRoutes() {
+    return request("/api/roles/routes");
+  },
+
+  /**
+   * Get permissions for a role type
+   */
+  async getRolePermissions(role) {
+    return request(`/api/roles/${role}/permissions`);
+  },
+
+  /**
+   * Update permissions for a role type
+   */
+  async updateRolePermissions(role, permissions) {
+    return request(`/api/roles/${role}/permissions`, {
+      method: "PUT",
+      body: { permissions },
+    });
+  },
+
+  /**
+   * Get permissions for a specific user
+   */
+  async getUserPermissions(userId) {
+    return request(`/api/roles/users/${userId}/permissions`);
+  },
+
+  /**
+   * Update permissions for a specific user
+   */
+  async updateUserPermissions(userId, permissions) {
+    return request(`/api/roles/users/${userId}/permissions`, {
+      method: "PUT",
+      body: { permissions },
+    });
+  },
+
+  /**
+   * Get effective permissions for a user (combined role + user overrides)
+   */
+  async getEffectivePermissions(userId) {
+    return request(`/api/roles/users/${userId}/effective-permissions`);
+  },
+
+  /**
+   * Get current user's allowed routes (for menu filtering)
+   */
+  async getMyPermissions() {
+    return request("/api/roles/my-permissions");
+  },
+};

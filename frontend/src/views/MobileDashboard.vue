@@ -2,7 +2,7 @@
 import { Icon } from "@iconify/vue";
 import { useRouter } from "vue-router";
 import { ref, computed, onMounted, onUnmounted } from "vue";
-import { usersApi } from "@/services/api";
+import { usersApi, rolesApi } from "@/services/api";
 
 const router = useRouter();
 const user = ref(null);
@@ -57,6 +57,7 @@ onMounted(() => {
   loadStoredUser();
   fetchCurrent();
   fetchInfoBoard();
+  fetchPermissions(); // Load user permissions for menu filtering
   window.addEventListener("user-updated", onUserUpdated);
 
   // Real-time updates for slider
@@ -440,6 +441,49 @@ const groupedMenuItems = [
   },
 ];
 
+// Permission-based filtering
+const allowedRoutes = ref(null);
+
+async function fetchPermissions() {
+  try {
+    const res = await rolesApi.getMyPermissions();
+    if (res.success) {
+      allowedRoutes.value = res.data;
+    }
+  } catch (e) {
+    console.error("Failed to load permissions:", e);
+    allowedRoutes.value = null;
+  }
+}
+
+function isRouteAllowed(route) {
+  if (allowedRoutes.value === null) return true;
+  if (allowedRoutes.value.length === 0) return true;
+  // Mobile routes use /mobile-dashboard/xxx, map to equivalent /apps/xxx
+  const desktopRoute = route
+    .replace("/mobile-dashboard/clinic-", "/apps/clinic/")
+    .replace("/mobile-dashboard/rewards-", "/apps/rewards/")
+    .replace("/mobile-dashboard/settings-", "/settings/")
+    .replace("/mobile-dashboard/security-", "/security/")
+    .replace("/mobile-dashboard/", "/apps/");
+  return (
+    allowedRoutes.value.includes(desktopRoute) ||
+    allowedRoutes.value.includes(route)
+  );
+}
+
+const filteredGroupedMenuItems = computed(() => {
+  return groupedMenuItems
+    .map((group) => {
+      const filteredItems = group.items.filter((item) =>
+        isRouteAllowed(item.route)
+      );
+      if (filteredItems.length === 0) return null;
+      return { ...group, items: filteredItems };
+    })
+    .filter(Boolean);
+});
+
 const navigate = (path) => {
   router.push(path);
 };
@@ -527,7 +571,11 @@ const navigate = (path) => {
     <!-- Grid Menu -->
     <!-- Grid 5 columns as requested -->
     <!-- Groups -->
-    <div v-for="group in groupedMenuItems" :key="group.title" class="mb-6">
+    <div
+      v-for="group in filteredGroupedMenuItems"
+      :key="group.title"
+      class="mb-6"
+    >
       <h3
         class="text-sm font-bold text-slate-400 mb-3 px-1 tracking-wider text-[10px]"
       >

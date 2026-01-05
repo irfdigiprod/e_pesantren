@@ -3,6 +3,7 @@
 import { Icon } from "@iconify/vue";
 import { ref, computed, watch, onMounted, onUnmounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { rolesApi, usersApi, authApi } from "@/services/api";
 
 const props = defineProps({
   isOpen: { type: Boolean, default: false },
@@ -219,7 +220,59 @@ const submenuByMain = {
   },
 };
 
-const currentSubmenu = computed(() => submenuByMain[activeMainId.value]);
+// Permission-based filtering
+const allowedRoutes = ref(null); // null = not loaded yet, array = loaded
+
+async function fetchPermissions() {
+  try {
+    const res = await rolesApi.getMyPermissions();
+    if (res.success) {
+      allowedRoutes.value = res.data;
+    }
+  } catch (e) {
+    console.error("Failed to load permissions:", e);
+    // On error, allow all routes (fallback)
+    allowedRoutes.value = null;
+  }
+}
+
+// Filter function to check if route is allowed
+function isRouteAllowed(route) {
+  if (allowedRoutes.value === null) return true; // Not loaded yet, show all
+  if (allowedRoutes.value.length === 0) return true; // No restrictions set, show all
+  return allowedRoutes.value.includes(route);
+}
+
+// Filtered submenu based on permissions
+const filteredSubmenuByMain = computed(() => {
+  const filtered = {};
+  for (const [mainId, submenu] of Object.entries(submenuByMain)) {
+    const filteredItems = submenu.items
+      .map((item) => {
+        if (item.children) {
+          // Filter children
+          const filteredChildren = item.children.filter((child) =>
+            isRouteAllowed(child.route)
+          );
+          if (filteredChildren.length === 0) return null;
+          return { ...item, children: filteredChildren };
+        }
+        // Single item
+        if (!isRouteAllowed(item.route)) return null;
+        return item;
+      })
+      .filter(Boolean);
+
+    if (filteredItems.length > 0) {
+      filtered[mainId] = { ...submenu, items: filteredItems };
+    }
+  }
+  return filtered;
+});
+
+const currentSubmenu = computed(
+  () => filteredSubmenuByMain.value[activeMainId.value]
+);
 
 const navigate = (to) => {
   router.push(to);
@@ -330,8 +383,6 @@ const filteredItems = computed(() => {
    USER PROFILE (footer)
    ========================= */
 
-import { authApi, usersApi } from "@/services/api.js";
-
 const user = ref(null);
 const loadingUser = ref(false);
 const loadError = ref(null);
@@ -427,6 +478,7 @@ onMounted(() => {
   loadStoredUser();
   // Always fetch fresh data to ensure we have full profile (firstName, lastName, photo)
   fetchCurrentUser();
+  fetchPermissions(); // Load user permissions for menu filtering
   window.addEventListener("user-updated", onUserUpdated);
 });
 onUnmounted(() => {
