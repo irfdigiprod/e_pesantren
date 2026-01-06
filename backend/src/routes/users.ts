@@ -512,6 +512,157 @@ usersRoute.post("/", async (c) => {
   }
 });
 
+// Update current user password
+usersRoute.patch("/current/password", authMiddleware, async (c) => {
+  try {
+    const currentUser = c.get("user");
+    if (!currentUser || !currentUser.userId) {
+      return c.json({ success: false, message: "Unauthorized" }, 401);
+    }
+
+    const body = await c.req.json();
+    const { currentPassword, newPassword } = body;
+
+    if (!currentPassword || !newPassword) {
+      return c.json(
+        { success: false, message: "Current and new password are required" },
+        400
+      );
+    }
+
+    const user = await db.query.users.findFirst({
+      where: eq(users.id, currentUser.userId),
+    });
+
+    if (!user) {
+      return c.json({ success: false, message: "User not found" }, 404);
+    }
+
+    // Verify current password
+    const bcrypt = await import("bcryptjs");
+    const validPassword = await bcrypt.compare(currentPassword, user.password);
+
+    if (!validPassword) {
+      return c.json(
+        { success: false, message: "Invalid current password" },
+        400
+      );
+    }
+
+    // Hash new password
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+
+    await db
+      .update(users)
+      .set({ password: hashedNewPassword })
+      .where(eq(users.id, currentUser.userId));
+
+    return c.json({ success: true, message: "Password updated successfully" });
+  } catch (error) {
+    console.error("Update password error:", error);
+    return c.json(
+      { success: false, message: "Failed to update password" },
+      500
+    );
+  }
+});
+
+// Update current user profile
+usersRoute.patch("/current", authMiddleware, async (c) => {
+  try {
+    const currentUser = c.get("user");
+    if (!currentUser || !currentUser.userId) {
+      return c.json({ success: false, message: "Unauthorized" }, 401);
+    }
+
+    let body: any = {};
+    const contentType = c.req.header("Content-Type") || "";
+
+    if (contentType.includes("multipart/form-data")) {
+      const formData = await c.req.parseBody({ all: true });
+      body = { ...formData };
+      if (body.photo && body.photo instanceof File) {
+        const photoUrl = await saveUserPhoto(body.photo);
+        body.photo = photoUrl;
+      }
+    } else {
+      body = await c.req.json();
+    }
+
+    // Prepare update data
+    const updateData: any = {};
+    const allowedFields = [
+      "firstName",
+      "lastName",
+      "gender",
+      "birthPlace",
+      "birthDate",
+      "phone",
+      "address",
+      "province",
+      "regency",
+      "district",
+      "village",
+      "addressDetail",
+      "postalCode",
+      "photo",
+    ];
+
+    allowedFields.forEach((field) => {
+      if (body[field] !== undefined) {
+        if (
+          ["province", "regency", "district", "village"].includes(field) &&
+          typeof body[field] !== "string"
+        ) {
+          updateData[field] = JSON.stringify(body[field]);
+        } else {
+          if (body[field] === "" && field !== "photo") {
+            updateData[field] = null;
+          } else {
+            updateData[field] = body[field];
+          }
+        }
+      }
+    });
+
+    if (body.birthDate) {
+      const date = new Date(body.birthDate);
+      if (!isNaN(date.getTime())) {
+        updateData.birthDate = date;
+      } else {
+        updateData.birthDate = null;
+      }
+    }
+
+    await db
+      .update(users)
+      .set(updateData)
+      .where(eq(users.id, currentUser.userId));
+
+    // Return updated user data (without password)
+    const updatedUser = await db.query.users.findFirst({
+      where: eq(users.id, currentUser.userId),
+    });
+
+    if (!updatedUser) {
+      return c.json(
+        { success: false, message: "User not found after update" },
+        404
+      );
+    }
+
+    const { password, ...safeUser } = updatedUser;
+    return c.json({
+      success: true,
+      data: safeUser,
+      message: "Profile updated successfully",
+    });
+  } catch (error) {
+    console.error("Update current user error:", error);
+    return c.json({ success: false, message: "Failed to update profile" }, 500);
+  }
+});
+
 // Update user by ID (Admin only)
 usersRoute.patch("/:id", async (c) => {
   try {
