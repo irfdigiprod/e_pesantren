@@ -787,8 +787,37 @@ usersRoute.delete("/:id", async (c) => {
       return c.json({ success: false, message: "Cannot delete yourself" }, 400);
     }
 
-    await db.delete(users).where(eq(users.id, id));
-    await db.delete(teachers).where(eq(teachers.userId, id));
+    // Perform deletion in transaction
+    await db.transaction(async (tx) => {
+      // 1. Handle Teacher profile
+      const { teachers } = await import("../db/schema/teachers");
+      await tx.delete(teachers).where(eq(teachers.userId, id));
+
+      // 2. Handle Student profile
+      const { students } = await import("../db/schema/students");
+      await tx.delete(students).where(eq(students.userId, id));
+
+      // 3. Handle Parent profile
+      // If user is a parent, we must check if any students reference this parent
+      const { parents } = await import("../db/schema/students"); // Parents defined in students.ts
+      const parentRecord = await tx.query.parents.findFirst({
+        where: eq(parents.userId, id),
+      });
+
+      if (parentRecord) {
+        // Unlink students from this parent (set parentId to null)
+        await tx
+          .update(students)
+          .set({ parentId: null })
+          .where(eq(students.parentId, parentRecord.id));
+
+        // Delete parent record
+        await tx.delete(parents).where(eq(parents.id, parentRecord.id));
+      }
+
+      // 4. Finally delete User
+      await tx.delete(users).where(eq(users.id, id));
+    });
 
     return c.json({ success: true, message: "User deleted successfully" });
   } catch (error) {

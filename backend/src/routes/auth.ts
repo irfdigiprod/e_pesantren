@@ -31,23 +31,51 @@ auth.post("/register", zValidator("json", registerSchema), async (c) => {
     const hashedPassword = await hashPassword(password);
 
     // Create user (MySQL doesn't support returning, so we use insertId)
-    const result = await db.insert(users).values({
-      email,
-      password: hashedPassword,
-      role: role || "student",
-    });
+    // Wrap in transaction to ensure consistency
+    let newUser: any;
+    let token: string = "";
 
-    // Get the newly created user
-    const newUser = await db.query.users.findFirst({
-      where: eq(users.id, Number(result[0].insertId)),
+    await db.transaction(async (tx) => {
+      const [result] = await tx.insert(users).values({
+        email,
+        password: hashedPassword,
+        role: role || "student",
+      });
+
+      const userId = Number(result.insertId);
+
+      // Get the newly created user
+      newUser = await tx.query.users.findFirst({
+        where: eq(users.id, userId),
+      });
+
+      if (!newUser) {
+        throw new Error("Failed to create user");
+      }
+
+      // If role is teacher or staff, create teacher record
+      if (role === "teacher" || role === "staff") {
+        const { teachers } = await import("../db/schema/teachers");
+        // Use email username as default name
+        const defaultName = email.split("@")[0];
+
+        await tx.insert(teachers).values({
+          userId: userId,
+          fullName: defaultName,
+          email: email,
+          employeeType: role, // 'teacher' or 'staff'
+          status: "active",
+          gender: "male", // Default
+        });
+      }
     });
 
     if (!newUser) {
-      return c.json({ success: false, message: "Failed to create user" }, 500);
+      return c.json({ success: false, message: "Registration failed" }, 500);
     }
 
     // Generate token
-    const token = generateToken(newUser);
+    token = generateToken(newUser);
 
     return c.json({
       success: true,
