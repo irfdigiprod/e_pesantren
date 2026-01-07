@@ -1,11 +1,12 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import { eq, and, sql, inArray } from "drizzle-orm";
+import { eq, and, sql, inArray, gte, lte } from "drizzle-orm";
 import { db } from "../db";
 import {
   studentAttendances,
   teacherAttendances,
 } from "../db/schema/attendance";
+import { students } from "../db/schema/students";
 import { teachers } from "../db/schema/teachers";
 import { teacherDivisions, divisions } from "../db/schema/divisions";
 import { settings } from "../db/schema/settings";
@@ -50,7 +51,6 @@ function deg2rad(deg: number) {
 
 // Helper: Validate Location with Smart Tolerance
 // accuracy: GPS accuracy in meters (optional, from device)
-
 async function validateLocation(lat: number, lng: number, accuracy?: number) {
   const settingsList = await db.query.settings.findMany({
     where: inArray(settings.key, [
@@ -125,34 +125,53 @@ import { studentClasses } from "../db/schema/academic";
 attendanceRoute.get("/students", async (c) => {
   try {
     const date = c.req.query("date");
+    const startDate = c.req.query("startDate");
+    const endDate = c.req.query("endDate");
     const studentId = c.req.query("studentId");
     const classId = c.req.query("classId");
 
+    console.log("GET /students params:", {
+      date,
+      startDate,
+      endDate,
+      studentId,
+      classId,
+    });
+
     let conditions: any[] = [];
     if (date) conditions.push(sql`${studentAttendances.date} = ${date}`);
+    if (startDate)
+      conditions.push(sql`${studentAttendances.date} >= ${startDate}`);
+    if (endDate) conditions.push(sql`${studentAttendances.date} <= ${endDate}`);
+
     if (studentId)
       conditions.push(eq(studentAttendances.studentId, parseInt(studentId)));
 
-    // Filter by Class using student_classes table
+    // Filter by Class using students.classId (consistent with other features)
     if (classId) {
-      const classStudents = await db.query.studentClasses.findMany({
-        where: and(
-          eq(studentClasses.classId, parseInt(classId)),
-          eq(studentClasses.status, "active")
-        ),
-        columns: { studentId: true },
-      });
+      console.log("Fetching students for classId:", classId);
+      try {
+        const classStudents = await db.query.students.findMany({
+          where: eq(students.classId, parseInt(classId)),
+          columns: { id: true },
+        });
+        console.log("Class students found:", classStudents.length);
 
-      const studentIds = classStudents.map((s) => s.studentId);
+        const studentIds = classStudents.map((s) => s.id);
 
-      if (studentIds.length > 0) {
-        conditions.push(inArray(studentAttendances.studentId, studentIds));
-      } else {
-        // Class has no students, return empty list immediately
-        return c.json({ success: true, data: [] });
+        if (studentIds.length > 0) {
+          conditions.push(inArray(studentAttendances.studentId, studentIds));
+        } else {
+          // Class has no students, return empty list immediately
+          return c.json({ success: true, data: [] });
+        }
+      } catch (classError) {
+        console.error("Error fetching class students:", classError);
+        throw classError;
       }
     }
 
+    console.log("Fetching attendances with conditions:", conditions.length);
     const attendances =
       conditions.length > 0
         ? await db.query.studentAttendances.findMany({
@@ -169,6 +188,7 @@ attendanceRoute.get("/students", async (c) => {
             },
           });
 
+    console.log("Attendances found:", attendances.length);
     return c.json({
       success: true,
       message: "Student attendance retrieved successfully",
@@ -914,7 +934,6 @@ attendanceRoute.delete(
   }
 );
 
-export default attendanceRoute;
 // Teacher claim (manual attendance)
 attendanceRoute.post(
   "/teachers/claim",
@@ -969,3 +988,5 @@ attendanceRoute.post(
     }
   }
 );
+
+export default attendanceRoute;

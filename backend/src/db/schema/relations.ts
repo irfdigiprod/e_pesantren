@@ -72,3 +72,16 @@ export const studentAttendancesRelations = relations(
     }),
   })
 );
+
+import { studentClasses } from "./academic";
+
+export const studentClassesRelations = relations(studentClasses, ({ one }) => ({
+  student: one(students, {
+    fields: [studentClasses.studentId],
+    references: [students.id],
+  }),
+  class: one(classes, {
+    fields: [studentClasses.classId],
+    references: [classes.id],
+  }),
+}));

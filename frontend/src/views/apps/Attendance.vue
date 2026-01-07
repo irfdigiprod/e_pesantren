@@ -45,30 +45,66 @@
       >
         <!-- Custom Filter -->
         <template #filters>
-          <div class="p-4 w-72">
-            <label class="block text-sm font-medium text-slate-700 mb-2"
-              >Pilih Kelas</label
-            >
-            <select
-              v-model="filters.classId"
-              @change="fetchData"
-              class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none"
-            >
-              <option value="">Semua Kelas</option>
-              <option v-for="c in classes" :key="c.id" :value="c.id">
-                {{ c.name }}
-              </option>
-            </select>
+          <div>
+            <h3 class="font-semibold text-slate-800 mb-3 border-b pb-2">
+              Filter Data
+            </h3>
 
-            <label class="block text-sm font-medium text-slate-700 mt-4 mb-2"
-              >Tanggal</label
+            <div class="space-y-4">
+              <div>
+                <label class="block text-xs font-medium text-slate-500 mb-1"
+                  >KELAS</label
+                >
+                <select
+                  v-model="filters.classId"
+                  @change="fetchData"
+                  class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none bg-slate-50"
+                >
+                  <option value="">Semua Kelas</option>
+                  <option v-for="c in classes" :key="c.id" :value="c.id">
+                    {{ c.name }}
+                  </option>
+                </select>
+              </div>
+
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-medium text-slate-500 mb-1"
+                    >DARI TANGGAL</label
+                  >
+                  <input
+                    type="date"
+                    v-model="filters.startDate"
+                    @change="fetchData"
+                    class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none"
+                  />
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-slate-500 mb-1"
+                    >SAMPAI TANGGAL</label
+                  >
+                  <input
+                    type="date"
+                    v-model="filters.endDate"
+                    @change="fetchData"
+                    class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <!-- Reset Button optional -->
+            <button
+              @click="
+                filters.classId = '';
+                filters.startDate = '';
+                filters.endDate = '';
+                fetchData();
+              "
+              class="mt-4 w-full text-xs text-slate-500 hover:text-emerald-600 transition text-center"
             >
-            <input
-              type="date"
-              v-model="filters.date"
-              @change="fetchData"
-              class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none"
-            />
+              Reset Filter
+            </button>
           </div>
         </template>
 
@@ -124,17 +160,23 @@
         <!-- Card View -->
         <template #card-item="{ item }">
           <div
-            class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm relative group"
+            class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm relative group hover:shadow-md transition-shadow"
           >
-            <div class="flex justify-between items-start mb-2">
+            <!-- Header: Name & Status -->
+            <div class="flex justify-between items-start mb-3">
               <div>
-                <div class="font-medium text-slate-800 line-clamp-1">
+                <div
+                  class="font-semibold text-slate-800 text-sm line-clamp-1 mb-1"
+                >
                   {{ item.student?.fullName || item.studentId }}
                 </div>
-                <div class="text-xs text-slate-500">{{ item.date }}</div>
+                <div class="flex items-center gap-2 text-xs text-slate-500">
+                  <Icon icon="solar:calendar-linear" width="12" />
+                  <span>{{ formatDate(item.date) }}</span>
+                </div>
               </div>
               <span
-                class="px-2 py-1 rounded-md text-xs font-medium"
+                class="px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider"
                 :class="{
                   'bg-emerald-100 text-emerald-700': item.status === 'present',
                   'bg-amber-100 text-amber-700': item.status === 'late',
@@ -146,18 +188,33 @@
                 {{ formatStatus(item.status) }}
               </span>
             </div>
-            <p
+
+            <!-- Content: Notes -->
+            <div
               v-if="item.notes"
-              class="text-sm text-slate-600 mb-3 bg-slate-50 p-2 rounded"
+              class="bg-slate-50 rounded-lg p-2.5 mb-3 text-xs text-slate-600 italic border border-slate-100"
             >
               "{{ item.notes }}"
-            </p>
-            <div class="flex justify-end border-t pt-3 mt-2">
+            </div>
+            <div v-else class="mb-3 h-4"></div>
+
+            <!-- Footer: Actions -->
+            <div
+              class="flex justify-end items-center gap-2 pt-3 border-t border-slate-100"
+            >
+              <button
+                @click="editItem(item)"
+                class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
+              >
+                <Icon icon="solar:pen-bold" width="14" />
+                Edit
+              </button>
               <button
                 @click="confirmDelete(item)"
-                class="text-xs text-red-600 hover:text-red-700 font-medium flex items-center gap-1"
+                class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
               >
-                <Icon icon="solar:trash-bin-trash-bold" /> Hapus
+                <Icon icon="solar:trash-bin-trash-bold" width="14" />
+                Hapus
               </button>
             </div>
           </div>
@@ -492,7 +549,12 @@ const viewMode = ref("table");
 
 const filters = reactive({
   classId: "",
-  date: new Date().toISOString().split("T")[0],
+  startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+    .toISOString()
+    .split("T")[0], // First day of month
+  endDate: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0)
+    .toISOString()
+    .split("T")[0], // Last day of month
 });
 
 const inputForm = reactive({
@@ -538,9 +600,18 @@ const pagination = computed(() => ({
 }));
 
 // Reset pagination when data/filters change
-watch([() => filters.classId, () => filters.date, search], () => {
-  currentPage.value = 1;
-});
+// Reset pagination when data/filters change
+watch(
+  [
+    () => filters.classId,
+    () => filters.startDate,
+    () => filters.endDate,
+    search,
+  ],
+  () => {
+    currentPage.value = 1;
+  }
+);
 
 const columns = [
   { label: "Nama Santri", field: "student.fullName", sortable: true },
@@ -592,17 +663,21 @@ function toggleInputMode() {
 async function fetchData() {
   loading.value = true;
   try {
-    const params = {
-      classId: filters.classId || undefined,
-      date: filters.date || undefined,
-    };
-    // Clean params
-    Object.keys(params).forEach(
-      (key) => params[key] === undefined && delete params[key]
-    );
+    // If input mode, fetch teachers/etc, but here we focus on History table
+    if (!inputMode.value) {
+      const params = {
+        classId: filters.classId || undefined,
+        startDate: filters.startDate || undefined,
+        endDate: filters.endDate || undefined,
+      };
+      // Clean params
+      Object.keys(params).forEach(
+        (key) => params[key] === undefined && delete params[key]
+      );
 
-    const res = await attendanceApi.getStudentAttendance(params);
-    attendances.value = Array.isArray(res?.data) ? res.data : [];
+      const res = await attendanceApi.getStudentAttendance(params);
+      attendances.value = Array.isArray(res?.data) ? res.data : [];
+    }
   } catch (e) {
     console.error(e);
   } finally {
@@ -699,7 +774,8 @@ async function submitBulk() {
     showStatus("success", "Berhasil", "Absensi berhasil disimpan");
 
     // Sync filters to show the newly created data
-    filters.date = inputForm.date;
+    filters.startDate = inputForm.date;
+    filters.endDate = inputForm.date;
     filters.classId = inputForm.classId;
 
     toggleInputMode(); // go back to history
