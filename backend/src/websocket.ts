@@ -379,6 +379,44 @@ async function handleNewMessage(
 
     // Broadcast to all participants
     await broadcastToConversation(conversationId, newMessage);
+
+    // Send Push Notifications (Background)
+    (async () => {
+      try {
+        const { sendPushNotification } = await import("./routes/push");
+
+        // Fetch participants again to send push
+        const participants = await db
+          .select({ userId: conversationParticipants.userId })
+          .from(conversationParticipants)
+          .where(
+            and(
+              eq(conversationParticipants.conversationId, conversationId),
+              isNull(conversationParticipants.leftAt),
+              eq(conversationParticipants.status, "joined")
+            )
+          );
+
+        for (const p of participants) {
+          if (p.userId !== userId) {
+            sendPushNotification(
+              p.userId,
+              newMessage.data.senderName || "Pesan Baru", // Title
+              content ||
+                (attachmentFiles?.length
+                  ? "Mengirim lampiran"
+                  : "Mengirim pesan"), // Body
+              {
+                type: "chat_message",
+                conversationId,
+              }
+            ).catch((e) => console.error("Push error:", e));
+          }
+        }
+      } catch (err) {
+        console.error("Async push notification error:", err);
+      }
+    })();
   } catch (error) {
     console.error("Handle message error:", error);
     ws.send(

@@ -12,6 +12,14 @@ const vapidPublicKey = process.env.VAPID_PUBLIC_KEY;
 const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
 const vapidSubject = process.env.VAPID_SUBJECT || "mailto:admin@example.com";
 
+console.log("[PUSH] VAPID Config Check:", {
+  hasPublicKey: !!vapidPublicKey,
+  hasPrivateKey: !!vapidPrivateKey,
+  publicKeyStart: vapidPublicKey
+    ? vapidPublicKey.substring(0, 10) + "..."
+    : "MISSING",
+});
+
 if (vapidPublicKey && vapidPrivateKey) {
   webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
 } else {
@@ -121,7 +129,7 @@ export async function sendPushNotification(
   data: any = {}
 ) {
   if (!vapidPublicKey || !vapidPrivateKey) {
-    console.warn("[PUSH] VAPID not configured, skipping push notification");
+    // console.warn("[PUSH] VAPID not configured, skipping push notification");
     return;
   }
 
@@ -132,24 +140,45 @@ export async function sendPushNotification(
     });
 
     if (subscriptions.length === 0) {
-      return; // No subscriptions, nothing to send
+      return;
     }
-
-    const payload = JSON.stringify({
-      title,
-      body,
-      icon: "/iconku.svg",
-      badge: "/iconku.svg",
-      data: {
-        ...data,
-        url: data.url || "/", // Default URL to open when notification clicked
-      },
-    });
 
     // Send to all subscriptions for this user
     const results = await Promise.allSettled(
       subscriptions.map(async (sub) => {
         try {
+          // Determine URL based on User Agent and payload type
+          const isMobile =
+            sub.userAgent &&
+            /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+              sub.userAgent
+            );
+
+          let url = data.url || "/"; // Fallback
+
+          // Dynamic URL logic based on type
+          if (data.type === "chat_message" && data.conversationId) {
+            if (isMobile) {
+              // Mobile Dashboard Route
+              url = `/mobile-dashboard/chat?conversationId=${data.conversationId}`;
+            } else {
+              // Desktop Apps Route
+              // We use standard query param now
+              url = `/apps/chat?conversationId=${data.conversationId}`;
+            }
+          }
+
+          const payload = JSON.stringify({
+            title,
+            body,
+            icon: "/iconku.svg",
+            badge: "/iconku.svg",
+            data: {
+              ...data,
+              url,
+            },
+          });
+
           await webpush.sendNotification(
             {
               endpoint: sub.endpoint,
@@ -161,11 +190,17 @@ export async function sendPushNotification(
             payload
           );
         } catch (error: any) {
+          // Only log real errors, not 410/404 which are handled cleanly
+          if (error.statusCode !== 410 && error.statusCode !== 404) {
+            console.error(
+              `[PUSH] Error sending to subscription ${sub.id}:`,
+              error.statusCode,
+              error.body || error.message
+            );
+          }
+
           // If subscription is expired/invalid, remove it
           if (error.statusCode === 410 || error.statusCode === 404) {
-            console.log(
-              `[PUSH] Removing expired subscription for user ${userId}`
-            );
             await db
               .delete(pushSubscriptions)
               .where(eq(pushSubscriptions.id, sub.id));
@@ -178,6 +213,7 @@ export async function sendPushNotification(
 
     const failed = results.filter((r) => r.status === "rejected");
     if (failed.length > 0) {
+      // Keep this warning as it indicates actual failure to deliver
       console.warn(
         `[PUSH] ${failed.length}/${subscriptions.length} push notifications failed`
       );

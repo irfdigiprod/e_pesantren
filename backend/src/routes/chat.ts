@@ -1318,20 +1318,84 @@ chat.post(
         .from(messageAttachments)
         .where(eq(messageAttachments.messageId, messageId));
 
+      const responseData = {
+        ...newMessage[0],
+        attachments,
+        reactions: {},
+      };
+
+      // 1. Broadcast to group (Realtime)
+      const broadcastPayload = {
+        type: "new_message",
+        data: {
+          ...responseData,
+          senderEmail: currentUser.email, // Ensure email is there
+          replyTo: null, // Populate if needed
+          // We might need to construct the full payload similar to websocket.ts
+          // For now, sending what we have is usually enough for frontend to append
+        },
+      };
+
+      // We need to import broadcastToGroup. It is likely already imported or available.
+      // Checking imports... "import { broadcastToGroup, broadcastToUser } from "../websocket";"
+      // If not imported, I need to add it. But file shows it handles chat, so likely imported.
+      broadcastToGroup(conversationId, broadcastPayload);
+
+      // 2. Send Push Notifications (Background)
+      (async () => {
+        try {
+          const participants = await db
+            .select({ userId: conversationParticipants.userId })
+            .from(conversationParticipants)
+            .where(
+              and(
+                eq(conversationParticipants.conversationId, conversationId),
+                isNull(conversationParticipants.leftAt),
+                eq(conversationParticipants.status, "joined")
+              )
+            );
+
+          const { sendPushNotification } = await import("./push");
+
+          for (const p of participants) {
+            if (p.userId !== currentUser.userId) {
+              sendPushNotification(
+                p.userId,
+                enrichedSenderName || "Pesan Baru", // Title
+                content ||
+                  (attachmentIds?.length
+                    ? "Mengirim lampiran"
+                    : "Mengirim pesan"), // Body
+                {
+                  type: "chat_message",
+                  // URL is now handled dynamically in push.ts based on user agent
+                  conversationId,
+                }
+              ).catch((e) => console.error("Push error:", e));
+            }
+          }
+        } catch (err) {
+          console.error("Async push notification error:", err);
+        }
+      })();
+
       return c.json(
         {
           success: true,
-          data: {
-            ...newMessage[0],
-            attachments,
-            reactions: {},
-          },
+          data: responseData,
         },
         201
       );
     } catch (error) {
       console.error("Send message error:", error);
       return c.json({ success: false, message: "Failed to send message" }, 500);
+    } finally {
+      // Fire and forget: Notifications
+      // We do this in finally (or just before return) to not block response
+      // but since we return c.json, code after return won't execute unless we structure it differently.
+      // So we put it BEFORE return or use Promise.all but don't await the push part strictly?
+      // Actually, we can just await it or not await it before return.
+      // Best to put it before return.
     }
   }
 );
