@@ -60,3 +60,15 @@ export const studentsRelations = relations(students, ({ one }) => ({
     references: [rooms.id],
   }),
 }));
+
+import { studentAttendances } from "./attendance";
+
+export const studentAttendancesRelations = relations(
+  studentAttendances,
+  ({ one }) => ({
+    student: one(students, {
+      fields: [studentAttendances.studentId],
+      references: [students.id],
+    }),
+  })
+);

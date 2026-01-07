@@ -39,6 +39,27 @@ export const classHomeroomTeachers = mysqlTable("class_homeroom_teachers", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Student Classes Pivot (Pivot Siswa-Kelas)
+export const studentClasses = mysqlTable("student_classes", {
+  id: int("id").primaryKey().autoincrement(),
+  studentId: int("student_id")
+    .references(() => students.id)
+    .notNull(),
+  classId: int("class_id")
+    .references(() => classes.id)
+    .notNull(),
+  academicYear: varchar("academic_year", { length: 20 }).notNull(),
+  status: mysqlEnum("status", [
+    "active",
+    "promoted",
+    "transferred",
+    "graduated",
+    "dropped",
+  ]).default("active"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
+});
+
 // Mata Pelajaran
 export const subjects = mysqlTable("subjects", {
   id: int("id").primaryKey().autoincrement(),

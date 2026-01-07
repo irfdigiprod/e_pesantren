@@ -585,6 +585,30 @@ export const attendanceApi = {
     return request("/api/attendance/students", { method: "POST", body: data });
   },
 
+  async createStudentAttendanceBulk(data) {
+    return request("/api/attendance/students/bulk", {
+      method: "POST",
+      body: data,
+    });
+  },
+
+  async updateStudentAttendance(id, data) {
+    // We reuse the create endpoint or add a specific PUT.
+    // However, the backend create endpoint handles update if it exists.
+    // But for clarity/correctness, let's keep consistency.
+    // Ideally we should have a PUT but for now let's just use create structure if the backend handles it.
+    // Wait, the backend Create/POST checks for existing by studentId + date.
+    // If we want to edit by ID, we might need a specific update endpoint or ensuring the payload matches logic.
+    // Actually, looking at backend POST /students logic: it checks existing by studentId + date.
+    // If we are editing, we are likely changing status/notes for a specific student/date.
+    // So calling createStudentAttendance with the same studentId and Date will update it.
+    return request("/api/attendance/students", { method: "POST", body: data });
+  },
+
+  async deleteStudentAttendance(id) {
+    return request(`/api/attendance/students/${id}`, { method: "DELETE" });
+  },
+
   // Teacher attendance
   async getTeacherAttendance(params = {}) {
     const query = new URLSearchParams(params).toString();

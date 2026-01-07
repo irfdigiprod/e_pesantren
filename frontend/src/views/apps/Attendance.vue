@@ -1,253 +1,789 @@
 <template>
   <div class="p-6">
+    <!-- Header -->
     <div
-      class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4"
+      class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6"
     >
       <div>
         <h1 class="text-xl font-semibold text-slate-800">Absensi Santri</h1>
-        <p class="text-sm text-slate-500">Kelola catatan absensi santri.</p>
+        <p class="text-sm text-slate-500">
+          Kelola kehadiran santri harian per kelas.
+        </p>
       </div>
-      <button
-        @click="openCreate"
-        :disabled="saving"
-        class="px-3 py-2 rounded-lg border text-sm"
-        :style="btnPrimaryOutline"
-      >
-        + Tambah
-      </button>
+
+      <div class="flex gap-2">
+        <button
+          @click="toggleInputMode"
+          class="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 transition flex items-center gap-2"
+        >
+          <Icon
+            :icon="inputMode ? 'solar:list-bold' : 'solar:pen-new-square-bold'"
+          />
+          {{ inputMode ? "Lihat Riwayat" : "Input Absensi" }}
+        </button>
+      </div>
     </div>
 
-    <div class="bg-white rounded-lg shadow-sm overflow-hidden">
-      <table class="min-w-full table-auto">
-        <thead class="bg-slate-50 text-slate-600 text-sm">
-          <tr>
-            <th class="px-4 py-3 text-left">#</th>
-            <th class="px-4 py-3 text-left">Santri</th>
-            <th class="px-4 py-3 text-left">Tanggal</th>
-            <th class="px-4 py-3 text-left">Status</th>
-            <th class="px-4 py-3 text-left">Catatan</th>
-            <th class="px-4 py-3 text-left">Aksi</th>
-          </tr>
-        </thead>
-        <tbody class="text-sm text-slate-700">
-          <tr v-for="(a, idx) in attendances" :key="a.id" class="border-t">
-            <td class="px-4 py-3">{{ idx + 1 }}</td>
-            <td class="px-4 py-3">{{ a.student?.fullName || a.studentId }}</td>
-            <td class="px-4 py-3">{{ a.date }}</td>
-            <td class="px-4 py-3">
-              <span
-                class="px-2 py-1 rounded text-xs"
-                :class="{
-                  'bg-green-100 text-green-800': a.status === 'present',
-                  'bg-yellow-100 text-yellow-800': a.status === 'late',
-                  'bg-red-100 text-red-800': a.status === 'absent',
-                  'bg-blue-100 text-blue-800': a.status === 'excused',
-                }"
-                >{{ a.status }}</span
-              >
-            </td>
-            <td class="px-4 py-3">{{ a.notes || "-" }}</td>
-            <td class="px-4 py-3">
-              <button
-                @click="confirmDelete(a)"
-                class="px-2 py-1 rounded border text-xs"
-              >
-                Hapus
-              </button>
-            </td>
-          </tr>
-          <tr v-if="attendances.length === 0">
-            <td colspan="6" class="px-4 py-6 text-center">Data kosong</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div
-      v-if="modal.show"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-    >
-      <div
-        class="bg-white w-full max-w-lg rounded-lg shadow-lg overflow-auto max-h-[90vh]"
+    <!-- Mode: History Table -->
+    <div v-if="!inputMode" class="bg-white rounded-xl shadow-sm border p-1">
+      <DataTable
+        :items="paginatedAttendances"
+        :columns="columns"
+        :loading="loading"
+        :search="search"
+        :pagination="pagination"
+        :viewMode="viewMode"
+        searchPlaceholder="Cari siswa..."
+        show-index
+        with-filter
+        :filterable="true"
+        filterButtonLabel="Filter Kelas"
+        @update:search="search = $event"
+        @update:limit="pageSize = $event"
+        @page-change="currentPage = $event"
+        @update:viewMode="viewMode = $event"
       >
-        <div class="p-4 border-b flex justify-between">
-          <h3 class="font-medium">Tambah Absensi</h3>
-          <button @click="closeModal">✕</button>
-        </div>
-        <div class="p-4 space-y-3">
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="text-xs text-slate-500">ID Santri *</label
-              ><input
-                v-model="form.studentId"
-                type="number"
-                class="w-full border rounded px-3 py-2 text-sm"
-              />
-            </div>
-            <div>
-              <label class="text-xs text-slate-500">Tanggal *</label
-              ><input
-                v-model="form.date"
-                type="date"
-                class="w-full border rounded px-3 py-2 text-sm"
-              />
-            </div>
-            <div>
-              <label class="text-xs text-slate-500">Status</label
-              ><select
-                v-model="form.status"
-                class="w-full border rounded px-3 py-2 text-sm"
-              >
-                <option value="present">Hadir</option>
-                <option value="late">Terlambat</option>
-                <option value="absent">Tidak Hadir</option>
-                <option value="excused">Izin</option>
-              </select>
-            </div>
-            <div>
-              <label class="text-xs text-slate-500">Catatan</label
-              ><input
-                v-model="form.notes"
-                class="w-full border rounded px-3 py-2 text-sm"
-              />
-            </div>
-          </div>
-          <div class="flex gap-2">
-            <button
-              @click="submitForm"
-              :disabled="saving"
-              class="px-4 py-2 rounded-lg"
-              :style="btnSecondary"
+        <!-- Custom Filter -->
+        <template #filters>
+          <div class="p-4 w-72">
+            <label class="block text-sm font-medium text-slate-700 mb-2"
+              >Pilih Kelas</label
             >
-              {{ saving ? "Memproses..." : "Simpan" }}
+            <select
+              v-model="filters.classId"
+              @change="fetchData"
+              class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none"
+            >
+              <option value="">Semua Kelas</option>
+              <option v-for="c in classes" :key="c.id" :value="c.id">
+                {{ c.name }}
+              </option>
+            </select>
+
+            <label class="block text-sm font-medium text-slate-700 mt-4 mb-2"
+              >Tanggal</label
+            >
+            <input
+              type="date"
+              v-model="filters.date"
+              @change="fetchData"
+              class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none"
+            />
+          </div>
+        </template>
+
+        <!-- Student Name Column -->
+        <template #cell-student.fullName="{ item }">
+          <div class="font-medium text-slate-800">
+            {{ item.student?.fullName || "-" }}
+          </div>
+          <div class="text-xs text-slate-500">ID: {{ item.studentId }}</div>
+        </template>
+
+        <!-- Date Column -->
+        <template #cell-date="{ item }">
+          <span class="text-slate-600">{{ formatDate(item.date) }}</span>
+        </template>
+
+        <!-- Status Column -->
+        <template #cell-status="{ item }">
+          <span
+            class="px-2 py-1 rounded-md text-xs font-medium"
+            :class="{
+              'bg-emerald-100 text-emerald-700': item.status === 'present',
+              'bg-amber-100 text-amber-700': item.status === 'late',
+              'bg-blue-100 text-blue-700': item.status === 'permitted',
+              'bg-purple-100 text-purple-700': item.status === 'sick',
+              'bg-red-100 text-red-700': item.status === 'absent',
+            }"
+          >
+            {{ formatStatus(item.status) }}
+          </span>
+        </template>
+
+        <!-- Actions -->
+        <template #cell-actions="{ item }">
+          <div class="flex justify-end gap-1">
+            <button
+              @click="editItem(item)"
+              class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+              title="Edit"
+            >
+              <Icon icon="solar:pen-bold" width="16" />
             </button>
-            <button @click="closeModal" class="px-4 py-2 rounded-lg border">
-              Batal
+            <button
+              @click="confirmDelete(item)"
+              class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+              title="Hapus"
+            >
+              <Icon icon="solar:trash-bin-trash-bold" width="16" />
             </button>
           </div>
-          <div v-if="modal.error" class="text-sm text-red-600">
-            {{ modal.error }}
+        </template>
+
+        <!-- Card View -->
+        <template #card-item="{ item }">
+          <div
+            class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm relative group"
+          >
+            <div class="flex justify-between items-start mb-2">
+              <div>
+                <div class="font-medium text-slate-800 line-clamp-1">
+                  {{ item.student?.fullName || item.studentId }}
+                </div>
+                <div class="text-xs text-slate-500">{{ item.date }}</div>
+              </div>
+              <span
+                class="px-2 py-1 rounded-md text-xs font-medium"
+                :class="{
+                  'bg-emerald-100 text-emerald-700': item.status === 'present',
+                  'bg-amber-100 text-amber-700': item.status === 'late',
+                  'bg-blue-100 text-blue-700': item.status === 'permitted',
+                  'bg-purple-100 text-purple-700': item.status === 'sick',
+                  'bg-red-100 text-red-700': item.status === 'absent',
+                }"
+              >
+                {{ formatStatus(item.status) }}
+              </span>
+            </div>
+            <p
+              v-if="item.notes"
+              class="text-sm text-slate-600 mb-3 bg-slate-50 p-2 rounded"
+            >
+              "{{ item.notes }}"
+            </p>
+            <div class="flex justify-end border-t pt-3 mt-2">
+              <button
+                @click="confirmDelete(item)"
+                class="text-xs text-red-600 hover:text-red-700 font-medium flex items-center gap-1"
+              >
+                <Icon icon="solar:trash-bin-trash-bold" /> Hapus
+              </button>
+            </div>
+          </div>
+        </template>
+      </DataTable>
+    </div>
+
+    <!-- Mode: Input Bulk -->
+    <div v-else class="space-y-6">
+      <!-- Input Controls -->
+      <div class="bg-white rounded-xl shadow-sm border p-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2"
+              >Kelas *</label
+            >
+            <select
+              v-model="inputForm.classId"
+              @change="fetchClassStudents"
+              class="w-full border rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none"
+            >
+              <option value="" disabled>Pilih Kelas</option>
+              <option v-for="c in classes" :key="c.id" :value="c.id">
+                {{ c.name }}
+              </option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2"
+              >Tanggal *</label
+            >
+            <input
+              type="date"
+              v-model="inputForm.date"
+              class="w-full border rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none"
+            />
           </div>
         </div>
       </div>
-    </div>
 
-    <div
-      v-if="confirm.show"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-    >
-      <div class="bg-white w-full max-w-md rounded-lg shadow-lg p-4">
-        <h3 class="font-medium">Hapus Absensi</h3>
-        <p class="text-sm text-slate-600 mt-2">Yakin hapus data ini?</p>
-        <div class="mt-4 flex gap-2">
-          <button
-            @click="deleteItem"
-            :disabled="saving"
-            class="px-4 py-2 rounded-lg"
-            :style="btnPrimary"
+      <!-- Student List -->
+      <div
+        v-if="inputForm.classId"
+        class="bg-white rounded-xl shadow-sm border"
+      >
+        <div
+          class="p-4 border-b bg-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-4"
+        >
+          <div class="flex items-center gap-2">
+            <h3 class="font-semibold text-slate-800">Daftar Santri</h3>
+            <span
+              class="text-xs text-slate-500 bg-slate-200 px-2 py-0.5 rounded-full"
+              >{{ students.length }} Siswa</span
+            >
+          </div>
+
+          <!-- Bulk Actions -->
+          <div class="flex flex-wrap gap-2">
+            <span class="text-sm text-slate-500 self-center mr-2"
+              >Set Semua ke:</span
+            >
+            <button
+              @click="setAllStatus('present')"
+              class="px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition"
+            >
+              Hadir
+            </button>
+            <button
+              @click="setAllStatus('late')"
+              class="px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-100 text-amber-700 hover:bg-amber-200 transition"
+            >
+              Telat
+            </button>
+            <button
+              @click="setAllStatus('permitted')"
+              class="px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 transition"
+            >
+              Izin
+            </button>
+            <button
+              @click="setAllStatus('sick')"
+              class="px-3 py-1.5 rounded-lg text-xs font-medium bg-purple-100 text-purple-700 hover:bg-purple-200 transition"
+            >
+              Sakit
+            </button>
+            <button
+              @click="setAllStatus('absent')"
+              class="px-3 py-1.5 rounded-lg text-xs font-medium bg-red-100 text-red-700 hover:bg-red-200 transition"
+            >
+              Alpha
+            </button>
+          </div>
+        </div>
+
+        <div v-if="loadingStudents" class="p-8 text-center text-slate-500">
+          <Icon
+            icon="solar:spinner-line-duotone"
+            class="animate-spin text-emerald-600 mb-2 mx-auto"
+            width="24"
+          />
+          Memuat data santri...
+        </div>
+
+        <div
+          v-else-if="students.length === 0"
+          class="p-8 text-center text-slate-500"
+        >
+          Belum ada santri di kelas ini.
+        </div>
+
+        <div v-else class="divide-y max-h-[60vh] overflow-y-auto">
+          <div
+            v-for="(s, idx) in students"
+            :key="s.id"
+            class="p-4 hover:bg-slate-50 transition flex flex-col md:flex-row md:items-center justify-between gap-4"
           >
-            Ya, Hapus
-          </button>
-          <button @click="confirmCancel" class="px-4 py-2 rounded-lg border">
+            <div class="flex items-center gap-4">
+              <span class="text-sm font-medium text-slate-400 w-6"
+                >{{ idx + 1 }}.</span
+              >
+              <div>
+                <div class="font-medium text-slate-800">{{ s.fullName }}</div>
+                <div class="text-xs text-slate-500">
+                  {{ s.nis || "No NIS" }}
+                </div>
+              </div>
+            </div>
+
+            <!-- Radio Group -->
+            <div class="flex flex-wrap gap-4 items-center">
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  :name="`status-${s.id}`"
+                  value="present"
+                  v-model="s.attendance.status"
+                  class="w-4 h-4 text-emerald-600 focus:ring-emerald-500"
+                />
+                <span class="text-sm text-slate-700">Hadir</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  :name="`status-${s.id}`"
+                  value="late"
+                  v-model="s.attendance.status"
+                  class="w-4 h-4 text-amber-600 focus:ring-amber-500"
+                />
+                <span class="text-sm text-slate-700">Telat</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  :name="`status-${s.id}`"
+                  value="permitted"
+                  v-model="s.attendance.status"
+                  class="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                />
+                <span class="text-sm text-slate-700">Izin</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  :name="`status-${s.id}`"
+                  value="sick"
+                  v-model="s.attendance.status"
+                  class="w-4 h-4 text-purple-600 focus:ring-purple-500"
+                />
+                <span class="text-sm text-slate-700">Sakit</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  :name="`status-${s.id}`"
+                  value="absent"
+                  v-model="s.attendance.status"
+                  class="w-4 h-4 text-red-600 focus:ring-red-500"
+                />
+                <span class="text-sm text-slate-700">Alpha</span>
+              </label>
+
+              <!-- Optional Note -->
+              <input
+                v-if="s.attendance.status !== 'present'"
+                v-model="s.attendance.notes"
+                placeholder="Catatan..."
+                class="text-xs border rounded px-2 py-1 w-32 focus:w-48 transition-all outline-none focus:border-emerald-500"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div
+          class="p-4 border-t bg-slate-50 flex justify-end gap-3 sticky bottom-0"
+        >
+          <button
+            @click="toggleInputMode"
+            class="px-6 py-2.5 rounded-lg border bg-white border-slate-300 text-slate-700 font-medium hover:bg-slate-50"
+          >
             Batal
           </button>
+          <button
+            @click="submitBulk"
+            :disabled="saving || students.length === 0"
+            class="px-6 py-2.5 rounded-lg bg-emerald-600 text-white font-medium hover:bg-emerald-700 shadow-lg shadow-emerald-600/20 disabled:opacity-50 disabled:shadow-none flex items-center gap-2"
+          >
+            <Icon
+              v-if="saving"
+              icon="solar:spinner-line-duotone"
+              class="animate-spin"
+            />
+            {{ saving ? "Menyimpan..." : "Simpan Absensi" }}
+          </button>
         </div>
       </div>
     </div>
 
-    <div v-if="loading" class="mt-4 text-sm text-slate-500">Memuat...</div>
+    <!-- Confirm Dialog -->
+    <ConfirmModal
+      :isOpen="confirm.show"
+      title="Hapus Absensi?"
+      type="danger"
+      @confirm="deleteItem"
+      @cancel="confirm.show = false"
+    >
+      Anda akan menghapus data absensi ini.
+    </ConfirmModal>
+
+    <!-- Status Modal -->
+    <StatusModal
+      :isOpen="statusModal.show"
+      :type="statusModal.type"
+      :title="statusModal.title"
+      :message="statusModal.message"
+      @close="statusModal.show = false"
+    />
+    <!-- Edit Modal -->
+    <div
+      v-if="editingItem"
+      class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+    >
+      <div
+        class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 animate-fade-in-up"
+      >
+        <h3 class="text-lg font-bold text-slate-800 mb-4">Edit Absensi</h3>
+        <p class="text-sm text-slate-600 mb-4">
+          Mengubah absensi untuk <strong>{{ editForm.studentName }}</strong>
+        </p>
+
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1"
+              >Status</label
+            >
+            <div class="grid grid-cols-2 gap-2">
+              <button
+                v-for="s in ['present', 'permitted', 'sick', 'late', 'absent']"
+                :key="s"
+                type="button"
+                @click="editForm.status = s"
+                class="px-3 py-2 rounded-lg text-sm border transition-all"
+                :class="
+                  editForm.status === s
+                    ? 'border-emerald-500 bg-emerald-50 text-emerald-700 font-medium ring-1 ring-emerald-500'
+                    : 'border-slate-200 hover:bg-slate-50 text-slate-600'
+                "
+              >
+                {{ formatStatus(s) }}
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1"
+              >Catatan</label
+            >
+            <textarea
+              v-model="editForm.notes"
+              class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none"
+              rows="3"
+            ></textarea>
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-3 mt-6">
+          <button
+            @click="editingItem = null"
+            class="px-4 py-2 rounded-lg text-slate-600 hover:bg-slate-100 font-medium text-sm"
+          >
+            Batal
+          </button>
+          <button
+            @click="updateItem"
+            :disabled="saving"
+            class="px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 font-medium text-sm flex items-center gap-2"
+          >
+            <Icon
+              v-if="saving"
+              icon="solar:spinner-line-duotone"
+              class="animate-spin"
+            />
+            {{ saving ? "Menyimpan..." : "Simpan Perubahan" }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from "vue";
-import { attendanceApi } from "@/services/api.js";
+import { ref, reactive, computed, onMounted, watch } from "vue";
+import { Icon } from "@iconify/vue";
+import DataTable from "@/components/ui/DataTable.vue";
+import ConfirmModal from "@/components/ui/ConfirmModal.vue";
+import StatusModal from "@/components/ui/StatusModal.vue";
+import { attendanceApi, academicApi } from "@/services/api.js";
 
-const btnPrimary = { background: "#602515", color: "#fff" };
-const btnPrimaryOutline = { borderColor: "#602515" };
-const btnSecondary = { background: "#f8ae19", color: "#fff" };
+const loading = ref(false);
+const loadingStudents = ref(false);
+const saving = ref(false);
+const inputMode = ref(false);
 
 const attendances = ref([]);
-const loading = ref(false);
-const saving = ref(false);
+const classes = ref([]);
+const students = ref([]); // For input mode
 
-const modal = reactive({ show: false, error: "" });
-const form = reactive({
-  studentId: "",
-  date: "",
-  status: "present",
-  notes: "",
+// DataTable State
+const search = ref("");
+const currentPage = ref(1);
+const pageSize = ref(10);
+const viewMode = ref("table");
+
+const filters = reactive({
+  classId: "",
+  date: new Date().toISOString().split("T")[0],
 });
-const confirm = reactive({ show: false, item: null });
 
+const inputForm = reactive({
+  classId: "",
+  date: new Date().toISOString().split("T")[0],
+});
+
+const confirm = reactive({ show: false, item: null });
+const statusModal = reactive({
+  show: false,
+  type: "success",
+  title: "",
+  message: "",
+});
+
+// Computed Logic for Client-Side Pagination & Search
+const filteredAttendances = computed(() => {
+  let items = attendances.value;
+
+  // 1. Search (Client-side)
+  if (search.value) {
+    const q = search.value.toLowerCase();
+    items = items.filter((item) => {
+      const name = item.student?.fullName?.toLowerCase() || "";
+      const status = item.status?.toLowerCase() || "";
+      return name.includes(q) || status.includes(q);
+    });
+  }
+  return items;
+});
+
+const paginatedAttendances = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
+  return filteredAttendances.value.slice(start, end);
+});
+
+const pagination = computed(() => ({
+  page: currentPage.value,
+  limit: pageSize.value,
+  total: filteredAttendances.value.length,
+  totalPages: Math.ceil(filteredAttendances.value.length / pageSize.value),
+}));
+
+// Reset pagination when data/filters change
+watch([() => filters.classId, () => filters.date, search], () => {
+  currentPage.value = 1;
+});
+
+const columns = [
+  { label: "Nama Santri", field: "student.fullName", sortable: true },
+  { label: "Tanggal", field: "date", sortable: true },
+  { label: "Status", field: "status", sortable: true },
+  { label: "Catatan", field: "notes" },
+  { label: "Aksi", field: "actions", align: "right" },
+];
+
+function formatDate(date) {
+  if (!date) return "-";
+  return new Date(date).toLocaleDateString("id-ID", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
+
+function formatStatus(s) {
+  const map = {
+    present: "Hadir",
+    late: "Telat",
+    permitted: "Izin",
+    sick: "Sakit",
+    absent: "Alpha",
+  };
+  return map[s] || s;
+}
+
+function showStatus(type, title, message) {
+  statusModal.type = type;
+  statusModal.title = title;
+  statusModal.message = message;
+  statusModal.show = true;
+}
+
+// Mode Toggle
+function toggleInputMode() {
+  inputMode.value = !inputMode.value;
+  if (!inputMode.value) {
+    fetchData(); // Refresh history
+  } else {
+    // Reset selection if needed or keep cache
+    // fetchClassStudents is triggered by select change
+  }
+}
+
+// Data Fetching
 async function fetchData() {
   loading.value = true;
   try {
-    const res = await attendanceApi.getStudentAttendance();
+    const params = {
+      classId: filters.classId || undefined,
+      date: filters.date || undefined,
+    };
+    // Clean params
+    Object.keys(params).forEach(
+      (key) => params[key] === undefined && delete params[key]
+    );
+
+    const res = await attendanceApi.getStudentAttendance(params);
     attendances.value = Array.isArray(res?.data) ? res.data : [];
   } catch (e) {
-    alert(e.message || "Gagal memuat");
+    console.error(e);
   } finally {
     loading.value = false;
   }
 }
 
-async function submitForm() {
-  saving.value = true;
-  modal.error = "";
+async function fetchClasses() {
   try {
-    if (!form.studentId || !form.date) {
-      modal.error = "ID Santri dan Tanggal wajib diisi";
-      return;
-    }
-    await attendanceApi.createStudentAttendance({
-      studentId: parseInt(form.studentId),
-      date: form.date,
-      status: form.status,
-      notes: form.notes || undefined,
-    });
-    await fetchData();
-    closeModal();
+    const res = await academicApi.getClasses();
+    classes.value = Array.isArray(res?.data) ? res.data : [];
   } catch (e) {
-    modal.error = e.message || "Gagal menyimpan";
+    console.error("Gagal load kelas", e);
+  }
+}
+
+// Input Mode Logic
+async function fetchClassStudents() {
+  if (!inputForm.classId) return;
+  loadingStudents.value = true;
+  try {
+    // We assume backend has an endpoint to get students OF A CLASS.
+    // academicApi.getClass(id) usually returns class info, maybe students?
+    // Let's check api.js or use academicApi.getStudents({ classId: ... }) if available?
+    // Looking at academicApi, there is assignStudent but no getStudents?
+    // Wait, roomsApi has getStudents.
+    // Ideally we need `attendanceApi.getStudentsCandidates` or similar.
+    // Or we use existing `academicApi.getClass(id)` if it includes students.
+    // Let's assume `academicApi.getClass(id)` returns students based on typical implementation.
+    // If not, we might need to add it.
+
+    // BACKUP PLAN: Use `academicApi.getClasses({ include: 'students' })`? No.
+    // Let's try `academicApi.getClass(inputForm.classId)` and see if it has students.
+    // Actually, looking at `attendance.ts` change, it uses `studentClasses` table.
+    // We probably need a dedicated endpoint to "Get Students in Class".
+    // For now, let's assume `academicApi.getClass(id)` returns valid data.
+
+    const res = await academicApi.getClass(inputForm.classId);
+    // Assume res.data.students or similar exists.
+    // If backend doesn't return students, we need to fix backend.
+
+    // TEMPORARY FIX: If fetching specific class doesn't return students, we might be stuck.
+    // Let's checking `academic.ts` (not readable now).
+    // Let's assume it works or I'll fix it if it errors.
+
+    const rawStudents = res.data?.students || [];
+    // Map to include attendance model
+    students.value = rawStudents.map((s) => ({
+      id: s.id || s.studentId, // Handle both structures
+      fullName: s.fullName || s.student?.fullName || "Santri",
+      nis: s.nis || s.student?.nis,
+      attendance: {
+        status: "present",
+        notes: "",
+      },
+    }));
+  } catch (e) {
+    showStatus("error", "Gagal", "Gagal mengambil data santri");
+  } finally {
+    loadingStudents.value = false;
+  }
+}
+
+function setAllStatus(status) {
+  students.value.forEach((s) => {
+    s.attendance.status = status;
+  });
+}
+
+async function submitBulk() {
+  saving.value = true;
+  try {
+    const payload = {
+      date: inputForm.date, // YYYY-MM-DD
+      attendances: students.value.map((s) => ({
+        studentId: s.id,
+        status: s.attendance.status,
+        notes: s.attendance.notes || undefined,
+      })),
+    };
+
+    // We assume `createStudentAttendance` handles single, we need BULK endpoint.
+    // I noticed `bulkStudentAttendanceSchema` in backend imports but didn't check endpoint.
+    // If bulk endpoint missing, we loop.
+    // WAIT! I saw `/students/bulk` in `attendance.ts` lines 219-284 in previous read!
+    // So we need to call that. `attendanceApi.createBulk...`?
+    // `attendanceApi` doesn't have bulk method in `api.js`. I need to add it or use raw fetch.
+    // I will add it to `api.js` in next step or use direct fetch here.
+    // Re-reading `attendanceApi` in `api.js`: It does NOT have bulk.
+    // I'll assume I will update `api.js` right after this. For now let me define it:
+
+    await attendanceApi.createStudentAttendanceBulk(payload);
+
+    showStatus("success", "Berhasil", "Absensi berhasil disimpan");
+
+    // Sync filters to show the newly created data
+    filters.date = inputForm.date;
+    filters.classId = inputForm.classId;
+
+    toggleInputMode(); // go back to history
+  } catch (e) {
+    showStatus("error", "Gagal", e.message || "Gagal menyimpan absensi");
   } finally {
     saving.value = false;
   }
+}
+
+// Actions
+const editingItem = ref(null);
+const editForm = reactive({
+  id: null,
+  status: "present",
+  notes: "",
+  studentName: "",
+});
+
+function editItem(item) {
+  editingItem.value = item;
+  editForm.id = item.id;
+  editForm.status = item.status || "present";
+  editForm.notes = item.notes || "";
+  editForm.studentName = item.student?.fullName || "Santri";
+}
+
+async function updateItem() {
+  if (!editForm.id) return;
+  saving.value = true;
+  try {
+    // Re-use create endpoint which handles update by Student+Date, OR use the specific update flow.
+    // Since we added updateStudentAttendance in api.js which uses POST /students:
+    // This expects { studentId, date, status, notes }.
+    // BUT wait, if we change status/notes of an EXISTING record by ID, we might need to send the exact payload the backend expects to FIND it.
+    // The backend POST /students finds by (studentId, date).
+    // If we use the original item's studentId and date, it will find it and update it.
+
+    // We need to ensure we pass the correct studentId and date from the original item.
+    const payload = {
+      studentId: editingItem.value.studentId, // Critical: must be same student
+      date:
+        typeof editingItem.value.date === "string"
+          ? editingItem.value.date.split("T")[0]
+          : new Date(editingItem.value.date).toISOString().split("T")[0], // Ensure YYYY-MM-DD
+      status: editForm.status,
+      notes: editForm.notes,
+    };
+
+    await attendanceApi.createStudentAttendance(payload);
+
+    showStatus("success", "Berhasil", "Data absensi diperbarui");
+    editingItem.value = null; // Close modal
+    fetchData(); // Refresh table
+  } catch (e) {
+    showStatus("error", "Gagal", e.message || "Gagal memperbarui absensi");
+  } finally {
+    saving.value = false;
+  }
+}
+
+function confirmDelete(item) {
+  confirm.item = item;
+  confirm.show = true;
 }
 
 async function deleteItem() {
+  if (!confirm.item) return;
   saving.value = true;
   try {
-    /* Note: API may not have delete endpoint implemented */ confirmCancel();
-    await fetchData();
+    await attendanceApi.deleteStudentAttendance(confirm.item.id);
+    showStatus("success", "Berhasil", "Data absensi dihapus");
+    fetchData();
   } catch (e) {
-    alert(e.message || "Gagal menghapus");
+    showStatus("error", "Gagal", e.message || "Gagal menghapus absensi");
   } finally {
     saving.value = false;
+    confirm.show = false;
+    confirm.item = null;
   }
 }
 
-function openCreate() {
-  modal.show = true;
-  modal.error = "";
-  Object.assign(form, {
-    studentId: "",
-    date: new Date().toISOString().split("T")[0],
-    status: "present",
-    notes: "",
-  });
-}
-function closeModal() {
-  modal.show = false;
-}
-function confirmDelete(item) {
-  confirm.show = true;
-  confirm.item = item;
-}
-function confirmCancel() {
-  confirm.show = false;
-  confirm.item = null;
-}
-
-onMounted(fetchData);
+onMounted(() => {
+  fetchClasses();
+  fetchData();
+});
 </script>

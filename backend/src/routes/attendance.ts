@@ -117,6 +117,8 @@ async function validateLocation(lat: number, lng: number, accuracy?: number) {
   };
 }
 
+import { studentClasses } from "../db/schema/academic";
+
 // ============ STUDENT ATTENDANCE ============
 
 // Get student attendances
@@ -124,21 +126,52 @@ attendanceRoute.get("/students", async (c) => {
   try {
     const date = c.req.query("date");
     const studentId = c.req.query("studentId");
+    const classId = c.req.query("classId");
 
     let conditions: any[] = [];
     if (date) conditions.push(sql`${studentAttendances.date} = ${date}`);
     if (studentId)
       conditions.push(eq(studentAttendances.studentId, parseInt(studentId)));
 
+    // Filter by Class using student_classes table
+    if (classId) {
+      const classStudents = await db.query.studentClasses.findMany({
+        where: and(
+          eq(studentClasses.classId, parseInt(classId)),
+          eq(studentClasses.status, "active")
+        ),
+        columns: { studentId: true },
+      });
+
+      const studentIds = classStudents.map((s) => s.studentId);
+
+      if (studentIds.length > 0) {
+        conditions.push(inArray(studentAttendances.studentId, studentIds));
+      } else {
+        // Class has no students, return empty list immediately
+        return c.json({ success: true, data: [] });
+      }
+    }
+
     const attendances =
       conditions.length > 0
         ? await db.query.studentAttendances.findMany({
             where: and(...conditions),
+            with: {
+              student: true,
+            },
+            limit: 100,
           })
-        : await db.query.studentAttendances.findMany();
+        : await db.query.studentAttendances.findMany({
+            limit: 100,
+            with: {
+              student: true,
+            },
+          });
 
     return c.json({
       success: true,
+      message: "Student attendance retrieved successfully",
       data: attendances,
     });
   } catch (error) {
@@ -191,7 +224,7 @@ attendanceRoute.post(
 
       const result = await db.insert(studentAttendances).values({
         studentId: data.studentId,
-        date: new Date(data.date),
+        date: data.date, // Use string directly
         status: data.status,
         notes: data.notes,
         createdBy: user.userId,
@@ -255,7 +288,7 @@ attendanceRoute.post(
           // Create new
           const result = await db.insert(studentAttendances).values({
             studentId: attendance.studentId,
-            date: new Date(date),
+            date: date, // Use string directly
             status: attendance.status,
             notes: attendance.notes,
             createdBy: user.userId,
@@ -277,6 +310,30 @@ attendanceRoute.post(
       console.error("Bulk attendance error:", error);
       return c.json(
         { success: false, message: "Failed to record bulk attendance" },
+        500
+      );
+    }
+  }
+);
+
+// Delete student attendance
+attendanceRoute.delete(
+  "/students/:id",
+  requireRole("admin", "teacher", "staff"),
+  async (c) => {
+    try {
+      const id = parseInt(c.req.param("id"), 10);
+
+      await db.delete(studentAttendances).where(eq(studentAttendances.id, id));
+
+      return c.json({
+        success: true,
+        message: "Attendance deleted successfully",
+      });
+    } catch (error) {
+      console.error("Delete attendance error:", error);
+      return c.json(
+        { success: false, message: "Failed to delete attendance" },
         500
       );
     }
