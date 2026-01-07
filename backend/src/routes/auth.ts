@@ -82,10 +82,111 @@ function clearLoginAttempts(email: string, ip: string): void {
   loginAttempts.delete(key);
 }
 
+// Rate limiting for registration (separate from login)
+const registerAttempts = new Map<
+  string,
+  { count: number; firstAttempt: number }
+>();
+const REGISTER_RATE_LIMIT_MAX = 3; // Max register attempts per IP
+const REGISTER_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour window
+
+function checkRegisterRateLimit(ip: string): {
+  allowed: boolean;
+  retryAfter?: number;
+} {
+  const now = Date.now();
+  const attempt = registerAttempts.get(ip);
+
+  if (!attempt) {
+    return { allowed: true };
+  }
+
+  if (now - attempt.firstAttempt > REGISTER_RATE_LIMIT_WINDOW_MS) {
+    registerAttempts.delete(ip);
+    return { allowed: true };
+  }
+
+  if (attempt.count >= REGISTER_RATE_LIMIT_MAX) {
+    const retryAfter = Math.ceil(
+      (REGISTER_RATE_LIMIT_WINDOW_MS - (now - attempt.firstAttempt)) / 1000
+    );
+    return { allowed: false, retryAfter };
+  }
+
+  return { allowed: true };
+}
+
+function recordRegisterAttempt(ip: string): void {
+  const now = Date.now();
+  const attempt = registerAttempts.get(ip);
+
+  if (!attempt || now - attempt.firstAttempt > REGISTER_RATE_LIMIT_WINDOW_MS) {
+    registerAttempts.set(ip, { count: 1, firstAttempt: now });
+  } else {
+    attempt.count++;
+    registerAttempts.set(ip, attempt);
+  }
+}
+
+// Check if admin exists in database (public endpoint for registration form)
+auth.get("/check-admin-exists", async (c) => {
+  try {
+    const adminUser = await db.query.users.findFirst({
+      where: eq(users.role, "admin" as any),
+    });
+
+    return c.json({
+      success: true,
+      data: { adminExists: !!adminUser },
+    });
+  } catch (error) {
+    console.error("Check admin exists error:", error);
+    return c.json({ success: false, message: "Failed to check" }, 500);
+  }
+});
+
 // Register
 auth.post("/register", zValidator("json", registerSchema), async (c) => {
   try {
     const { email, password, role } = c.req.valid("json");
+
+    // Get client IP for rate limiting
+    const clientIP =
+      c.req.header("x-forwarded-for")?.split(",")[0] ||
+      c.req.header("x-real-ip") ||
+      "unknown";
+
+    // Check rate limit
+    const rateCheck = checkRegisterRateLimit(clientIP);
+    if (!rateCheck.allowed) {
+      return c.json(
+        {
+          success: false,
+          message: `Terlalu banyak percobaan pendaftaran. Coba lagi dalam ${Math.ceil(
+            (rateCheck.retryAfter || 3600) / 60
+          )} menit.`,
+          retryAfter: rateCheck.retryAfter,
+        },
+        429
+      );
+    }
+
+    // Security: Prevent registering as admin if admin already exists
+    if (role === "admin") {
+      const existingAdmin = await db.query.users.findFirst({
+        where: eq(users.role, "admin" as any),
+      });
+
+      if (existingAdmin) {
+        return c.json(
+          {
+            success: false,
+            message: "Admin sudah terdaftar. Hubungi admin untuk membuat akun.",
+          },
+          403
+        );
+      }
+    }
 
     // Check if user exists
     const existingUser = await db.query.users.findFirst({
@@ -145,6 +246,9 @@ auth.post("/register", zValidator("json", registerSchema), async (c) => {
     if (!newUser) {
       return c.json({ success: false, message: "Registration failed" }, 500);
     }
+
+    // Record successful registration for rate limiting
+    recordRegisterAttempt(clientIP);
 
     // Generate token
     token = generateToken(newUser);

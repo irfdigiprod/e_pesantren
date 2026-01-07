@@ -1,7 +1,28 @@
 <template>
   <div class="p-2 max-w-7xl mx-auto pb-12">
-    <!-- Header -->
-    <div class="mb-6">
+    <!-- Parent Mode Header (Back Button) -->
+    <div
+      v-if="isParentMode"
+      class="bg-white border-b shadow-sm sticky top-0 z-20 mb-4 print:hidden rounded-lg"
+    >
+      <div class="px-4 py-3 flex items-center gap-3">
+        <button
+          @click="goBack"
+          class="p-2 rounded-full hover:bg-slate-100 text-slate-600"
+        >
+          <Icon icon="solar:arrow-left-line-duotone" class="w-5 h-5" />
+        </button>
+        <div>
+          <h1 class="text-lg font-semibold text-slate-800">Rapor Tahfidz</h1>
+          <p v-if="studentNameFromQuery" class="text-sm text-slate-500">
+            {{ studentNameFromQuery }}
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Header (Hidden in Parent Mode) -->
+    <div v-if="!isParentMode" class="mb-6">
       <h1 class="text-2xl font-bold text-slate-800">Laporan & Sertifikat</h1>
       <p class="text-slate-500">
         Cetak rapor hafalan dan sertifikat kelulusan santri
@@ -9,8 +30,55 @@
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
-      <!-- Controls (Left Panel) -->
-      <div class="lg:col-span-1 space-y-6">
+      <!-- PARENT MODE CONTROLS (Full Width on Top) -->
+      <div v-if="isParentMode" class="lg:col-span-4">
+        <div
+          class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 print:hidden"
+        >
+          <div class="grid grid-cols-2 gap-4">
+            <!-- Academic Year -->
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1"
+                >Tahun Ajaran</label
+              >
+              <select
+                v-model="academicYear"
+                class="w-full px-3 py-2 border rounded-lg focus:ring-2 ring-[#602515]/20 outline-none"
+              >
+                <option
+                  v-for="y in academicYears"
+                  :key="y.year"
+                  :value="y.year"
+                >
+                  {{ y.year }}{{ y.isActive ? " (Aktif)" : "" }}
+                </option>
+              </select>
+            </div>
+
+            <!-- Semester -->
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1"
+                >Semester</label
+              >
+              <select
+                v-model="semester"
+                class="w-full px-3 py-2 border rounded-lg focus:ring-2 ring-[#602515]/20 outline-none"
+              >
+                <option
+                  v-for="s in semesters"
+                  :key="s.id"
+                  :value="s.name.toUpperCase()"
+                >
+                  {{ s.name }}{{ s.isActive ? " (Aktif)" : "" }}
+                </option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Controls (Left Panel) - Hide in Parent Mode -->
+      <div v-if="!isParentMode" class="lg:col-span-1 space-y-6">
         <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
           <h3 class="font-bold text-slate-800 mb-4">Pengaturan Laporan</h3>
 
@@ -155,8 +223,8 @@
         </div>
       </div>
 
-      <!-- Report Preview (Right Panel) -->
-      <div class="lg:col-span-3">
+      <!-- Report Preview (Right Panel) - Full width in Parent Mode -->
+      <div :class="isParentMode ? 'lg:col-span-4' : 'lg:col-span-3'">
         <!-- Loading State -->
         <div
           v-if="loading"
@@ -889,13 +957,28 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { Icon } from "@iconify/vue";
 import { useElementSize } from "@vueuse/core";
 import { studentsApi, tahfidzApi, academicSettingsApi } from "@/services/api";
 import { usePdfExport } from "@/composables/usePdfExport";
 import { exportTahfidzReportToExcel } from "@/services/exports/tahfidzReportExporter";
 
+const route = useRoute();
+const router = useRouter();
 const loading = ref(false);
+
+// Parent mode detection
+const isParentMode = computed(() => route.meta?.parentMode === true);
+const studentNameFromQuery = computed(() => route.query.studentName || "");
+
+function goBack() {
+  if (isParentMode.value) {
+    router.push("/parent-dashboard");
+  } else {
+    router.back();
+  }
+}
 
 const reportContainer = ref(null);
 const { width: containerWidth } = useElementSize(reportContainer);
@@ -1314,7 +1397,6 @@ async function handleDownloadPdf() {
 
 // --- LIFECYCLE ---
 onMounted(async () => {
-  loadStudents();
   // Load academic settings for dropdowns
   try {
     const [yearsRes, semsRes, activeRes] = await Promise.all([
@@ -1334,6 +1416,45 @@ onMounted(async () => {
     console.error("Failed to load academic settings:", e);
     academicYear.value = "2024-2025";
     semester.value = "GANJIL";
+  }
+
+  // Helper to process query param studentId
+  const studentIdParam = route.query.studentId;
+
+  if (isParentMode.value) {
+    // Parent Mode: Fetch specific student directly
+    if (studentIdParam) {
+      loading.value = true;
+      try {
+        const res = await studentsApi.getById(studentIdParam);
+        if (res.data) {
+          selectStudent(res.data);
+        }
+      } catch (e) {
+        console.error("Failed to fetch student for tahfidz report:", e);
+      } finally {
+        loading.value = false;
+      }
+    }
+  } else {
+    // Admin Mode: Load all students
+    loadStudents();
+
+    // If query param exists in admin mode (e.g. redirected link), wait for list
+    if (studentIdParam) {
+      const checkStudents = setInterval(() => {
+        if (allStudents.value.length > 0) {
+          clearInterval(checkStudents);
+          const found = allStudents.value.find(
+            (s) => String(s.id) === String(studentIdParam)
+          );
+          if (found) {
+            selectStudent(found);
+          }
+        }
+      }, 100);
+      setTimeout(() => clearInterval(checkStudents), 5000);
+    }
   }
 });
 </script>

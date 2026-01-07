@@ -212,7 +212,7 @@ function getRedirectPath(role) {
     case "student":
       return "/mobile-dashboard";
     case "parent":
-      return "/mobile-dashboard";
+      return "/parent-dashboard";
     case "clinic":
       return "/apps/clinic/dashboard";
     default:

@@ -1,7 +1,70 @@
 <template>
   <div class="max-w-7xl mx-auto pb-12">
-    <!-- Controls Panel (hidden on print) -->
+    <!-- Parent Mode Header (Back Button) -->
     <div
+      v-if="isParentMode"
+      class="bg-white border-b shadow-sm sticky top-0 z-20 mb-4 print:hidden"
+    >
+      <div class="px-4 py-3 flex items-center gap-3">
+        <button
+          @click="goBack"
+          class="p-2 rounded-full hover:bg-slate-100 text-slate-600"
+        >
+          <Icon icon="solar:arrow-left-line-duotone" class="w-5 h-5" />
+        </button>
+        <div>
+          <h1 class="text-lg font-semibold text-slate-800">Rapor Pesantren</h1>
+          <p v-if="studentNameFromQuery" class="text-sm text-slate-500">
+            {{ studentNameFromQuery }}
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Controls Panel (hidden on print) -->
+    <!-- PARENT MODE CONTROLS -->
+    <div
+      v-if="isParentMode"
+      class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 mb-6 print:hidden"
+    >
+      <div class="grid grid-cols-2 gap-4">
+        <!-- Semester -->
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1"
+            >Semester</label
+          >
+          <select
+            v-model="semester"
+            @change="loadData"
+            class="w-full px-3 py-2 border rounded-lg"
+          >
+            <option v-for="s in semesters" :key="s.id" :value="s.id">
+              {{ s.name }}{{ s.isActive ? " (Aktif)" : "" }}
+            </option>
+          </select>
+        </div>
+
+        <!-- Academic Year -->
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1"
+            >Tahun Ajaran</label
+          >
+          <select
+            v-model="academicYear"
+            @change="loadData"
+            class="w-full px-3 py-2 border rounded-lg"
+          >
+            <option v-for="y in academicYears" :key="y.year" :value="y.year">
+              {{ y.year }}{{ y.isActive ? " (Aktif)" : "" }}
+            </option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADMIN/TEACHER CONTROLS -->
+    <div
+      v-else
       class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-6 print:hidden"
     >
       <h1 class="text-xl font-bold text-slate-800 mb-4">
@@ -654,7 +717,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, watch } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { Icon } from "@iconify/vue";
 import { useElementSize } from "@vueuse/core";
 import {
@@ -668,7 +731,12 @@ import { usePdfExport } from "@/composables/usePdfExport";
 import StatusModal from "@/components/ui/StatusModal.vue";
 
 const route = useRoute();
+const router = useRouter();
 const loading = ref(false);
+
+// Parent mode detection
+const isParentMode = computed(() => route.meta?.parentMode === true);
+const studentNameFromQuery = computed(() => route.query.studentName || "");
 
 // Scaling Logic
 const reportContainer = ref(null);
@@ -819,6 +887,14 @@ function toArabicNumeral(num) {
     .join("");
 }
 
+function goBack() {
+  if (isParentMode.value) {
+    router.push("/parent-dashboard");
+  } else {
+    router.back();
+  }
+}
+
 async function loadFilters() {
   try {
     const [semRes, yearRes, headerRes, predRes] = await Promise.all([
@@ -834,12 +910,30 @@ async function loadFilters() {
     predicates.value = predRes.data || [];
 
     const activeSem = semesters.value.find((s) => s.isActive);
-    if (activeSem) semester.value = activeSem.id;
+    if (activeSem) {
+      semester.value = activeSem.id;
+    } else if (semesters.value.length > 0) {
+      semester.value = semesters.value[0].id;
+    }
 
     const activeYear = academicYears.value.find((y) => y.isActive);
-    if (activeYear) academicYear.value = activeYear.year;
+    if (activeYear) {
+      academicYear.value = activeYear.year;
+    } else if (academicYears.value.length > 0) {
+      academicYear.value = academicYears.value[0].year;
+    } else {
+      academicYear.value = "2024-2025"; // Hard fallback
+    }
   } catch (e) {
     console.error("Error loading filters:", e);
+    // Fallback settings on error to ensure data can attempt to load
+    academicYear.value = "2024-2025";
+    semester.value = "1";
+    showStatus(
+      "Warning",
+      "Gagal memuat pengaturan akademik. Menggunakan default.",
+      "warning"
+    );
   }
 }
 
@@ -911,21 +1005,27 @@ async function loadData() {
     }));
 
     // Load attendance based on source
-    if (attendanceSource.value === "manual") {
-      const noteRes = await homeroomNotesApi.getByStudent(
-        student.value.id,
-        semester.value,
-        academicYear.value
-      );
-      const note = noteRes.data || {};
-      attendance.value = {
-        sickDays: note.sickDays || 0,
-        permissionDays: note.permissionDays || 0,
-        absentDays: note.absentDays || 0,
-      };
-      teacherNotes.value = note.teacherNotes || "";
-    } else {
-      // TODO: Load from automatic attendance system
+    try {
+      if (attendanceSource.value === "manual") {
+        const noteRes = await homeroomNotesApi.getByStudent(
+          student.value.id,
+          semester.value,
+          academicYear.value
+        );
+        const note = noteRes.data || {};
+        attendance.value = {
+          sickDays: note.sickDays || 0,
+          permissionDays: note.permissionDays || 0,
+          absentDays: note.absentDays || 0,
+        };
+        teacherNotes.value = note.teacherNotes || "";
+      } else {
+        // TODO: Load from automatic attendance system
+        attendance.value = { sickDays: 0, permissionDays: 0, absentDays: 0 };
+        teacherNotes.value = "";
+      }
+    } catch (e) {
+      console.warn("Failed to load attendance notes:", e);
       attendance.value = { sickDays: 0, permissionDays: 0, absentDays: 0 };
       teacherNotes.value = "";
     }
@@ -1113,27 +1213,48 @@ async function handleDownloadPdf() {
 
 onMounted(async () => {
   await loadFilters();
-  await loadStudents();
 
-  // Check if we have query params (for PDF generation via Puppeteer)
-  const urlParams = new URLSearchParams(window.location.search);
-  const studentId = urlParams.get("studentId");
-  const semesterParam = urlParams.get("semester");
-  const academicYearParam = urlParams.get("academicYear");
-  const attendanceSourceParam = urlParams.get("attendanceSource");
+  if (isParentMode.value) {
+    // Parent Mode: Load specific student directly
+    const studentId = route.query.studentId;
+    if (studentId) {
+      isLoadingStudents.value = true;
+      try {
+        // Use getById instead of getAll to avoid permission issues and fetch enriched data
+        const res = await studentsApi.getById(studentId);
+        if (res.data) {
+          selectStudent(res.data);
+        }
+      } catch (e) {
+        console.error("Failed to load student for parent:", e);
+      } finally {
+        isLoadingStudents.value = false;
+      }
+    }
+  } else {
+    // Admin/Teacher Mode: Load all students for search
+    await loadStudents();
 
-  if (studentId) {
-    // Set filters from URL params
-    if (semesterParam) semester.value = semesterParam;
-    if (academicYearParam) academicYear.value = academicYearParam;
-    if (attendanceSourceParam) attendanceSource.value = attendanceSourceParam;
+    // Check if we have query params (for admin view link)
+    const urlParams = new URLSearchParams(window.location.search);
+    const studentId = urlParams.get("studentId");
+    const semesterParam = urlParams.get("semester");
+    const academicYearParam = urlParams.get("academicYear");
+    const attendanceSourceParam = urlParams.get("attendanceSource");
 
-    // Find and select the student
-    const foundStudent = allStudents.value.find(
-      (s) => String(s.id) === String(studentId)
-    );
-    if (foundStudent) {
-      selectStudent(foundStudent);
+    if (studentId) {
+      // Set filters from URL params
+      if (semesterParam) semester.value = semesterParam;
+      if (academicYearParam) academicYear.value = academicYearParam;
+      if (attendanceSourceParam) attendanceSource.value = attendanceSourceParam;
+
+      // Find and select the student
+      const foundStudent = allStudents.value.find(
+        (s) => String(s.id) === String(studentId)
+      );
+      if (foundStudent) {
+        selectStudent(foundStudent);
+      }
     }
   }
 });

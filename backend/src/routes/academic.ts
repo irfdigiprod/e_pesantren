@@ -1085,6 +1085,8 @@ academicRoute.put(
 
 // Get grades with filters (for report card)
 // Returns all subjects for student's grade level, merged with existing grades
+// Get grades with filters (for report card)
+// Returns all subjects for student's grade level, merged with existing grades
 academicRoute.get("/grades", async (c) => {
   try {
     const studentId = c.req.query("studentId");
@@ -1696,7 +1698,7 @@ async function calculateGrade(
 // Get all predicates
 academicRoute.get(
   "/settings/predicates",
-  requireRole("admin", "teacher", "staff"),
+  // Allow all authenticated users (requireRole removed)
   async (c) => {
     try {
       const data = await db

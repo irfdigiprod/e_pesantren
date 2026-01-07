@@ -245,6 +245,10 @@ export const authApi = {
     return request("/api/auth/me");
   },
 
+  async checkAdminExists() {
+    return request("/api/auth/check-admin-exists", { includeAuth: false });
+  },
+
   async logout() {
     try {
       await request("/api/auth/logout", { method: "POST" });
@@ -1967,5 +1971,53 @@ export const rolesApi = {
    */
   async getMyPermissions() {
     return request("/api/roles/my-permissions");
+  },
+};
+
+// ============================================
+// PARENT DASHBOARD API
+// ============================================
+
+export const parentDashboardApi = {
+  /**
+   * Get list of children for logged-in parent
+   */
+  async getChildren() {
+    return request("/api/parent-dashboard/children");
+  },
+
+  /**
+   * Get summary data for a specific child
+   */
+  async getChildSummary(studentId) {
+    return request(`/api/parent-dashboard/child/${studentId}/summary`);
+  },
+
+  /**
+   * Get academic data (grades, reports) for a child
+   */
+  async getChildAcademic(studentId) {
+    return request(`/api/parent-dashboard/child/${studentId}/academic`);
+  },
+
+  /**
+   * Get discipline data (R&P, warnings) for a child
+   */
+  async getChildDiscipline(studentId) {
+    return request(`/api/parent-dashboard/child/${studentId}/discipline`);
+  },
+
+  /**
+   * Get clinic data (examinations) for a child
+   */
+  async getChildClinic(studentId) {
+    return request(`/api/parent-dashboard/child/${studentId}/clinic`);
+  },
+
+  /**
+   * Get tahfidz data (deposits, exams, report cards) for a child
+   */
+  async getChildTahfidz(studentId) {
+    return request(`/api/parent-dashboard/child/${studentId}/tahfidz`);
   },
 };

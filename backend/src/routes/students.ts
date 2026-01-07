@@ -743,6 +743,40 @@ studentsRoute.get("/:id", async (c) => {
       return c.json({ success: false, message: "Student not found" }, 404);
     }
 
+    // Get enriched data (Halaqah, Room, Class)
+    const { halaqahMembers, halaqahGroups } = await import(
+      "../db/schema/halaqah"
+    );
+    const { rooms } = await import("../db/schema/rooms");
+    const { classes } = await import("../db/schema/academic");
+
+    // Get halaqah membership
+    const halaqahMember = await db.query.halaqahMembers.findFirst({
+      where: eq(halaqahMembers.studentId, student.id),
+    });
+    let halaqah = null;
+    if (halaqahMember) {
+      halaqah = await db.query.halaqahGroups.findFirst({
+        where: eq(halaqahGroups.id, halaqahMember.halaqahId),
+      });
+    }
+
+    // Get room info
+    let room = null;
+    if (student.roomId) {
+      room = await db.query.rooms.findFirst({
+        where: eq(rooms.id, student.roomId),
+      });
+    }
+
+    // Get class info
+    let classInfo = null;
+    if (student.classId) {
+      classInfo = await db.query.classes.findFirst({
+        where: eq(classes.id, student.classId),
+      });
+    }
+
     // Get parents dari student_parents
     const { studentParents } = await import("../db/schema/student-parents");
     const parentRelations = await db.query.studentParents.findMany({
@@ -766,6 +800,9 @@ studentsRoute.get("/:id", async (c) => {
       success: true,
       data: {
         ...student,
+        halaqah: halaqah ? { id: halaqah.id, name: halaqah.name } : null,
+        room: room ? { id: room.id, name: room.name } : null,
+        class: classInfo ? { id: classInfo.id, name: classInfo.name } : null,
         parents: parentsData,
       },
     });

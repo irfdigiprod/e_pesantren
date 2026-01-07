@@ -41,6 +41,36 @@ const router = createRouter({
 
     //
     // ======================
+    // PARENT DASHBOARD
+    // ======================
+    {
+      path: "/parent-dashboard",
+      component: () => import("@/components/ParentLayout.vue"),
+      meta: { requiresAuth: true },
+      children: [
+        {
+          path: "",
+          name: "ParentDashboard",
+          component: () => import("@/views/ParentDashboard.vue"),
+          meta: { title: "Dashboard Orang Tua" },
+        },
+        {
+          path: "report-card",
+          name: "ParentReportCard",
+          component: () => import("@/views/apps/academic/ReportCardPrint.vue"),
+          meta: { title: "Rapor Pesantren Anak", parentMode: true },
+        },
+        {
+          path: "tahfidz-report",
+          name: "ParentTahfidzReport",
+          component: () => import("@/views/apps/tahfidz/TahfidzReports.vue"),
+          meta: { title: "Rapor Tahfidz Anak", parentMode: true },
+        },
+      ],
+    },
+
+    //
+    // ======================
     // MOBILE DASHBOARD
     // ======================
     {
