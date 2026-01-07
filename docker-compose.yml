@@ -29,6 +29,9 @@ services:
       DATABASE_URL: mysql://${DB_USER:-root}:${DB_PASSWORD:-password}@db:3306/${DB_NAME:-pesantren}
       JWT_SECRET: ${JWT_SECRET:-rahasia_negara_api}
       CORS_ORIGINS: "*"
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:admin@minhajulhaq.com}
     volumes:
       - ./backend/uploads:/app/uploads
     depends_on:
