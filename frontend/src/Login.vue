@@ -200,24 +200,23 @@ function validate() {
   return ok;
 }
 
-// Get redirect path based on user role
+// Get redirect path based on user role and device type
 function getRedirectPath(role) {
-  switch (role) {
-    case "admin":
-      return "/apps/teacher-attendance";
-    case "teacher":
-      return "/apps/teacher-attendance";
-    case "staff":
-      return "/apps/teacher-attendance";
-    case "student":
-      return "/mobile-dashboard";
-    case "parent":
-      return "/parent-dashboard";
-    case "clinic":
-      return "/apps/clinic/dashboard";
-    default:
-      return "/apps/teacher-attendance";
+  // Parent and Student always go to parent-dashboard
+  if (role === "parent" || role === "student") {
+    return "/parent-dashboard";
   }
+
+  // For other roles (admin, teacher, staff, clinic)
+  // Check if device is mobile/tablet (width < 1024px is considered tablet/mobile)
+  const isMobileOrTablet = window.innerWidth < 1024;
+
+  if (isMobileOrTablet) {
+    return "/mobile-dashboard/attendance";
+  }
+
+  // Desktop devices go to /apps/teacher-attendance
+  return "/apps/teacher-attendance";
 }
 
 async function handleLogin() {

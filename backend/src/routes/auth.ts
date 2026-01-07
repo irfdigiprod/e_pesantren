@@ -226,21 +226,36 @@ auth.post("/register", zValidator("json", registerSchema), async (c) => {
         throw new Error("Failed to create user");
       }
 
-      // If role is teacher or staff, create teacher record
-      if (role === "teacher" || role === "staff") {
+      // Create role-specific profile record
+      const defaultName = email.split("@")[0] ?? "User";
+
+      // If role is teacher, staff, or clinic, create teacher record
+      // Clinic staff are stored in the teachers table as 'staff' employee type
+      if (role === "teacher" || role === "staff" || role === "clinic") {
         const { teachers } = await import("../db/schema/teachers");
-        // Use email username as default name
-        const defaultName = email.split("@")[0] ?? "New Teacher";
 
         await tx.insert(teachers).values({
           userId: userId,
           fullName: defaultName,
           email: email,
-          employeeType: role, // 'teacher' or 'staff'
+          employeeType: role === "clinic" ? "staff" : role, // Clinic stored as 'staff' type
           status: "active",
           gender: "male", // Default
         });
       }
+
+      // If role is parent, create parent record
+      if (role === "parent") {
+        const { parents } = await import("../db/schema/students");
+
+        await tx.insert(parents).values({
+          userId: userId,
+          phone: "", // Will be filled in profile
+        });
+      }
+
+      // Note: 'student' role requires NIS (unique student ID) which must be
+      // assigned by admin. Student profiles are created through admin panel.
     });
 
     if (!newUser) {

@@ -316,9 +316,19 @@ async function handleRegister() {
   if (!validate()) return;
 
   isLoading.value = true;
+  serverError.value = ""; // Clear previous errors
 
   try {
-    await authApi.register(form.email, form.password, form.role);
+    const response = await authApi.register(
+      form.email,
+      form.password,
+      form.role
+    );
+
+    // Store token and auto-login (Bug #4 fix)
+    if (response.data?.token) {
+      localStorage.setItem("token", response.data.token);
+    }
 
     statusModal.value = {
       show: true,
@@ -327,7 +337,13 @@ async function handleRegister() {
       message: "Akun Anda telah dibuat. Silakan login untuk melanjutkan.",
     };
   } catch (err) {
-    serverError.value = err.message || "Gagal mendaftar";
+    // Bug #2 fix: Show failures in StatusModal for consistency
+    statusModal.value = {
+      show: true,
+      type: "error",
+      title: "Pendaftaran Gagal",
+      message: err.message || "Terjadi kesalahan. Silakan coba lagi.",
+    };
   } finally {
     isLoading.value = false;
   }
