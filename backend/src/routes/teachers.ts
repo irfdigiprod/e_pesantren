@@ -617,7 +617,10 @@ teachersRoute.post("/import", requireRole("admin", "staff"), async (c) => {
       try {
         const rawData: any = {};
         for (const [k, v] of Object.entries(columnMapping)) {
-          if (row[k]) rawData[v] = row[k];
+          // Fix: Allow 0 value but skip null/undefined/empty string
+          if (row[k] !== undefined && row[k] !== null && row[k] !== "") {
+            rawData[v] = typeof row[k] === "string" ? row[k].trim() : row[k];
+          }
         }
 
         if (!rawData.fullName) throw new Error("Nama wajib diisi");
@@ -655,11 +658,15 @@ teachersRoute.post("/import", requireRole("admin", "staff"), async (c) => {
           });
           if (!existUser) {
             const hashed = await hashPassword(rawData.password);
+
+            // Fix: Set role based on employee type
+            const role = rawData.employeeType === "staff" ? "staff" : "teacher";
+
             const newUser = await db.insert(users).values({
               email: rawData.email,
               password: hashed,
               name: rawData.fullName,
-              role: "teacher",
+              role: role,
             });
             userId = Number(newUser[0].insertId);
           }

@@ -565,14 +565,30 @@ async function confirmImport() {
 function downloadTemplate() {
   if (!props.templateHeader || props.templateHeader.length === 0) return;
 
-  // Extract headers
-  const headers = props.templateHeader.map((col) => col.header);
+  let ws;
 
-  // Create sheet with just the headers
-  const ws = XLSX.utils.aoa_to_sheet([headers]);
+  // Check if it's a Column Definition (has .header) or Data Row (Example Data)
+  const isColumnDef =
+    props.templateHeader[0] &&
+    Object.prototype.hasOwnProperty.call(props.templateHeader[0], "header");
 
-  // Apply column widths
-  ws["!cols"] = props.templateHeader.map((col) => ({ wch: col.width || 15 }));
+  if (isColumnDef) {
+    // Extract headers from definitions
+    const headers = props.templateHeader.map((col) => col.header);
+    ws = XLSX.utils.aoa_to_sheet([headers]);
+    // Apply defined widths
+    ws["!cols"] = props.templateHeader.map((col) => ({
+      wch: col.width || 15,
+    }));
+  } else {
+    // Use the data itself as the template (with header row from keys)
+    ws = XLSX.utils.json_to_sheet(props.templateHeader);
+    // Auto-width columns based on header length
+    if (props.templateHeader[0]) {
+      const keys = Object.keys(props.templateHeader[0]);
+      ws["!cols"] = keys.map((key) => ({ wch: Math.max(key.length + 5, 20) }));
+    }
+  }
 
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Template");
