@@ -32,6 +32,7 @@ import rulesRoute from "./rules";
 import warningsRoute from "./warnings";
 import rolesRoute from "./roles";
 import parentDashboardRoute from "./parent-dashboard";
+import pushRoute from "./push";
 
 export {
   authRoute,
@@ -67,4 +68,5 @@ export {
   warningsRoute,
   rolesRoute,
   parentDashboardRoute,
+  pushRoute,
 };

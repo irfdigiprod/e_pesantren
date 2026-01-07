@@ -38,11 +38,18 @@ export async function createNotification(
     };
 
     // 3. Broadcast to user
-
     broadcastToUser(recipientId, {
       type: "new_notification",
       data: notificationPayload,
     });
+
+    // 4. Send Web Push Notification (Fire and forget)
+    // We import dynamically to avoid circular dependencies if any
+    const { sendPushNotification } = await import("../routes/push");
+    sendPushNotification(recipientId, title, message, {
+      type,
+      ...data,
+    }).catch((err) => console.error("[NOTIF] Push failed:", err)); // Don't block return
 
     return notificationPayload;
   } catch (error) {

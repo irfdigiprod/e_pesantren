@@ -2078,3 +2078,30 @@ export const parentDashboardApi = {
     return request(`/api/parent-dashboard/child/${studentId}/tahfidz`);
   },
 };
+
+// ============================================
+// PUSH API
+// ============================================
+
+export const pushApi = {
+  // Get public VAPID key
+  async getVapidKey() {
+    return request("/api/push/vapid-public-key");
+  },
+
+  // Subscribe to push notifications
+  async subscribe(endpoint, keys) {
+    return request("/api/push/subscribe", {
+      method: "POST",
+      body: { endpoint, keys },
+    });
+  },
+
+  // Unsubscribe from push notifications
+  async unsubscribe(endpoint) {
+    return request("/api/push/unsubscribe", {
+      method: "DELETE",
+      body: { endpoint },
+    });
+  },
+};

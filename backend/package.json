@@ -17,6 +17,7 @@
     "@types/better-sqlite3": "^7.6.13",
     "@types/bun": "latest",
     "@types/jsonwebtoken": "^9.0.10",
+    "@types/web-push": "^3.6.4",
     "better-sqlite3": "^12.5.0"
   },
   "peerDependencies": {
@@ -31,6 +32,7 @@
     "jsonwebtoken": "^9.0.3",
     "mysql2": "^3.15.3",
     "puppeteer-core": "^23.11.1",
+    "web-push": "^3.6.7",
     "xlsx": "^0.18.5",
     "z": "^1.0.9",
     "zod": "^4.1.13"

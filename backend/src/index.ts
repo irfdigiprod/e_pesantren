@@ -37,6 +37,7 @@ import {
   warningsRoute,
   rolesRoute,
   parentDashboardRoute,
+  pushRoute,
 } from "./routes";
 
 import {
@@ -108,6 +109,7 @@ app.route("/api/uploads", uploadsRoute);
 app.route("/api/utils", utilsRoute);
 app.route("/api/users", usersRoute);
 app.route("/api/notifications", notificationsRoute);
+app.route("/api/push", pushRoute);
 app.route("/api/divisions", divisionsRoute);
 app.route("/api/settings", settingsRoute);
 app.route("/api/permissions", permissionsRoute);

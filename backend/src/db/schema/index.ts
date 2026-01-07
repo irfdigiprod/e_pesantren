@@ -19,3 +19,4 @@ export * from "./permissions";
 export * from "./salary";
 export * from "./tahfidz";
 export * from "./information-board";
+export * from "./push-subscriptions";
