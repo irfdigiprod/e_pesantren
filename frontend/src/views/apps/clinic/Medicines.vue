@@ -14,14 +14,23 @@
       filterButtonLabel="Filter Stok"
     >
       <template #header-actions>
-        <button
-          @click="openCreate"
-          :disabled="saving"
-          class="px-4 py-2 bg-[#602515] text-white rounded-lg hover:bg-[#4a1d10] transition flex items-center gap-2 text-sm font-medium"
-        >
-          <Icon icon="solar:add-circle-bold" />
-          Tambah Obat
-        </button>
+        <div class="flex gap-2">
+          <button
+            @click="importModal.show = true"
+            class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition flex items-center gap-2 text-sm font-medium"
+          >
+            <Icon icon="solar:file-send-bold-duotone" />
+            Import Excel
+          </button>
+          <button
+            @click="openCreate"
+            :disabled="saving"
+            class="px-4 py-2 bg-[#602515] text-white rounded-lg hover:bg-[#4a1d10] transition flex items-center gap-2 text-sm font-medium"
+          >
+            <Icon icon="solar:add-circle-bold" />
+            Tambah Obat
+          </button>
+        </div>
       </template>
 
       <!-- Custom Filter Content -->
@@ -352,18 +361,34 @@
       </div>
     </Teleport>
 
+    <!-- Import Modal -->
+    <ImportModal
+      v-model:isOpen="importModal.show"
+      title="Import Data Obat"
+      :apiPreview="onImportPreview"
+      :apiImport="onImportSubmit"
+      :templateHeader="medicineImportTemplate"
+      templateName="template_import_obat"
+      requiredColumns="Nama Obat"
+      @success="onImportSuccess"
+    >
+      <!-- Custom Preview Columns if needed, otherwise default -->
+    </ImportModal>
+
     <!-- Confirm Modal -->
     <ConfirmModal
       :isOpen="confirm.show"
       :loading="saving"
       title="Hapus Obat?"
-      :message="`Anda akan menghapus data <strong>${confirm.item?.name}</strong>. Tindakan ini tidak dapat dibatalkan.`"
       type="danger"
       confirmText="Ya, Hapus"
       cancelText="Batal"
       @confirm="deleteItem"
       @cancel="confirmCancel"
-    />
+    >
+      Anda akan menghapus data <strong>{{ confirm.item?.name }}</strong
+      >. Tindakan ini tidak dapat dibatalkan.
+    </ConfirmModal>
 
     <!-- Status Modal -->
     <StatusModal
@@ -382,6 +407,7 @@ import { Icon } from "@iconify/vue";
 import DataTable from "@/components/ui/DataTable.vue";
 import ConfirmModal from "@/components/ui/ConfirmModal.vue";
 import StatusModal from "@/components/ui/StatusModal.vue";
+import ImportModal from "@/components/common/ImportModal.vue";
 import { clinicApi } from "@/services/api.js";
 
 const medicines = ref([]);
@@ -392,6 +418,7 @@ const viewMode = ref("table");
 const filterStatus = ref("all");
 
 const modal = reactive({ show: false, mode: "create" });
+const importModal = reactive({ show: false });
 const statusModal = reactive({
   show: false,
   type: "success",
@@ -418,6 +445,19 @@ const columns = [
   { label: "Satuan", field: "unit" },
   { label: "Kadaluarsa", field: "expiryDate", sortable: true },
   { label: "Aksi", field: "actions", align: "right" },
+];
+
+const medicineImportTemplate = [
+  {
+    "Nama Obat": "Paracetamol 500mg",
+    Kategori: "Analgesik",
+    Stok: 100,
+    Satuan: "Strip",
+    Harga: 5000,
+    "Min Stok": 10,
+    "Kadaluarsa (YYYY-MM-DD)": "2025-12-31",
+    Deskripsi: "Obat penurun panas",
+  },
 ];
 
 const filteredMedicines = computed(() => {
@@ -571,6 +611,19 @@ function confirmDelete(item) {
 function confirmCancel() {
   confirm.show = false;
   confirm.item = null;
+}
+
+// Import Handlers
+async function onImportPreview(formData) {
+  return await clinicApi.importMedicinePreview(formData);
+}
+
+async function onImportSubmit(formData) {
+  return await clinicApi.importMedicine(formData);
+}
+
+function onImportSuccess() {
+  fetchData();
 }
 
 onMounted(fetchData);

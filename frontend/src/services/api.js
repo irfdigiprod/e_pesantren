@@ -757,6 +757,39 @@ export const clinicApi = {
   async deleteMedicine(id) {
     return request(`/api/clinic/medicines/${id}`, { method: "DELETE" });
   },
+  // Medicines Import
+  async importMedicinePreview(formData) {
+    const token = getToken();
+    const res = await fetch(`${BASE_URL}/api/clinic/medicines/import/preview`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data?.message || data?.error || "Preview failed");
+    }
+    return data;
+  },
+  async importMedicine(formData) {
+    const token = getToken();
+    const res = await fetch(`${BASE_URL}/api/clinic/medicines/import`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data?.message || data?.error || "Import failed");
+    }
+    return data;
+  },
 
   // Inpatients
   async getInpatients(params = {}) {

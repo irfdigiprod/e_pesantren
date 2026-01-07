@@ -515,6 +515,221 @@ clinicRoute.delete("/medicines/:id", requireRole("admin"), async (c) => {
   }
 });
 
+// ============ IMPORT MEDICINES ============
+
+// Preview import medicines
+clinicRoute.post(
+  "/medicines/import/preview",
+  requireRole("admin", "clinic", "staff"),
+  async (c) => {
+    try {
+      const formData = await c.req.formData();
+      const file = formData.get("file") as File;
+
+      if (!file) {
+        return c.json({ success: false, message: "No file uploaded" }, 400);
+      }
+
+      // Parse Excel file
+      const XLSX = await import("xlsx");
+      const buffer = await file.arrayBuffer();
+      const workbook = XLSX.read(buffer, { type: "array" });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const data = XLSX.utils.sheet_to_json(worksheet) as any[];
+
+      if (!data || data.length === 0) {
+        return c.json(
+          {
+            success: false,
+            message: "File Excel kosong atau tidak ada data",
+          },
+          400
+        );
+      }
+
+      // Column Mappings
+      const map: { [key: string]: string } = {
+        "Nama Obat": "name",
+        Nama: "name",
+        Kategori: "category",
+        Stok: "stock",
+        Satuan: "unit",
+        "Harga Beli": "price", // Optional
+        "Harga Jual": "sellPrice", // Optional, mapped to standard price if needed
+        Harga: "price",
+        "Min Stok": "minStock",
+        "Kadaluarsa (YYYY-MM-DD)": "expiryDate",
+        Kadaluarsa: "expiryDate",
+        Deskripsi: "description",
+      };
+
+      const preview = {
+        totalRows: data.length,
+        validRows: 0,
+        invalidRows: 0,
+        errors: [] as any[],
+        validData: [] as any[],
+      };
+
+      for (let i = 0; i < data.length; i++) {
+        const row = data[i];
+        const rowNum = i + 2;
+
+        try {
+          const item: any = {};
+          for (const [k, v] of Object.entries(map)) {
+            if (row[k] !== undefined && row[k] !== null && row[k] !== "") {
+              item[v] = row[k];
+            }
+          }
+
+          if (!item.name) throw new Error("Nama Obat wajib diisi");
+
+          // Normalize
+          if (item.stock) item.stock = parseInt(item.stock) || 0;
+          if (item.minStock) item.minStock = parseInt(item.minStock) || 10;
+          if (item.price) item.price = String(item.price);
+
+          // Date Parsing
+          if (item.expiryDate) {
+            if (typeof item.expiryDate === "number") {
+              const date = XLSX.SSF.parse_date_code(item.expiryDate);
+              item.expiryDate = `${date.y}-${String(date.m).padStart(
+                2,
+                "0"
+              )}-${String(date.d).padStart(2, "0")}`;
+            } else {
+              // Try to parse string date
+              const d = new Date(item.expiryDate);
+              if (!isNaN(d.getTime())) {
+                item.expiryDate = d.toISOString().split("T")[0];
+              }
+            }
+          }
+
+          preview.validRows++;
+          preview.validData.push(item);
+        } catch (e: any) {
+          preview.invalidRows++;
+          preview.errors.push({
+            row: rowNum,
+            error: e.message,
+            name: row["Nama Obat"] || row["Nama"] || "-",
+          });
+        }
+      }
+
+      return c.json({ success: true, data: preview });
+    } catch (e: any) {
+      console.error(e);
+      return c.json({ success: false, message: e.message }, 500);
+    }
+  }
+);
+
+// Import medicines
+clinicRoute.post(
+  "/medicines/import",
+  requireRole("admin", "clinic", "staff"),
+  async (c) => {
+    try {
+      const formData = await c.req.formData();
+      const file = formData.get("file") as File;
+      if (!file) return c.json({ success: false, message: "No file" }, 400);
+
+      const XLSX = await import("xlsx");
+      const buffer = await file.arrayBuffer();
+      const workbook = XLSX.read(buffer, { type: "array" });
+      const sheetName = workbook.SheetNames[0];
+      const data = XLSX.utils.sheet_to_json(
+        workbook.Sheets[sheetName]
+      ) as any[];
+
+      const map: { [key: string]: string } = {
+        "Nama Obat": "name",
+        Nama: "name",
+        Kategori: "category",
+        Stok: "stock",
+        Satuan: "unit",
+        Harga: "price",
+        "Min Stok": "minStock",
+        "Kadaluarsa (YYYY-MM-DD)": "expiryDate",
+        Kadaluarsa: "expiryDate",
+        Deskripsi: "description",
+      };
+
+      const result = { success: 0, failed: 0, errors: [] as any[] };
+
+      for (let i = 0; i < data.length; i++) {
+        const row = data[i];
+        const rowNum = i + 2;
+
+        try {
+          const item: any = {};
+          for (const [k, v] of Object.entries(map)) {
+            if (row[k] !== undefined && row[k] !== null && row[k] !== "") {
+              item[v] = row[k];
+            }
+          }
+
+          if (!item.name) throw new Error("Nama Obat wajib diisi");
+
+          // Check duplicate by Name
+          const existing = await db.query.medicines.findFirst({
+            where: eq(medicines.name, item.name),
+          });
+
+          // Formatting
+          const finalData = {
+            name: item.name,
+            category: item.category,
+            stock: parseInt(item.stock) || 0,
+            minStock: parseInt(item.minStock) || 10,
+            unit: item.unit,
+            price: item.price ? String(item.price) : "0",
+            description: item.description,
+            expiryDate: item.expiryDate ? new Date(item.expiryDate) : undefined,
+          };
+
+          if (finalData.expiryDate && isNaN(finalData.expiryDate.getTime())) {
+            // Handle excel date code if needed
+            if (typeof item.expiryDate === "number") {
+              const d = XLSX.SSF.parse_date_code(item.expiryDate);
+              finalData.expiryDate = new Date(d.y, d.m - 1, d.d);
+            } else {
+              finalData.expiryDate = undefined;
+            }
+          }
+
+          if (existing) {
+            // Update existing? Or skip?
+            // Let's UPDATE existing stock (add?) or REPLACE?
+            // Standard import behavior: Replace info, maybe Add stock?
+            // For simplicity: Replace info, but carefully with stock.
+            // Let's assume user wants to SET current stock from file.
+            await db
+              .update(medicines)
+              .set({ ...finalData, updatedAt: new Date() })
+              .where(eq(medicines.id, existing.id));
+          } else {
+            await db.insert(medicines).values(finalData);
+          }
+
+          result.success++;
+        } catch (e: any) {
+          result.failed++;
+          result.errors.push({ row: rowNum, error: e.message });
+        }
+      }
+
+      return c.json({ success: true, data: result });
+    } catch (e: any) {
+      return c.json({ success: false, message: e.message }, 500);
+    }
+  }
+);
+
 // ============ INPATIENTS ============
 
 // Get all inpatients
