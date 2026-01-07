@@ -720,7 +720,8 @@ academicRoute.get("/schedules/class/:classId", async (c) => {
       "Sabtu",
     ];
     const grouped = classSchedules.reduce((acc, schedule) => {
-      const dayName = dayNames[schedule.dayOfWeek];
+      const dayIndex = schedule.dayOfWeek ?? 0;
+      const dayName = dayNames[dayIndex]!;
       if (!acc[dayName]) acc[dayName] = [];
       acc[dayName].push(schedule);
       return acc;
@@ -758,7 +759,8 @@ academicRoute.get("/schedules/teacher/:teacherId", async (c) => {
       "Sabtu",
     ];
     const grouped = teacherSchedules.reduce((acc, schedule) => {
-      const dayName = dayNames[schedule.dayOfWeek];
+      const dayIndex = schedule.dayOfWeek ?? 0;
+      const dayName = dayNames[dayIndex]!;
       if (!acc[dayName]) acc[dayName] = [];
       acc[dayName].push(schedule);
       return acc;
@@ -952,8 +954,13 @@ academicRoute.post(
         await db
           .update(grades)
           .set({
-            ...data,
-            averageScore,
+            dailyScore: data.dailyScore?.toString() ?? null,
+            homeworkScore: data.homeworkScore?.toString() ?? null,
+            midtermScore: data.midtermScore?.toString() ?? null,
+            finalScore: data.finalScore?.toString() ?? null,
+            practiceScore: data.practiceScore?.toString() ?? null,
+            notes: data.notes,
+            averageScore: averageScore?.toString() ?? null,
             letterGrade,
             predicate,
           })
@@ -1060,8 +1067,13 @@ academicRoute.put(
       await db
         .update(grades)
         .set({
-          ...data,
-          averageScore,
+          dailyScore: data.dailyScore?.toString() ?? null,
+          homeworkScore: data.homeworkScore?.toString() ?? null,
+          midtermScore: data.midtermScore?.toString() ?? null,
+          finalScore: data.finalScore?.toString() ?? null,
+          practiceScore: data.practiceScore?.toString() ?? null,
+          notes: data.notes,
+          averageScore: averageScore?.toString() ?? null,
           letterGrade,
           predicate,
         })
@@ -1447,7 +1459,7 @@ academicRoute.post(
 
       // Calculate totals
       const totalScore = studentGrades.reduce(
-        (sum, g) => sum + (g.averageScore || 0),
+        (sum, g) => sum + (parseFloat(g.averageScore ?? "0") || 0),
         0
       );
       const averageScore =
@@ -1467,8 +1479,8 @@ academicRoute.post(
         await db
           .update(reports)
           .set({
-            totalScore,
-            averageScore,
+            totalScore: totalScore.toString(),
+            averageScore: averageScore.toString(),
             behaviorNotes: data.behaviorNotes,
             teacherNotes: data.teacherNotes,
             principalNotes: data.principalNotes,
@@ -1491,8 +1503,8 @@ academicRoute.post(
         studentId: data.studentId,
         academicYear: data.academicYear,
         semester: data.semester,
-        totalScore,
-        averageScore,
+        totalScore: totalScore.toString(),
+        averageScore: averageScore.toString(),
         behaviorNotes: data.behaviorNotes,
         teacherNotes: data.teacherNotes,
         principalNotes: data.principalNotes,
@@ -1834,8 +1846,8 @@ academicRoute.post(
       const XLSX = await import("xlsx");
       const buffer = await file.arrayBuffer();
       const workbook = XLSX.read(buffer, { type: "array" });
-      const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
+      const sheetName = workbook.SheetNames[0]!;
+      const worksheet = workbook.Sheets[sheetName]!;
       const data = XLSX.utils.sheet_to_json(worksheet) as any[];
 
       if (!data || data.length === 0) {
@@ -1998,9 +2010,9 @@ academicRoute.post(
       const XLSX = await import("xlsx");
       const buffer = await file.arrayBuffer();
       const workbook = XLSX.read(buffer, { type: "array" });
-      const sheetName = workbook.SheetNames[0];
+      const sheetName = workbook.SheetNames[0]!;
       const data = XLSX.utils.sheet_to_json(
-        workbook.Sheets[sheetName]
+        workbook.Sheets[sheetName]!
       ) as any[];
 
       const results = { success: 0, failed: 0, errors: [] as any[] };
@@ -2180,8 +2192,8 @@ academicRoute.post(
       const XLSX = await import("xlsx");
       const buffer = await file.arrayBuffer();
       const workbook = XLSX.read(buffer, { type: "array" });
-      const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
+      const sheetName = workbook.SheetNames[0]!;
+      const worksheet = workbook.Sheets[sheetName]!;
       const data = XLSX.utils.sheet_to_json(worksheet) as any[];
 
       if (!data || data.length === 0) {
@@ -2362,9 +2374,9 @@ academicRoute.post(
       const XLSX = await import("xlsx");
       const buffer = await file.arrayBuffer();
       const workbook = XLSX.read(buffer, { type: "array" });
-      const sheetName = workbook.SheetNames[0];
+      const sheetName = workbook.SheetNames[0]!;
       const data = XLSX.utils.sheet_to_json(
-        workbook.Sheets[sheetName]
+        workbook.Sheets[sheetName]!
       ) as any[];
 
       const columnMapping: { [key: string]: string } = {

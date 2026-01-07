@@ -230,7 +230,7 @@ auth.post("/register", zValidator("json", registerSchema), async (c) => {
       if (role === "teacher" || role === "staff") {
         const { teachers } = await import("../db/schema/teachers");
         // Use email username as default name
-        const defaultName = email.split("@")[0];
+        const defaultName = email.split("@")[0] ?? "New Teacher";
 
         await tx.insert(teachers).values({
           userId: userId,
