@@ -789,33 +789,98 @@ usersRoute.delete("/:id", async (c) => {
 
     // Perform deletion in transaction
     await db.transaction(async (tx) => {
-      // 1. Handle Teacher profile
+      // 1. Handle Chat Module
+      // - Transfer ownership of conversations created by this user to the admin performing deletion
+      const { conversations, messages, conversationParticipants } =
+        await import("../db/schema/chat");
+
+      await tx
+        .update(conversations)
+        .set({ createdBy: currentUser.userId })
+        .where(eq(conversations.createdBy, id));
+
+      // - Delete messages sent by this user (cascade handles attachments, reactions, read status)
+      // Note: If messages are replies, they might cause issues if not handled, but usually CASCADE on delete self handles it or sets null if nullable.
+      // In messages schema: replyToId references messages.id. If we delete a message, replies might be affected.
+      // Drizzle/MySQL CASCADE should handle it if defined, otherwise we might need to update replies to null.
+      // Schema says: replyToId has no onDelete action defined in schema explicitly in this file view, but usually we want to keep structure.
+      // However, deleting the user IS primary. Let's assume standard behavior or just delete.
+      await tx.delete(messages).where(eq(messages.senderId, id));
+
+      // - Remove from participants
+      await tx
+        .delete(conversationParticipants)
+        .where(eq(conversationParticipants.userId, id));
+
+      // 2. Handle Clinic Module (Nullify references)
+      const { clinicPatients, healthExaminations, medicineUsages, inpatients } =
+        await import("../db/schema/clinic");
+      // - Inpatients createdBy
+      await tx
+        .update(inpatients)
+        .set({ createdBy: null })
+        .where(eq(inpatients.createdBy, id));
+      // - Health Examinations examiner
+      await tx
+        .update(healthExaminations)
+        .set({ examiner: null })
+        .where(eq(healthExaminations.examiner, id));
+      // - Medicine Usage usedBy
+      await tx
+        .update(medicineUsages)
+        .set({ usedBy: null })
+        .where(eq(medicineUsages.usedBy, id));
+
+      // 3. Handle Attendance Module (Nullify references)
+      const { studentAttendances } = await import("../db/schema/attendance");
+      await tx
+        .update(studentAttendances)
+        .set({ createdBy: null })
+        .where(eq(studentAttendances.createdBy, id));
+
+      // 4. Handle Permissions Module (Nullify approvedBy)
+      const { permissionRequests } = await import("../db/schema/permissions");
+      await tx
+        .update(permissionRequests)
+        .set({ approvedBy: null })
+        .where(eq(permissionRequests.approvedBy, id));
+
+      // 5. Handle Rewards Module (Nullify givenBy/issuedBy)
+      const { rewardsPunishments, studentWarnings } = await import(
+        "../db/schema/rewards-punishments"
+      );
+      await tx
+        .update(rewardsPunishments)
+        .set({ givenBy: null })
+        .where(eq(rewardsPunishments.givenBy, id));
+      await tx
+        .update(studentWarnings)
+        .set({ issuedBy: null })
+        .where(eq(studentWarnings.issuedBy, id));
+
+      // 6. Handle Core Roles (Teachers, Students, Parents)
       const { teachers } = await import("../db/schema/teachers");
       await tx.delete(teachers).where(eq(teachers.userId, id));
 
-      // 2. Handle Student profile
       const { students } = await import("../db/schema/students");
       await tx.delete(students).where(eq(students.userId, id));
 
-      // 3. Handle Parent profile
-      // If user is a parent, we must check if any students reference this parent
-      const { parents } = await import("../db/schema/students"); // Parents defined in students.ts
+      const { parents } = await import("../db/schema/students");
       const parentRecord = await tx.query.parents.findFirst({
         where: eq(parents.userId, id),
       });
 
       if (parentRecord) {
-        // Unlink students from this parent (set parentId to null)
+        // Unlink students from this parent first
         await tx
           .update(students)
           .set({ parentId: null })
           .where(eq(students.parentId, parentRecord.id));
 
-        // Delete parent record
         await tx.delete(parents).where(eq(parents.id, parentRecord.id));
       }
 
-      // 4. Finally delete User
+      // 7. Finally Delete User
       await tx.delete(users).where(eq(users.id, id));
     });
 

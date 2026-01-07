@@ -174,7 +174,7 @@
           @click="closeModal"
         ></div>
         <div
-          class="bg-white w-full max-w-lg rounded-2xl shadow-xl overflow-hidden animate-fade-in-up relative z-10"
+          class="bg-white w-full max-w-lg rounded-2xl shadow-xl overflow-hidden animate-fade-in-up relative z-10 flex flex-col max-h-[90vh]"
         >
           <div
             class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50"
@@ -193,7 +193,7 @@
               ✕
             </button>
           </div>
-          <div class="p-6 space-y-4">
+          <div class="p-6 space-y-4 overflow-y-auto">
             <!-- Student Search Implementation would go here, for now simple input ID -->
             <div>
               <PatientSelector
@@ -204,7 +204,9 @@
                   gender: form.gender,
                   phone: form.phone,
                   address: form.address,
+                  address: form.address,
                   dob: form.dob,
+                  bloodType: form.bloodType,
                 }"
                 @update:modelValue="
                   (val) => {
@@ -457,7 +459,9 @@ const form = reactive({
   gender: "L",
   phone: "",
   address: "",
+  address: "",
   dob: null,
+  bloodType: "",
 
   admissionDate: "",
   admissionTime: "",
@@ -479,6 +483,15 @@ const columns = [
 ];
 
 const activeInpatients = computed(() => inpatients.value);
+
+const availableBeds = computed(() => {
+  if (!form.roomId) return [];
+  const room = rooms.value.find((r) => r.id === form.roomId);
+  if (!room) return [];
+
+  // Generate beds 1 to Capacity
+  return Array.from({ length: room.capacity }, (_, i) => String(i + 1));
+});
 // Note: We might want to filter only admitted depending on view requirements,
 // but usually list view shows all. The original code filtered for grid view if I recall.
 // Actually, let's just allow all for now.
@@ -532,6 +545,8 @@ async function submitForm() {
       phone: form.phone,
       address: form.address,
       dob: form.dob,
+      bloodType: form.bloodType || undefined,
+      clinicPatientId: form.clinicPatientId || undefined,
 
       admissionDate: form.admissionDate,
       admissionTime: form.admissionTime || undefined,
@@ -590,12 +605,16 @@ function openCreate() {
     phone: "",
     address: "",
     dob: null,
+    bloodType: "",
+    clinicPatientId: null,
 
     admissionDate: new Date().toISOString().split("T")[0],
-    admissionTime: new Date().toLocaleTimeString("id-ID", {
-      hour: "2-digit",
-      minute: "2-digit",
-    }),
+    admissionTime: new Date()
+      .toLocaleTimeString("id-ID", {
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+      .replace(".", ":"),
     dischargeDate: "",
     status: "admitted",
     diagnosis: "",
@@ -608,7 +627,26 @@ function openCreate() {
 function openEdit(item) {
   modal.show = true;
   modal.mode = "edit";
-  Object.assign(form, { ...item });
+  Object.assign(form, {
+    ...item,
+    name: item.patientName,
+    patientType: item.patientType,
+    // Format dates for input type="date" (YYYY-MM-DD)
+    admissionDate: item.admissionDate
+      ? new Date(item.admissionDate).toISOString().split("T")[0]
+      : "",
+    dischargeDate: item.dischargeDate
+      ? new Date(item.dischargeDate).toISOString().split("T")[0]
+      : "",
+    // Format time (HH:mm) - Ensure it's valid, remove seconds if present, replace dots with colons
+    admissionTime: item.admissionTime
+      ? item.admissionTime.slice(0, 5).replace(".", ":")
+      : "",
+    // Ensure nested fields are mapped for display
+    bloodType: item.patientBloodType || "",
+    // Important for duplicates prevention
+    clinicPatientId: item.id, // Inpatient ID is NOT clinicPatientId. Wait.
+  });
 }
 
 function closeModal() {

@@ -79,7 +79,7 @@
 
     <div
       v-if="modal.show"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 p-4"
     >
       <div
         class="bg-white w-full max-w-lg rounded-lg shadow-lg overflow-auto max-h-[90vh]"
@@ -157,7 +157,7 @@
 
     <div
       v-if="confirm.show"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 p-4"
     >
       <div class="bg-white w-full max-w-md rounded-lg shadow-lg p-4">
         <h3 class="font-medium">Hapus Data</h3>

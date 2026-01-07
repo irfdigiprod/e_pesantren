@@ -170,6 +170,16 @@
                   phone: form.phone,
                   address: form.address,
                   dob: form.dob,
+                  birthPlace: form.birthPlace,
+                  bloodType: form.bloodType,
+                  clinicPatientId: form.clinicPatientId,
+                  // Address Parts
+                  province: form.province,
+                  regency: form.regency,
+                  district: form.district,
+                  village: form.village,
+                  addressDetail: form.addressDetail,
+                  postalCode: form.postalCode,
                 }"
                 @update:modelValue="
                   (val) => {
@@ -955,6 +965,7 @@ async function submitForm() {
       throw new Error("Nama Pasien dan Tanggal wajib diisi");
     }
     const payload = {
+      clinicPatientId: form.clinicPatientId || undefined,
       patientType: form.patientType,
       refId: form.refId,
       name: form.name,
@@ -1114,6 +1125,7 @@ function openCreate() {
     prescribedMedicinesText: "",
     followUpInstructions: "",
     consumedMedicines: [],
+    clinicPatientId: null,
   });
 }
 function openEdit(item) {
@@ -1122,13 +1134,14 @@ function openEdit(item) {
   Object.assign(form, {
     ...item,
     // Map patient info from join
+    clinicPatientId: item.clinicPatientId,
     name: item.patientName,
     patientType: item.patientType,
     gender: item.patientGender,
     phone: item.patientPhone,
     dob: item.patientDob ? item.patientDob.split("T")[0] : null,
     birthPlace: item.patientBirthPlace,
-    bloodType: item.patientBloodType,
+    bloodType: item.patientBloodType || "",
 
     // Address (Parse JSON if needed, but frontend expects objects)
     province:

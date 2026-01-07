@@ -246,6 +246,31 @@
               </div>
             </div>
 
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1"
+                  >No. Telepon/HP</label
+                >
+                <input
+                  v-model="form.phone"
+                  class="w-full border rounded-lg px-4 py-2 text-sm"
+                  placeholder="08..."
+                />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1"
+                  >Jenis Kelamin</label
+                >
+                <select
+                  v-model="form.gender"
+                  class="w-full border border-slate-200 rounded-lg px-4 py-2 text-sm"
+                >
+                  <option value="L">Laki-laki</option>
+                  <option value="P">Perempuan</option>
+                </select>
+              </div>
+            </div>
+
             <div class="grid grid-cols-3 gap-4 mb-4">
               <div>
                 <label class="block text-xs font-semibold text-slate-500 mb-1"
@@ -403,6 +428,10 @@ const form = reactive({
   village: null,
   addressDetail: "",
   postalCode: "",
+  village: null,
+  addressDetail: "",
+  postalCode: "",
+  phone: "",
 });
 
 const confirm = reactive({ show: false, item: null });
@@ -411,6 +440,7 @@ const columns = [
   { label: "Nama Pasien", field: "name", sortable: true },
   { label: "Tipe", field: "type", sortable: true },
   { label: "L/P", field: "gender" },
+  { label: "No. HP", field: "phone" },
   { label: "Usia", field: "age" }, // Derived
   { label: "Gol. Darah", field: "bloodType" },
   { label: "Alamat", field: "address" },

@@ -162,7 +162,29 @@ async function getOrCreateClinicPatient(data: {
   village?: any;
   addressDetail?: string;
   postalCode?: string;
+  clinicPatientId?: number;
 }) {
+  // 0. If ID provided, use it (Prevent Duplicates for External)
+  if (data.clinicPatientId) {
+    const existing = await db.query.clinicPatients.findFirst({
+      where: eq(clinicPatients.id, data.clinicPatientId),
+    });
+    if (existing) {
+      // Allow updating clinical info if provided
+      if (
+        data.bloodType !== undefined &&
+        existing.bloodType !== data.bloodType
+      ) {
+        await db
+          .update(clinicPatients)
+          .set({ bloodType: data.bloodType })
+          .where(eq(clinicPatients.id, existing.id));
+        existing.bloodType = data.bloodType;
+      }
+      return existing;
+    }
+  }
+
   // 1. If linked (student/teacher), check if exists
   if (data.type !== "external" && data.refId) {
     const existing = await db.query.clinicPatients.findFirst({
@@ -189,7 +211,9 @@ async function getOrCreateClinicPatient(data: {
   // Map gender correctly if needed. Schema expects "L" | "P".
   // Students schema: 'male'|'female'. Teachers: 'male'|'female'.
   let gender: "L" | "P" = "L";
-  if (data.gender === "female" || data.gender === "P") gender = "P";
+
+  const g = data.gender as string;
+  if (g === "female" || g === "P") gender = "P";
 
   const insertValues = {
     type: data.type,
@@ -238,6 +262,8 @@ clinicRoute.put("/patients/:id", async (c) => {
       dob: body.dob ? new Date(body.dob) : null,
       birthPlace: body.birthPlace,
       bloodType: body.bloodType,
+      phone: body.phone,
+      gender: body.gender,
       updatedAt: new Date(),
     };
 
@@ -298,7 +324,7 @@ clinicRoute.delete(
           {
             success: false,
             message:
-              "Pasien tidak dapat dihapus karena memiliki riwayat pemeriksaan/rawat inap.",
+              "Pasien tidak dapat dihapus karena masih memiliki riwayat pemeriksaan/rawat inap. Hapus data riwayat terlebih dahulu.",
           },
           400
         );
@@ -381,15 +407,32 @@ clinicRoute.put("/rooms/:id", requireRole("admin", "clinic"), async (c) => {
 
 // Delete Room
 clinicRoute.delete("/rooms/:id", requireRole("admin", "clinic"), async (c) => {
-  // Check if used?
-  const id = parseInt(c.req.param("id"));
-  // Simplification: just delete, or check occupancy first
-  await db.delete(clinicRooms).where(eq(clinicRooms.id, id));
-  return c.json({ success: true, message: "Room deleted" });
+  try {
+    const id = parseInt(c.req.param("id"));
+    // Check if room has active inpatients
+    const activeUsage = await db.query.inpatients.findFirst({
+      where: and(eq(inpatients.roomId, id), eq(inpatients.status, "admitted")),
+    });
+
+    if (activeUsage) {
+      return c.json(
+        {
+          success: false,
+          message:
+            "Ruangan tidak dapat dihapus karena ada pasien yang sedang dirawat.",
+        },
+        400
+      );
+    }
+
+    await db.delete(clinicRooms).where(eq(clinicRooms.id, id));
+    return c.json({ success: true, message: "Room deleted" });
+  } catch (e) {
+    return c.json({ success: false, message: "Failed to delete room" }, 500);
+  }
 });
 
 // ============ MEDICINES ============
-// ... (Keeping existing medicine routes unchanged, reusing code pattern) ...
 
 // Get all medicines
 clinicRoute.get("/medicines", async (c) => {
@@ -443,13 +486,36 @@ clinicRoute.put(
 
 // Delete medicine
 clinicRoute.delete("/medicines/:id", requireRole("admin"), async (c) => {
-  await db
-    .delete(medicines)
-    .where(eq(medicines.id, parseInt(c.req.param("id"))));
-  return c.json({ success: true, message: "Medicine deleted" });
+  try {
+    const id = parseInt(c.req.param("id"));
+
+    // Check usage history
+    const usage = await db.query.medicineUsages.findFirst({
+      where: eq(medicineUsages.medicineId, id),
+    });
+
+    if (usage) {
+      return c.json(
+        {
+          success: false,
+          message:
+            "Obat tidak dapat dihapus karena memiliki riwayat penggunaan.",
+        },
+        400
+      );
+    }
+
+    await db.delete(medicines).where(eq(medicines.id, id));
+    return c.json({ success: true, message: "Medicine deleted" });
+  } catch (e) {
+    return c.json(
+      { success: false, message: "Failed to delete medicine" },
+      500
+    );
+  }
 });
 
-// ============ INPATIENTS (Updated) ============
+// ============ INPATIENTS ============
 
 // Get all inpatients
 clinicRoute.get("/inpatients", async (c) => {
@@ -465,6 +531,7 @@ clinicRoute.get("/inpatients", async (c) => {
     const query = db
       .select({
         id: inpatients.id,
+        clinicPatientId: inpatients.clinicPatientId,
         status: inpatients.status,
         admissionDate: inpatients.admissionDate,
         admissionTime: inpatients.admissionTime,
@@ -477,6 +544,7 @@ clinicRoute.get("/inpatients", async (c) => {
         // Patient Info
         patientName: clinicPatients.name,
         patientType: clinicPatients.type,
+        patientBloodType: clinicPatients.bloodType,
 
         // Room Info
         roomName: clinicRooms.name,
@@ -521,6 +589,7 @@ clinicRoute.post(
 
       // 1. Get or Create ClinicPatient
       const patient = await getOrCreateClinicPatient({
+        clinicPatientId: body.clinicPatientId,
         type: body.patientType, // 'student' | 'teacher' | 'external'
         refId: body.refId, // ID of student/teacher
         name: body.name,
@@ -528,6 +597,7 @@ clinicRoute.post(
         phone: body.phone,
         address: body.address,
         dob: body.dob,
+        bloodType: body.bloodType,
       });
 
       // 2. Insert Inpatient
@@ -557,30 +627,84 @@ clinicRoute.post(
   }
 );
 
-// Update/Discharge (Keeping similar logic but ensuring we handle the fields)
 clinicRoute.put(
   "/inpatients/:id",
   requireRole("admin", "clinic", "staff"),
   async (c) => {
-    const id = parseInt(c.req.param("id"));
-    const body = await c.req.json();
+    try {
+      const id = parseInt(c.req.param("id"));
+      const body = await c.req.json();
 
-    // Should verify if patient changed (unlikely for edit)
-    // If room changed, just update roomId
+      // 1. Get current record
+      const current = await db.query.inpatients.findFirst({
+        where: eq(inpatients.id, id),
+      });
 
-    await db
-      .update(inpatients)
-      .set({
-        roomId: body.roomId,
-        bedNumber: body.bedNumber,
-        diagnosis: body.diagnosis,
-        notes: body.notes,
-        status: body.status,
-        dischargeDate: body.dischargeDate ? new Date(body.dischargeDate) : null,
-      })
-      .where(eq(inpatients.id, id));
+      if (!current) {
+        return c.json({ success: false, message: "Not found" }, 404);
+      }
 
-    return c.json({ success: true, message: "Updated" });
+      // 2. Capacity Check (Only if room is changing and status is admitted)
+      if (
+        body.roomId &&
+        body.roomId !== current.roomId &&
+        body.status === "admitted"
+      ) {
+        // Check target room
+        const room = await db.query.clinicRooms.findFirst({
+          where: eq(clinicRooms.id, body.roomId),
+        });
+
+        if (room) {
+          // Count active patients in target room
+          const occupied = await db
+            .select({ count: sql<number>`count(*)` })
+            .from(inpatients)
+            .where(
+              and(
+                eq(inpatients.roomId, body.roomId),
+                eq(inpatients.status, "admitted")
+              )
+            );
+
+          if (occupied[0].count >= room.capacity) {
+            return c.json(
+              {
+                success: false,
+                message: `Ruangan ${room.name} penuh! Kapasitas: ${room.capacity}`,
+              },
+              400
+            );
+          }
+        }
+      }
+
+      // 3. Update Patient Info (specifically Blood Type)
+      if (current.clinicPatientId && body.bloodType) {
+        await db
+          .update(clinicPatients)
+          .set({ bloodType: body.bloodType })
+          .where(eq(clinicPatients.id, current.clinicPatientId!));
+      }
+
+      await db
+        .update(inpatients)
+        .set({
+          roomId: body.roomId,
+          bedNumber: body.bedNumber,
+          diagnosis: body.diagnosis,
+          notes: body.notes,
+          status: body.status,
+          dischargeDate: body.dischargeDate
+            ? new Date(body.dischargeDate)
+            : null,
+        })
+        .where(eq(inpatients.id, id));
+
+      return c.json({ success: true, message: "Updated" });
+    } catch (e) {
+      return c.json({ success: false, message: "Failed to update" }, 500);
+    }
   }
 );
 
@@ -594,14 +718,14 @@ clinicRoute.delete(
       // If linked to an exam, update the exam?
       // Or just delete the inpatient record.
       // Ideally we un-flag the exam if it was the source, but the link is loose.
-      // Let's just delete the inpatient record.
-      await db.delete(inpatients).where(eq(inpatients.id, id));
-
-      // Also unset inpatientId in healthExaminations if linked
+      // 1. Unset inpatientId in healthExaminations if linked (FK Constraint Fix)
       await db
         .update(healthExaminations)
         .set({ isInpatient: false, inpatientId: null })
         .where(eq(healthExaminations.inpatientId, id));
+
+      // 2. Delete Inpatient
+      await db.delete(inpatients).where(eq(inpatients.id, id));
 
       return c.json({ success: true, message: "Deleted" });
     } catch (e) {
@@ -631,7 +755,7 @@ clinicRoute.get("/examinations", async (c) => {
       patientVillage: clinicPatients.village,
       patientAddressDetail: clinicPatients.addressDetail,
       patientPostalCode: clinicPatients.postalCode,
-      // Map 'complaint' explicitly if needed, but 'symptoms' is in healthExaminations
+      // patientRefId: clinicPatients.refId,
     })
     .from(healthExaminations)
     .leftJoin(
@@ -639,12 +763,14 @@ clinicRoute.get("/examinations", async (c) => {
       eq(healthExaminations.clinicPatientId, clinicPatients.id)
     )
     .orderBy(desc(healthExaminations.examinationDate))
-    .limit(50); // Limit for performance
+    .limit(50);
 
   const mapped = list.map((l) => ({
     ...l,
     student: { fullName: l.patientName }, // Compat
-    studentId: l.patientId || l.patientType === "student" ? l.patientId : "-",
+    studentId: l.patientId || "-", // Reverting to safe default
+    refId: l.patientId, // Reverting
+
     date: l.examinationDate,
     complaint: l.symptoms,
   }));
@@ -662,6 +788,7 @@ clinicRoute.post(
 
       // 1. Get or Create Patient
       const patient = await getOrCreateClinicPatient({
+        clinicPatientId: body.clinicPatientId,
         type: body.patientType,
         refId: body.refId,
         name: body.name,
@@ -730,11 +857,12 @@ clinicRoute.post(
             if (existingMed) {
               // Deduct stock (allow negative? No, but let's just deduct. Maybe warning if 0?)
               // Ideally we check before deducting.
-              const newStock = existingMed.stock - med.quantity;
-
+              // Atomic Stock Deduction
               await db
                 .update(medicines)
-                .set({ stock: newStock })
+                .set({
+                  stock: sql`${medicines.stock} - ${med.quantity}`,
+                })
                 .where(eq(medicines.id, med.id));
 
               await db.insert(medicineUsages).values({
@@ -767,7 +895,8 @@ clinicRoute.post(
           diagnosis: body.diagnosis,
           treatment: body.treatment,
           createdBy: user.userId,
-          attendingDoctor: user.name, // Approximate
+          attendingDoctor:
+            (user as any).name || (user as any).username || "Admin", // Approximate
         });
 
         const inpatientId = Number(admRes[0].insertId);
@@ -794,61 +923,119 @@ clinicRoute.put(
   "/examinations/:id",
   requireRole("admin", "clinic", "staff"),
   async (c) => {
-    const id = parseInt(c.req.param("id"));
-    const body = await c.req.json();
+    try {
+      const id = parseInt(c.req.param("id"));
+      const body = await c.req.json();
+      const user = c.get("user");
 
-    // 1. Get or Create Patient (If changed)
-    const patient = await getOrCreateClinicPatient({
-      type: body.patientType,
-      refId: body.refId,
-      name: body.name,
-      gender: body.gender,
-      phone: body.phone,
-    });
+      await db.transaction(async (tx) => {
+        // 1. Get or Create Patient (If changed)
+        const patient = await getOrCreateClinicPatient({
+          clinicPatientId: body.clinicPatientId,
+          type: body.patientType,
+          refId: body.refId,
+          name: body.name,
+          gender: body.gender,
+          phone: body.phone,
+          bloodType: body.bloodType,
+        });
 
-    await db
-      .update(healthExaminations)
-      .set({
-        clinicPatientId: patient.id,
-        patientType: body.patientType,
-        patientId: body.refId,
-        examinationDate: body.date ? new Date(body.date) : new Date(),
+        // 2. Update Exam Data
+        await tx
+          .update(healthExaminations)
+          .set({
+            clinicPatientId: patient.id,
+            patientType: body.patientType,
+            patientId: body.refId,
+            examinationDate: body.date ? new Date(body.date) : new Date(),
 
-        diagnosis: body.diagnosis,
-        treatment: body.treatment,
-        symptoms: body.complaint,
+            diagnosis: body.diagnosis,
+            treatment: body.treatment,
+            symptoms: body.complaint,
 
-        // Vitals
-        temperature: body.temperature,
-        bloodPressure: body.bloodPressure,
-        weight: body.weight,
-        height: body.height,
-        heartRate: body.heartRate ? parseInt(body.heartRate) : undefined,
-        respiratoryRate: body.respiratoryRate
-          ? parseInt(body.respiratoryRate)
-          : undefined,
+            // Vitals
+            temperature: body.temperature,
+            bloodPressure: body.bloodPressure,
+            weight: body.weight,
+            height: body.height,
+            heartRate: body.heartRate ? parseInt(body.heartRate) : undefined,
+            respiratoryRate: body.respiratoryRate
+              ? parseInt(body.respiratoryRate)
+              : undefined,
 
-        // History
-        historyPastDiseases: body.historyPastDiseases,
-        historyFamilyDiseases: body.historyFamilyDiseases,
-        historyAllergies: body.historyAllergies,
-        historyCurrentMedications: body.historyCurrentMedications,
-        historyHabits: body.historyHabits,
+            // History
+            historyPastDiseases: body.historyPastDiseases,
+            historyFamilyDiseases: body.historyFamilyDiseases,
+            historyAllergies: body.historyAllergies,
+            historyCurrentMedications: body.historyCurrentMedications,
+            historyHabits: body.historyHabits,
 
-        // New Fields
-        anamnesis: body.anamnesis,
-        physicalExam: body.physicalExam,
-        labResults: body.labResults,
-        imagingResults: body.imagingResults,
-        diagnosisCode: body.diagnosisCode,
-        treatmentPlan: body.treatmentPlan,
-        progressNotes: body.progressNotes,
-        followUpInstructions: body.followUpInstructions,
-        prescribedMedicines: body.prescribedMedicinesText,
-      })
-      .where(eq(healthExaminations.id, id));
+            // New Fields
+            anamnesis: body.anamnesis,
+            physicalExam: body.physicalExam,
+            labResults: body.labResults,
+            imagingResults: body.imagingResults,
+            diagnosisCode: body.diagnosisCode,
+            treatmentPlan: body.treatmentPlan,
+            progressNotes: body.progressNotes,
+            followUpInstructions: body.followUpInstructions,
+            prescribedMedicines: body.prescribedMedicinesText,
+          })
+          .where(eq(healthExaminations.id, id));
 
-    return c.json({ success: true, message: "Updated" });
+        // 3. Medicine Reconciliation
+        // Only if consumedMedicines is provided (meaning we want to sync/reset)
+        // If it's undefined/null, we might skip, but usually frontend sends the full state.
+        if (Array.isArray(body.consumedMedicines)) {
+          // A. Refund Old Usages
+          const oldUsages = await tx.query.medicineUsages.findMany({
+            where: eq(medicineUsages.examinationId, id),
+          });
+
+          for (const usage of oldUsages) {
+            // Restore stock
+            await tx
+              .update(medicines)
+              .set({
+                stock: sql`${medicines.stock} + ${usage.quantity}`,
+              })
+              .where(eq(medicines.id, usage.medicineId));
+          }
+
+          // B. Delete Old Usages
+          await tx
+            .delete(medicineUsages)
+            .where(eq(medicineUsages.examinationId, id));
+
+          // C. Process New Usages
+          for (const med of body.consumedMedicines) {
+            if (med.id && med.quantity > 0) {
+              // Deduct stock (atomic)
+              await tx
+                .update(medicines)
+                .set({
+                  stock: sql`${medicines.stock} - ${med.quantity}`,
+                })
+                .where(eq(medicines.id, med.id));
+
+              // Insert new usage
+              await tx.insert(medicineUsages).values({
+                medicineId: med.id,
+                examinationId: id,
+                quantity: med.quantity,
+                usedBy: user.userId,
+                notes: "Updated Examination",
+              });
+            }
+          }
+        }
+      });
+
+      return c.json({ success: true, message: "Updated" });
+    } catch (e) {
+      console.error(e);
+      return c.json({ success: false, message: "Failed to update" }, 500);
+    }
   }
 );
 

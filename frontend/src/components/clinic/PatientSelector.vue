@@ -97,7 +97,14 @@
             Golongan Darah (Opsional)
           </label>
           <select
-            v-model="modelValue.bloodType"
+            :value="modelValue.bloodType"
+            @change="
+              (e) =>
+                emit('update:modelValue', {
+                  ...modelValue,
+                  bloodType: e.target.value,
+                })
+            "
             class="w-full md:w-1/3 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-200 focus:border-green-500 bg-white"
           >
             <option value="">Tidak Diketahui</option>
@@ -125,7 +132,11 @@
           >Nama Lengkap <span class="text-red-500">*</span></label
         >
         <input
-          v-model="modelValue.name"
+          :value="modelValue.name"
+          @input="
+            (e) =>
+              emit('update:modelValue', { ...modelValue, name: e.target.value })
+          "
           class="w-full border border-slate-200 rounded-lg px-4 py-2 text-sm"
           placeholder="Nama Pasien"
         />
@@ -136,7 +147,14 @@
             >Jenis Kelamin</label
           >
           <select
-            v-model="modelValue.gender"
+            :value="modelValue.gender"
+            @change="
+              (e) =>
+                emit('update:modelValue', {
+                  ...modelValue,
+                  gender: e.target.value,
+                })
+            "
             class="w-full border border-slate-200 rounded-lg px-4 py-2 text-sm"
           >
             <option value="L">Laki-laki</option>
@@ -148,7 +166,14 @@
             >No. Telepon</label
           >
           <input
-            v-model="modelValue.phone"
+            :value="modelValue.phone"
+            @input="
+              (e) =>
+                emit('update:modelValue', {
+                  ...modelValue,
+                  phone: e.target.value,
+                })
+            "
             class="w-full border border-slate-200 rounded-lg px-4 py-2 text-sm"
             placeholder="08..."
           />
@@ -162,7 +187,14 @@
             >Gol. Darah</label
           >
           <select
-            v-model="modelValue.bloodType"
+            :value="modelValue.bloodType"
+            @change="
+              (e) =>
+                emit('update:modelValue', {
+                  ...modelValue,
+                  bloodType: e.target.value,
+                })
+            "
             class="w-full border border-slate-200 rounded-lg px-4 py-2 text-sm"
           >
             <option value="">-</option>
@@ -177,7 +209,14 @@
             >Tempat Lahir</label
           >
           <input
-            v-model="modelValue.birthPlace"
+            :value="modelValue.birthPlace"
+            @input="
+              (e) =>
+                emit('update:modelValue', {
+                  ...modelValue,
+                  birthPlace: e.target.value,
+                })
+            "
             class="w-full border border-slate-200 rounded-lg px-4 py-2 text-sm"
             placeholder="Kota Lahir"
           />
@@ -188,7 +227,14 @@
           >
           <input
             type="date"
-            v-model="modelValue.dob"
+            :value="modelValue.dob"
+            @input="
+              (e) =>
+                emit('update:modelValue', {
+                  ...modelValue,
+                  dob: e.target.value,
+                })
+            "
             class="w-full border border-slate-200 rounded-lg px-4 py-2 text-sm"
           />
         </div>
@@ -296,6 +342,7 @@ function selectType(type) {
     village: null,
     addressDetail: "",
     postalCode: "",
+    clinicPatientId: null,
   });
   searchQuery.value = "";
   results.value = [];
@@ -335,13 +382,20 @@ function selectItem(item) {
     dob: item.birthDate || null,
     birthPlace: item.birthPlace || "",
     bloodType: item.bloodType || "",
-    // If student/teacher has address struct, map it here if API returns it
+    bloodType: item.bloodType || "",
+    // Pass real ID if it comes from clinic_patients (External or synced student/teacher)
+    clinicPatientId: item.source === "clinic_patients" ? item.id : null,
   });
   searchQuery.value = ""; // Clear search
   results.value = []; // Hide dropdown
 }
 
 function clearSelection() {
-  emit("update:modelValue", { ...props.modelValue, refId: null, name: "" });
+  emit("update:modelValue", {
+    ...props.modelValue,
+    refId: null,
+    name: "",
+    clinicPatientId: null,
+  });
 }
 </script>
