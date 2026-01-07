@@ -10,6 +10,78 @@ import { registerSchema, loginSchema } from "../validators/auth";
 
 const auth = new Hono();
 
+// ============ RATE LIMITING FOR LOGIN ============
+// Simple in-memory rate limiter (for production, use Redis)
+const loginAttempts = new Map<
+  string,
+  { count: number; firstAttempt: number }
+>();
+const RATE_LIMIT_MAX_ATTEMPTS = 5; // Max login attempts
+const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes window
+
+function getRateLimitKey(email: string, ip: string): string {
+  return `${email.toLowerCase()}:${ip}`;
+}
+
+function checkRateLimit(
+  email: string,
+  ip: string
+): { allowed: boolean; remainingAttempts: number; retryAfter?: number } {
+  const key = getRateLimitKey(email, ip);
+  const now = Date.now();
+  const attempt = loginAttempts.get(key);
+
+  // Clean up old entries periodically
+  if (loginAttempts.size > 10000) {
+    for (const [k, v] of loginAttempts.entries()) {
+      if (now - v.firstAttempt > RATE_LIMIT_WINDOW_MS) {
+        loginAttempts.delete(k);
+      }
+    }
+  }
+
+  if (!attempt) {
+    return { allowed: true, remainingAttempts: RATE_LIMIT_MAX_ATTEMPTS };
+  }
+
+  // Check if window has expired
+  if (now - attempt.firstAttempt > RATE_LIMIT_WINDOW_MS) {
+    loginAttempts.delete(key);
+    return { allowed: true, remainingAttempts: RATE_LIMIT_MAX_ATTEMPTS };
+  }
+
+  // Check if limit exceeded
+  if (attempt.count >= RATE_LIMIT_MAX_ATTEMPTS) {
+    const retryAfter = Math.ceil(
+      (RATE_LIMIT_WINDOW_MS - (now - attempt.firstAttempt)) / 1000
+    );
+    return { allowed: false, remainingAttempts: 0, retryAfter };
+  }
+
+  return {
+    allowed: true,
+    remainingAttempts: RATE_LIMIT_MAX_ATTEMPTS - attempt.count,
+  };
+}
+
+function recordLoginAttempt(email: string, ip: string): void {
+  const key = getRateLimitKey(email, ip);
+  const now = Date.now();
+  const attempt = loginAttempts.get(key);
+
+  if (!attempt || now - attempt.firstAttempt > RATE_LIMIT_WINDOW_MS) {
+    loginAttempts.set(key, { count: 1, firstAttempt: now });
+  } else {
+    attempt.count++;
+    loginAttempts.set(key, attempt);
+  }
+}
+
+function clearLoginAttempts(email: string, ip: string): void {
+  const key = getRateLimitKey(email, ip);
+  loginAttempts.delete(key);
+}
+
 // Register
 auth.post("/register", zValidator("json", registerSchema), async (c) => {
   try {
@@ -100,14 +172,41 @@ auth.post("/login", zValidator("json", loginSchema), async (c) => {
   try {
     const { email, password } = c.req.valid("json");
 
+    // Get client IP for rate limiting
+    const clientIP =
+      c.req.header("x-forwarded-for")?.split(",")[0] ||
+      c.req.header("x-real-ip") ||
+      "unknown";
+
+    // Check rate limit
+    const rateCheck = checkRateLimit(email, clientIP);
+    if (!rateCheck.allowed) {
+      return c.json(
+        {
+          success: false,
+          message: `Terlalu banyak percobaan login. Coba lagi dalam ${Math.ceil(
+            (rateCheck.retryAfter || 900) / 60
+          )} menit.`,
+          retryAfter: rateCheck.retryAfter,
+        },
+        429 // Too Many Requests
+      );
+    }
+
     // Find user
     const user = await db.query.users.findFirst({
       where: eq(users.email, email),
     });
 
     if (!user) {
+      // Record failed attempt
+      recordLoginAttempt(email, clientIP);
       return c.json(
-        { success: false, message: "Invalid email or password" },
+        {
+          success: false,
+          message: "Invalid email or password",
+          remainingAttempts: rateCheck.remainingAttempts - 1,
+        },
         401
       );
     }
@@ -121,11 +220,20 @@ auth.post("/login", zValidator("json", loginSchema), async (c) => {
     const isValidPassword = await verifyPassword(password, user.password);
 
     if (!isValidPassword) {
+      // Record failed attempt
+      recordLoginAttempt(email, clientIP);
       return c.json(
-        { success: false, message: "Invalid email or password" },
+        {
+          success: false,
+          message: "Invalid email or password",
+          remainingAttempts: rateCheck.remainingAttempts - 1,
+        },
         401
       );
     }
+
+    // Clear rate limit on successful login
+    clearLoginAttempts(email, clientIP);
 
     // Generate token
     const token = generateToken(user);

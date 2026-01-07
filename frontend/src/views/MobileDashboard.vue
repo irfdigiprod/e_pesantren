@@ -459,7 +459,50 @@ async function fetchPermissions() {
 function isRouteAllowed(route) {
   if (allowedRoutes.value === null) return true;
   if (allowedRoutes.value.length === 0) return true;
-  // Mobile routes use /mobile-dashboard/xxx, map to equivalent /apps/xxx
+
+  // Explicit mappings for routes that don't follow the simple pattern
+  const explicitMappings = {
+    // Analytics
+    "/mobile-dashboard/analytics": "/analytics/overview",
+    "/mobile-dashboard/analytics-reports": "/analytics/reports",
+    // Tahfidz
+    "/mobile-dashboard/tahfidz": "/apps/tahfidz/dashboard",
+    "/mobile-dashboard/tahfidz-input": "/apps/tahfidz/halaqah",
+    "/mobile-dashboard/tahfidz-exams": "/apps/tahfidz/exams",
+    "/mobile-dashboard/tahfidz-reports": "/apps/tahfidz/reports",
+    "/mobile-dashboard/tahfidz-mading": "/apps/tahfidz/mading",
+    "/mobile-dashboard/tahfidz-settings": "/apps/tahfidz/settings",
+    // Attendance-related
+    "/mobile-dashboard/attendance": "/apps/teacher-attendance",
+    "/mobile-dashboard/student-attendance": "/apps/attendance",
+    "/mobile-dashboard/attendance-recap": "/apps/attendance-recap",
+    "/mobile-dashboard/permissions": "/apps/attendance/permissions",
+    "/mobile-dashboard/approvals": "/apps/attendance/approvals",
+    // Salary
+    "/mobile-dashboard/salary": "/apps/salary-report",
+    // Academic
+    "/mobile-dashboard/classes": "/apps/academic/classes",
+    "/mobile-dashboard/subjects": "/apps/academic/subjects",
+    "/mobile-dashboard/grades": "/apps/academic/grades",
+    "/mobile-dashboard/report-card": "/apps/academic/report-card",
+    "/mobile-dashboard/homeroom-notes": "/apps/academic/homeroom-notes",
+    // About
+    "/mobile-dashboard/about": "/about",
+    // Chat
+    "/mobile-dashboard/chat": "/apps/chat",
+    // Settings
+    "/mobile-dashboard/settings": "/settings/institution",
+    // Security
+    "/mobile-dashboard/users": "/security/users",
+    "/mobile-dashboard/security-roles": "/security/roles",
+  };
+
+  // Check explicit mapping first
+  if (explicitMappings[route]) {
+    return allowedRoutes.value.includes(explicitMappings[route]);
+  }
+
+  // Fallback: Mobile routes use /mobile-dashboard/xxx, map to equivalent /apps/xxx
   const desktopRoute = route
     .replace("/mobile-dashboard/clinic-", "/apps/clinic/")
     .replace("/mobile-dashboard/rewards-", "/apps/rewards/")

@@ -37,6 +37,16 @@ const roles = [
   { value: "clinic", label: "Klinik" },
 ];
 
+// Routes that admin must always have access to (synced with backend)
+const PROTECTED_ADMIN_ROUTES = ["/security/users", "/security/roles"];
+
+// Check if a route is protected for admin
+function isProtectedForAdmin(path) {
+  return (
+    selectedRole.value === "admin" && PROTECTED_ADMIN_ROUTES.includes(path)
+  );
+}
+
 // Group permissions by category
 const groupedRolePermissions = computed(() => {
   const groups = {};
@@ -75,9 +85,22 @@ async function loadRolePermissions() {
     const res = await rolesApi.getRolePermissions(selectedRole.value);
     if (res.success) {
       rolePermissions.value = res.data;
+    } else {
+      statusModal.value = {
+        show: true,
+        type: "error",
+        title: "Gagal Memuat",
+        message: res.message || "Gagal memuat pengaturan role",
+      };
     }
   } catch (e) {
     console.error("Failed to load role permissions:", e);
+    statusModal.value = {
+      show: true,
+      type: "error",
+      title: "Error",
+      message: "Terjadi kesalahan saat memuat pengaturan role",
+    };
   } finally {
     roleLoading.value = false;
   }
@@ -102,13 +125,22 @@ async function saveRolePermissions() {
         title: "Berhasil",
         message: "Pengaturan hak akses role berhasil disimpan",
       };
+    } else {
+      // Handle case when success is false
+      statusModal.value = {
+        show: true,
+        type: "error",
+        title: "Gagal",
+        message: res.message || "Gagal menyimpan pengaturan",
+      };
     }
   } catch (e) {
+    console.error("Save role permissions error:", e);
     statusModal.value = {
       show: true,
       type: "error",
       title: "Gagal",
-      message: "Gagal menyimpan pengaturan",
+      message: "Terjadi kesalahan saat menyimpan pengaturan",
     };
   } finally {
     roleLoading.value = false;
@@ -121,9 +153,22 @@ async function loadUsers() {
     const res = await usersApi.getAll();
     if (res.success) {
       users.value = res.data;
+    } else {
+      statusModal.value = {
+        show: true,
+        type: "error",
+        title: "Gagal Memuat",
+        message: res.message || "Gagal memuat daftar user",
+      };
     }
   } catch (e) {
     console.error("Failed to load users:", e);
+    statusModal.value = {
+      show: true,
+      type: "error",
+      title: "Error",
+      message: "Terjadi kesalahan saat memuat daftar user",
+    };
   }
 }
 
@@ -135,9 +180,22 @@ async function loadUserPermissions() {
     const res = await rolesApi.getUserPermissions(selectedUserId.value);
     if (res.success) {
       userPermissions.value = res.data;
+    } else {
+      statusModal.value = {
+        show: true,
+        type: "error",
+        title: "Gagal Memuat",
+        message: res.message || "Gagal memuat pengaturan user",
+      };
     }
   } catch (e) {
     console.error("Failed to load user permissions:", e);
+    statusModal.value = {
+      show: true,
+      type: "error",
+      title: "Error",
+      message: "Terjadi kesalahan saat memuat pengaturan user",
+    };
   } finally {
     userLoading.value = false;
   }
@@ -193,6 +251,11 @@ async function saveUserPermissions() {
 // Select all/none for role
 function selectAllRole(isAllowed) {
   rolePermissions.value.forEach((p) => {
+    // Skip protected routes for admin (keep them always true)
+    if (isProtectedForAdmin(p.path)) {
+      p.isAllowed = true;
+      return;
+    }
     p.isAllowed = isAllowed;
   });
 }
@@ -201,6 +264,11 @@ function selectAllRole(isAllowed) {
 function selectAllCategory(category, isAllowed) {
   rolePermissions.value.forEach((p) => {
     if (p.category === category) {
+      // Skip protected routes for admin (keep them always true)
+      if (isProtectedForAdmin(p.path)) {
+        p.isAllowed = true;
+        return;
+      }
       p.isAllowed = isAllowed;
     }
   });
@@ -328,19 +396,30 @@ onMounted(() => {
             <label
               v-for="perm in perms"
               :key="perm.path"
-              class="flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-all"
-              :class="
-                perm.isAllowed
-                  ? 'border-green-200 bg-green-50'
-                  : 'border-slate-200 bg-slate-50'
-              "
+              class="flex items-center gap-2 p-2 rounded-lg border transition-all"
+              :class="[
+                isProtectedForAdmin(perm.path)
+                  ? 'border-blue-200 bg-blue-50 cursor-not-allowed'
+                  : perm.isAllowed
+                  ? 'border-green-200 bg-green-50 cursor-pointer'
+                  : 'border-slate-200 bg-slate-50 cursor-pointer',
+              ]"
             >
               <input
                 type="checkbox"
                 v-model="perm.isAllowed"
-                class="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
+                :disabled="isProtectedForAdmin(perm.path)"
+                class="w-4 h-4 text-primary-600 rounded focus:ring-primary-500 disabled:opacity-50"
               />
-              <span class="text-sm text-slate-700">{{ perm.label }}</span>
+              <span class="text-sm text-slate-700 flex items-center gap-1">
+                {{ perm.label }}
+                <Icon
+                  v-if="isProtectedForAdmin(perm.path)"
+                  icon="solar:lock-keyhole-minimalistic-bold"
+                  class="text-blue-500 text-xs"
+                  title="Route ini wajib aktif untuk Admin"
+                />
+              </span>
             </label>
           </div>
         </div>
@@ -514,7 +593,7 @@ onMounted(() => {
 
     <!-- Status Modal -->
     <StatusModal
-      v-if="statusModal.show"
+      :isOpen="statusModal.show"
       :type="statusModal.type"
       :title="statusModal.title"
       :message="statusModal.message"

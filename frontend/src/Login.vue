@@ -46,16 +46,44 @@
               <label class="block text-sm font-medium text-slate-700 mb-1"
                 >Password</label
               >
-              <input
-                v-model="form.password"
-                type="password"
-                :class="inputClass('password')"
-                placeholder="••••••••"
-                autocomplete="current-password"
-              />
+              <div class="relative">
+                <input
+                  v-model="form.password"
+                  :type="showPassword ? 'text' : 'password'"
+                  :class="inputClass('password')"
+                  placeholder="••••••••"
+                  autocomplete="current-password"
+                />
+                <button
+                  type="button"
+                  @click="showPassword = !showPassword"
+                  class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
+                >
+                  <Icon
+                    :icon="
+                      showPassword
+                        ? 'solar:eye-closed-line-duotone'
+                        : 'solar:eye-line-duotone'
+                    "
+                    class="w-5 h-5"
+                  />
+                </button>
+              </div>
               <p v-if="fieldErrors.password" class="mt-1 text-sm text-red-600">
                 {{ fieldErrors.password }}
               </p>
+            </div>
+
+            <!-- Remember Me -->
+            <div class="flex items-center justify-between">
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input
+                  v-model="rememberMe"
+                  type="checkbox"
+                  class="w-4 h-4 text-primary-600 rounded focus:ring-primary-500 border-slate-300"
+                />
+                <span class="text-sm text-slate-600">Ingat saya</span>
+              </label>
             </div>
           </div>
 
@@ -91,6 +119,7 @@
 <script setup>
 import { reactive, ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
+import { Icon } from "@iconify/vue";
 import { authApi, settingsApi } from "@/services/api.js";
 
 const router = useRouter();
@@ -99,6 +128,12 @@ const BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 // Institution info
 const institutionName = ref("Silakan masuk untuk melanjutkan");
 const institutionLogo = ref("");
+
+// Show password toggle
+const showPassword = ref(false);
+
+// Remember me
+const rememberMe = ref(true);
 
 // Computed logo URL
 const logoUrl = computed(() => {
@@ -142,7 +177,7 @@ const fieldErrors = reactive({
 });
 
 function inputClass(field) {
-  const base = "w-full px-4 py-2 rounded-lg border focus:outline-none";
+  const base = "w-full px-4 py-2 rounded-lg border focus:outline-none pr-12";
   const normal = "border-slate-300 focus:ring-2 focus:ring-primary-300";
   const err = "border-red-400 focus:ring-red-200";
   return `${base} ${fieldErrors[field] ? err : normal}`;
@@ -165,6 +200,26 @@ function validate() {
   return ok;
 }
 
+// Get redirect path based on user role
+function getRedirectPath(role) {
+  switch (role) {
+    case "admin":
+      return "/apps/teacher-attendance";
+    case "teacher":
+      return "/apps/teacher-attendance";
+    case "staff":
+      return "/apps/teacher-attendance";
+    case "student":
+      return "/mobile-dashboard";
+    case "parent":
+      return "/mobile-dashboard";
+    case "clinic":
+      return "/apps/clinic/dashboard";
+    default:
+      return "/apps/teacher-attendance";
+  }
+}
+
 async function handleLogin() {
   if (!validate()) return;
 
@@ -172,13 +227,26 @@ async function handleLogin() {
   serverError.value = "";
 
   try {
-    const data = await authApi.login(form.email, form.password);
+    const data = await authApi.login(
+      form.email,
+      form.password,
+      rememberMe.value
+    );
 
     // Fetch current user data and store it
+    let userRole = "admin"; // default
     try {
       const userRes = await authApi.getCurrentUser();
       if (userRes?.data) {
+        userRole = userRes.data.role || "admin";
+
+        // Store in appropriate storage based on rememberMe
+        const storage = rememberMe.value ? localStorage : sessionStorage;
+        storage.setItem("user", JSON.stringify(userRes.data));
+
+        // Also store in localStorage for compatibility
         localStorage.setItem("user", JSON.stringify(userRes.data));
+
         // Dispatch event to notify TopBar and Sidebar
         window.dispatchEvent(
           new CustomEvent("user-updated", { detail: userRes.data })
@@ -188,8 +256,9 @@ async function handleLogin() {
       console.warn("Failed to fetch user after login:", e);
     }
 
-    // Sukses: redirect ke dashboard
-    router.push("/apps/teacher-attendance");
+    // Redirect based on role
+    const redirectPath = getRedirectPath(userRole);
+    router.push(redirectPath);
   } catch (err) {
     serverError.value = err.message || "Login gagal";
   } finally {
@@ -199,6 +268,13 @@ async function handleLogin() {
 
 onMounted(() => {
   loadInstitutionInfo();
+
+  // Check if there's a saved email from "remember me"
+  const savedEmail = localStorage.getItem("rememberedEmail");
+  if (savedEmail) {
+    form.email = savedEmail;
+    rememberMe.value = true;
+  }
 });
 </script>
 

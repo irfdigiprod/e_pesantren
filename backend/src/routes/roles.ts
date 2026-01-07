@@ -7,6 +7,20 @@ import { authMiddleware, requireRole } from "../middleware/auth";
 
 const rolesRoute = new Hono();
 
+// Valid roles in the system
+const VALID_ROLES = [
+  "admin",
+  "teacher",
+  "student",
+  "parent",
+  "staff",
+  "clinic",
+] as const;
+type ValidRole = (typeof VALID_ROLES)[number];
+
+// Routes that admin must always have access to (cannot be disabled)
+const PROTECTED_ADMIN_ROUTES = ["/security/users", "/security/roles"];
+
 // All available routes in the application (synced with sidebar/mobile dashboard)
 const availableRoutes = [
   // Apps - General
@@ -190,9 +204,22 @@ rolesRoute.get("/:role/permissions", authMiddleware, async (c) => {
 // Update permissions for a role
 rolesRoute.put("/:role/permissions", authMiddleware, async (c) => {
   try {
-    const role = c.req.param("role") as any;
+    const role = c.req.param("role") as ValidRole;
     const body = await c.req.json();
     const { permissions } = body; // Array of { path, isAllowed }
+
+    // Validate role
+    if (!VALID_ROLES.includes(role)) {
+      return c.json(
+        {
+          success: false,
+          message: `Invalid role: ${role}. Valid roles are: ${VALID_ROLES.join(
+            ", "
+          )}`,
+        },
+        400
+      );
+    }
 
     if (!Array.isArray(permissions)) {
       return c.json(
@@ -201,12 +228,23 @@ rolesRoute.put("/:role/permissions", authMiddleware, async (c) => {
       );
     }
 
+    // For admin role, ensure protected routes are always allowed
+    let processedPermissions = permissions;
+    if (role === "admin") {
+      processedPermissions = permissions.map((p: any) => {
+        if (PROTECTED_ADMIN_ROUTES.includes(p.path)) {
+          return { ...p, isAllowed: true }; // Force allowed for protected routes
+        }
+        return p;
+      });
+    }
+
     // Delete existing permissions for this role
     await db.delete(rolePermissions).where(eq(rolePermissions.role, role));
 
     // Insert new permissions
-    if (permissions.length > 0) {
-      const values = permissions.map((p: any) => {
+    if (processedPermissions.length > 0) {
+      const values = processedPermissions.map((p: any) => {
         const routeInfo = availableRoutes.find((r) => r.path === p.path);
         return {
           role,
@@ -398,8 +436,16 @@ rolesRoute.get("/my-permissions", authMiddleware, async (c) => {
     });
 
     // Return only allowed routes
+    // For admin, always include protected routes
     const allowedRoutes = availableRoutes
       .filter((route) => {
+        // Admin always has access to protected routes
+        if (
+          currentUser.role === "admin" &&
+          PROTECTED_ADMIN_ROUTES.includes(route.path)
+        ) {
+          return true;
+        }
         const allowed = effectiveMap.get(route.path);
         return allowed === undefined || allowed === true;
       })

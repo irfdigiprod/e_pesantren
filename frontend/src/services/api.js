@@ -13,25 +13,37 @@ const getBaseUrl = () => {
 const BASE_URL = getBaseUrl();
 
 /**
- * Get auth token from localStorage
+ * Get auth token from storage (check both localStorage and sessionStorage)
  */
 function getToken() {
-  return localStorage.getItem("token") || "";
+  return localStorage.getItem("token") || sessionStorage.getItem("token") || "";
 }
 
 /**
- * Set auth token to localStorage
+ * Set auth token to storage
+ * @param {string} token - The auth token
+ * @param {boolean} remember - If true, use localStorage; otherwise use sessionStorage
  */
-function setToken(token) {
-  localStorage.setItem("token", token);
+function setToken(token, remember = true) {
+  if (remember) {
+    localStorage.setItem("token", token);
+    // Clear sessionStorage token if exists
+    sessionStorage.removeItem("token");
+  } else {
+    sessionStorage.setItem("token", token);
+    // Clear localStorage token if exists
+    localStorage.removeItem("token");
+  }
 }
 
 /**
- * Remove auth token from localStorage
+ * Remove auth token from all storage
  */
 function removeToken() {
   localStorage.removeItem("token");
   localStorage.removeItem("user");
+  sessionStorage.removeItem("token");
+  sessionStorage.removeItem("user");
 }
 
 /**
@@ -194,7 +206,7 @@ async function uploadFile(file) {
 // ============================================
 
 export const authApi = {
-  async login(email, password) {
+  async login(email, password, rememberMe = true) {
     const data = await request("/api/auth/login", {
       method: "POST",
       body: { email, password },
@@ -202,7 +214,14 @@ export const authApi = {
     });
 
     if (data?.data?.token) {
-      setToken(data.data.token);
+      setToken(data.data.token, rememberMe);
+
+      // Save email if remember me is checked
+      if (rememberMe) {
+        localStorage.setItem("rememberedEmail", email);
+      } else {
+        localStorage.removeItem("rememberedEmail");
+      }
     }
 
     return data;
