@@ -50,12 +50,12 @@ const depositSchema = z.object({
   totalLines: z.number().nullable().optional(),
   totalPages: z.number().nullable().optional(),
   // Legacy fields (kept for backward compatibility)
-  juz: z.number().optional(),
-  surahNumber: z.number().optional(),
-  surahName: z.string().optional(),
-  ayatStart: z.number().optional(),
-  ayatEnd: z.number().optional(),
-  pageNumber: z.number().optional(),
+  juz: z.number().nullable().optional(),
+  surahNumber: z.number().nullable().optional(),
+  surahName: z.string().nullable().optional(),
+  ayatStart: z.number().nullable().optional(),
+  ayatEnd: z.number().nullable().optional(),
+  pageNumber: z.number().nullable().optional(),
   // Other
   fluency: z.enum(["lancar", "kurang_lancar", "mengulang"]).optional(),
   notes: z.string().optional(),
