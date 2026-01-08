@@ -109,7 +109,14 @@ usersRoute.post("/import/preview", async (c) => {
     const XLSX = await import("xlsx");
     const workbook = XLSX.read(buffer, { type: "array" });
     const sheetName = workbook.SheetNames[0];
+    if (!sheetName) {
+      return c.json({ success: false, message: "Invalid Excel file" }, 400);
+    }
     const sheet = workbook.Sheets[sheetName];
+    if (!sheet) {
+      return c.json({ success: false, message: "Sheet not found" }, 400);
+    }
+
     const rawData = XLSX.utils.sheet_to_json(sheet);
 
     if (!rawData || rawData.length === 0) {
@@ -235,7 +242,13 @@ usersRoute.post("/import", async (c) => {
     const XLSX = await import("xlsx");
     const workbook = XLSX.read(buffer, { type: "array" });
     const sheetName = workbook.SheetNames[0];
+    if (!sheetName) {
+      return c.json({ success: false, message: "Invalid Excel file" }, 400);
+    }
     const sheet = workbook.Sheets[sheetName];
+    if (!sheet) {
+      return c.json({ success: false, message: "Sheet not found" }, 400);
+    }
     const rawData = XLSX.utils.sheet_to_json(sheet);
 
     // Column Mapping
@@ -589,6 +602,15 @@ usersRoute.patch("/current", authMiddleware, async (c) => {
       body = await c.req.json();
     }
 
+    // Fetch existing user to ensure we can properly sync the full name
+    const existingUser = await db.query.users.findFirst({
+      where: eq(users.id, currentUser.userId),
+    });
+
+    if (!existingUser) {
+      return c.json({ success: false, message: "User not found" }, 404);
+    }
+
     // Prepare update data
     const updateData: any = {};
     const allowedFields = [
@@ -633,6 +655,20 @@ usersRoute.patch("/current", authMiddleware, async (c) => {
         updateData.birthDate = null;
       }
     }
+
+    // Sync name (Concatenate First + Last Name)
+    const finalFirstName =
+      updateData.firstName !== undefined
+        ? updateData.firstName
+        : existingUser.firstName;
+    const finalLastName =
+      updateData.lastName !== undefined
+        ? updateData.lastName
+        : existingUser.lastName;
+
+    const fnStr = finalFirstName || "";
+    const lnStr = finalLastName || "";
+    updateData.name = `${fnStr} ${lnStr}`.trim();
 
     await db
       .update(users)

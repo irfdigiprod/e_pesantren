@@ -994,7 +994,13 @@ app.get("/targets", async (c) => {
 app.post("/targets", zValidator("json", targetSchema), async (c) => {
   const body = c.req.valid("json");
   try {
-    await db.insert(tahfidzTargets).values(body);
+    await db.insert(tahfidzTargets).values({
+      ...body,
+      targetJuz:
+        body.targetJuz !== null && body.targetJuz !== undefined
+          ? String(body.targetJuz)
+          : null,
+    });
     return c.json({ success: true, message: "Target created" });
   } catch (e: any) {
     if (e.code === "ER_DUP_ENTRY") {
@@ -1009,7 +1015,16 @@ app.put("/targets/:id", zValidator("json", targetSchema), async (c) => {
   const id = parseInt(c.req.param("id"));
   const body = c.req.valid("json");
   try {
-    await db.update(tahfidzTargets).set(body).where(eq(tahfidzTargets.id, id));
+    await db
+      .update(tahfidzTargets)
+      .set({
+        ...body,
+        targetJuz:
+          body.targetJuz !== null && body.targetJuz !== undefined
+            ? String(body.targetJuz)
+            : null,
+      })
+      .where(eq(tahfidzTargets.id, id));
     return c.json({ success: true, message: "Target updated" });
   } catch (e: any) {
     return c.json({ success: false, message: e.message }, 500);
@@ -1237,7 +1252,8 @@ app.get("/report-card/:studentId", async (c) => {
       String(semester).toLowerCase().includes("genap");
 
     if (isGenap) {
-      const year = years[1] || years[0] + 1;
+      const startYear = years[0] || new Date().getFullYear();
+      const year = years[1] || startYear + 1;
       startDate = new Date(`${year}-01-01`);
       endDate = new Date(`${year}-06-30`);
     } else {
@@ -1485,11 +1501,12 @@ app.get("/report-card/:studentId", async (c) => {
     // In Step 4, we query type='ziyadah' so yes, totalPages = totalZiyadahPages.
 
     // Recalculate Keterangan using JUZ if targetJuz is available
-    if (target && target.targetJuz && target.targetJuz > 0) {
+    if (target && target.targetJuz && Number(target.targetJuz) > 0) {
       // Compare by Juz
-      if (ziyadahJuz >= target.targetJuz) {
+      const targetJuzVal = Number(target.targetJuz);
+      if (ziyadahJuz >= targetJuzVal) {
         keterangan =
-          ziyadahJuz > target.targetJuz ? "Melebihi Target" : "Sesuai Target";
+          ziyadahJuz > targetJuzVal ? "Melebihi Target" : "Sesuai Target";
       } else {
         keterangan = "Di Bawah Target";
       }
