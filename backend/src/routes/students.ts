@@ -45,8 +45,8 @@ studentsRoute.get("/", async (c) => {
       conditions.push(
         eq(
           students.status,
-          status as "active" | "graduated" | "transferred" | "dropped"
-        )
+          status as "active" | "graduated" | "transferred" | "dropped",
+        ),
       );
     }
 
@@ -112,7 +112,7 @@ studentsRoute.get("/", async (c) => {
           room: room ? { id: room.id, name: room.name } : null,
           class: classInfo ? { id: classInfo.id, name: classInfo.name } : null,
         };
-      })
+      }),
     );
 
     return c.json({
@@ -160,7 +160,7 @@ studentsRoute.post(
             message:
               "Invalid file type. Please upload an Excel file (.xlsx or .xls)",
           },
-          400
+          400,
         );
       }
 
@@ -178,13 +178,15 @@ studentsRoute.post(
             success: false,
             message: "Excel file is empty or has no data rows",
           },
-          400
+          400,
         );
       }
 
       // Map Excel columns to database fields
       const columnMapping: { [key: string]: string } = {
         NIS: "nis",
+        NISN: "nisn",
+        "NIS Santri": "nisSantri",
         "Nama Lengkap": "fullName",
         Nama: "fullName",
         "Nama Arab": "fullNameAr",
@@ -268,7 +270,7 @@ studentsRoute.post(
           // Map row data to parent object
           const parentData: any = {};
           for (const [excelCol, dbField] of Object.entries(
-            parentColumnMapping
+            parentColumnMapping,
           )) {
             if (
               row[excelCol] !== undefined &&
@@ -382,10 +384,10 @@ studentsRoute.post(
           message: "Failed to preview import",
           error: error?.message,
         },
-        500
+        500,
       );
     }
-  }
+  },
 );
 
 // Import students from Excel
@@ -414,7 +416,7 @@ studentsRoute.post("/import", requireRole("admin", "staff"), async (c) => {
           message:
             "Invalid file type. Please upload an Excel file (.xlsx or .xls)",
         },
-        400
+        400,
       );
     }
 
@@ -429,13 +431,15 @@ studentsRoute.post("/import", requireRole("admin", "staff"), async (c) => {
     if (!data || data.length === 0) {
       return c.json(
         { success: false, message: "Excel file is empty or has no data rows" },
-        400
+        400,
       );
     }
 
     // Map Excel columns to database fields
     const columnMapping: { [key: string]: string } = {
       NIS: "nis",
+      NISN: "nisn",
+      "NIS Santri": "nisSantri",
       "Nama Lengkap": "fullName",
       Nama: "fullName",
       "Nama Arab": "fullNameAr",
@@ -620,7 +624,7 @@ studentsRoute.post("/import", requireRole("admin", "staff"), async (c) => {
 
               if (!existingUser) {
                 const hashedPassword = await hashPassword(
-                  parentData.parentPassword
+                  parentData.parentPassword,
                 );
                 const userResult = await db.insert(users).values({
                   email: parentData.parentEmail,
@@ -671,6 +675,10 @@ studentsRoute.post("/import", requireRole("admin", "staff"), async (c) => {
         // Insert student
         const studentResult = await db.insert(students).values({
           nis: String(studentData.nis),
+          nisn: studentData.nisn ? String(studentData.nisn) : undefined,
+          nisSantri: studentData.nisSantri
+            ? String(studentData.nisSantri)
+            : undefined,
           fullName: studentData.fullName,
           fullNameAr: studentData.fullNameAr || undefined,
           gender: studentData.gender,
@@ -726,7 +734,7 @@ studentsRoute.post("/import", requireRole("admin", "staff"), async (c) => {
         message: "Failed to import students",
         error: error?.message,
       },
-      500
+      500,
     );
   }
 });
@@ -744,9 +752,8 @@ studentsRoute.get("/:id", async (c) => {
     }
 
     // Get enriched data (Halaqah, Room, Class)
-    const { halaqahMembers, halaqahGroups } = await import(
-      "../db/schema/halaqah"
-    );
+    const { halaqahMembers, halaqahGroups } =
+      await import("../db/schema/halaqah");
     const { rooms } = await import("../db/schema/rooms");
     const { classes } = await import("../db/schema/academic");
 
@@ -793,7 +800,7 @@ studentsRoute.get("/:id", async (c) => {
           ...parent,
           isPrimary: rel.isPrimary,
         };
-      })
+      }),
     );
 
     return c.json({
@@ -841,7 +848,7 @@ studentsRoute.post(
         if (existingUser) {
           return c.json(
             { success: false, message: "Email already exists" },
-            400
+            400,
           );
         }
 
@@ -857,6 +864,8 @@ studentsRoute.post(
       const result = await db.insert(students).values({
         userId,
         nis: data.nis,
+        nisn: data.nisn,
+        nisSantri: data.nisSantri,
         fullName: data.fullName,
         fullNameAr: data.fullNameAr,
         birthDate: data.birthDate ? new Date(data.birthDate) : undefined,
@@ -893,10 +902,10 @@ studentsRoute.post(
       console.error("Create student error:", error);
       return c.json(
         { success: false, message: "Failed to create student" },
-        500
+        500,
       );
     }
-  }
+  },
 );
 
 // Update student
@@ -951,10 +960,10 @@ studentsRoute.put(
       console.error("Update student error:", error);
       return c.json(
         { success: false, message: "Failed to update student" },
-        500
+        500,
       );
     }
-  }
+  },
 );
 
 // Delete student
@@ -975,12 +984,10 @@ studentsRoute.delete("/:id", requireRole("admin"), async (c) => {
     const { halaqahMembers } = await import("../db/schema/halaqah");
     const { studentAttendances } = await import("../db/schema/attendance");
     const { grades, reports } = await import("../db/schema/academic");
-    const { quranMemorizations } = await import(
-      "../db/schema/quran-memorization"
-    );
-    const { rewardsPunishments } = await import(
-      "../db/schema/rewards-punishments"
-    );
+    const { quranMemorizations } =
+      await import("../db/schema/quran-memorization");
+    const { rewardsPunishments } =
+      await import("../db/schema/rewards-punishments");
 
     // Delete related records (using try-catch for each to avoid crashes if tables are empty)
     try {
@@ -1033,7 +1040,7 @@ studentsRoute.delete("/:id", requireRole("admin"), async (c) => {
         message: "Failed to delete student",
         error: error?.message || String(error),
       },
-      500
+      500,
     );
   }
 });
@@ -1064,7 +1071,7 @@ studentsRoute.get("/:id/parents", async (c) => {
           ...rel,
           parent,
         };
-      })
+      }),
     );
 
     return c.json({
@@ -1109,7 +1116,7 @@ studentsRoute.post(
       const existing = await db.query.studentParents.findFirst({
         where: and(
           eq(studentParents.studentId, studentId),
-          eq(studentParents.parentId, data.parentId)
+          eq(studentParents.parentId, data.parentId),
         ),
       });
 
@@ -1119,7 +1126,7 @@ studentsRoute.post(
             success: false,
             message: "Parent is already linked to this student",
           },
-          400
+          400,
         );
       }
 
@@ -1142,7 +1149,7 @@ studentsRoute.post(
       console.error("Add student parent error:", error);
       return c.json({ success: false, message: "Failed to link parent" }, 500);
     }
-  }
+  },
 );
 
 // Update parent relation
@@ -1159,7 +1166,7 @@ studentsRoute.put(
       const relation = await db.query.studentParents.findFirst({
         where: and(
           eq(studentParents.studentId, studentId),
-          eq(studentParents.parentId, parentId)
+          eq(studentParents.parentId, parentId),
         ),
       });
 
@@ -1185,10 +1192,10 @@ studentsRoute.put(
       console.error("Update student parent error:", error);
       return c.json(
         { success: false, message: "Failed to update relation" },
-        500
+        500,
       );
     }
-  }
+  },
 );
 
 // Remove parent from student
@@ -1203,7 +1210,7 @@ studentsRoute.delete(
       const relation = await db.query.studentParents.findFirst({
         where: and(
           eq(studentParents.studentId, studentId),
-          eq(studentParents.parentId, parentId)
+          eq(studentParents.parentId, parentId),
         ),
       });
 
@@ -1221,10 +1228,10 @@ studentsRoute.delete(
       console.error("Remove student parent error:", error);
       return c.json(
         { success: false, message: "Failed to unlink parent" },
-        500
+        500,
       );
     }
-  }
+  },
 );
 
 export default studentsRoute;

@@ -306,7 +306,7 @@
                       NISN
                     </td>
                     <td class="border border-slate-300 px-3 py-1">
-                      {{ student.nis || "-" }}
+                      {{ student.nisn || "-" }}
                     </td>
                   </tr>
                   <tr>
@@ -1057,7 +1057,7 @@ const tahfidzHeadNameDisplay = computed(() => {
 
 const upkExams = computed(() => {
   return exams.value.filter(
-    (e) => e.examCategory === "UPK" || e.type === "UPK"
+    (e) => e.examCategory === "UPK" || e.type === "UPK",
   );
 });
 
@@ -1098,7 +1098,7 @@ const upkExamsRight = computed(() => {
 // Computed for UKJ exams
 const ukjExams = computed(() => {
   return exams.value.filter(
-    (e) => e.examCategory === "UKJ" || e.type === "UKJ"
+    (e) => e.examCategory === "UKJ" || e.type === "UKJ",
   );
 });
 
@@ -1112,7 +1112,7 @@ const uaScore = computed(() => {
 const sulukScore = computed(() => {
   // Ambil semua ujian yang memiliki nilai adab (scoreAdab)
   const examsWithAdab = exams.value.filter(
-    (e) => e.scoreAdab !== undefined && e.scoreAdab !== null && e.scoreAdab > 0
+    (e) => e.scoreAdab !== undefined && e.scoreAdab !== null && e.scoreAdab > 0,
   );
 
   if (examsWithAdab.length === 0) return 0;
@@ -1270,7 +1270,7 @@ function filterStudents() {
     return;
   }
   filteredStudents.value = allStudents.value.filter(
-    (s) => s.fullName.toLowerCase().includes(q) || (s.nis && s.nis.includes(q))
+    (s) => s.fullName.toLowerCase().includes(q) || (s.nis && s.nis.includes(q)),
   );
   showDropdown.value = true;
 }
@@ -1446,7 +1446,7 @@ onMounted(async () => {
         if (allStudents.value.length > 0) {
           clearInterval(checkStudents);
           const found = allStudents.value.find(
-            (s) => String(s.id) === String(studentIdParam)
+            (s) => String(s.id) === String(studentIdParam),
           );
           if (found) {
             selectStudent(found);

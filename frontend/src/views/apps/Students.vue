@@ -221,6 +221,18 @@
         </button>
       </template>
 
+      <!-- Cell: NIS Santri -->
+      <template #cell-nisSantri="{ item }">
+        <span class="font-mono text-slate-600">{{
+          item.nisSantri || "-"
+        }}</span>
+      </template>
+
+      <!-- Cell: NISN -->
+      <template #cell-nisn="{ item }">
+        <span class="font-mono text-slate-600">{{ item.nisn || "-" }}</span>
+      </template>
+
       <!-- Cell: Phone -->
       <template #cell-phone="{ item }">
         <span class="text-slate-500">{{ item.phone || "-" }}</span>
@@ -256,8 +268,8 @@
             item.status === "active"
               ? "Aktif"
               : item.status === "inactive"
-              ? "Tidak Aktif"
-              : "Lulus"
+                ? "Tidak Aktif"
+                : "Lulus"
           }}
         </span>
       </template>
@@ -311,7 +323,12 @@
                 <h3 class="font-semibold text-slate-800 line-clamp-1">
                   {{ item.fullName }}
                 </h3>
-                <p class="text-xs text-slate-500 font-mono">{{ item.nis }}</p>
+                <p class="text-xs text-slate-500 font-mono">
+                  {{ item.nis }}
+                  <span v-if="item.nisSantri" class="text-slate-400"
+                    >| {{ item.nisSantri }}</span
+                  >
+                </p>
               </div>
             </div>
             <span
@@ -326,8 +343,8 @@
                 item.status === "active"
                   ? "Aktif"
                   : item.status === "inactive"
-                  ? "Tidak Aktif"
-                  : "Lulus"
+                    ? "Tidak Aktif"
+                    : "Lulus"
               }}
             </span>
           </div>
@@ -424,7 +441,7 @@
           <div class="p-6 overflow-y-auto">
             <form @submit.prevent="submitForm" class="space-y-4">
               <!-- Form Fields ... (Keep existing form logic) -->
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label class="block text-sm font-medium text-slate-700 mb-1"
                     >NIS <span class="text-red-500">*</span></label
@@ -437,14 +454,32 @@
                 </div>
                 <div>
                   <label class="block text-sm font-medium text-slate-700 mb-1"
-                    >Nama Lengkap <span class="text-red-500">*</span></label
+                    >NIS Santri</label
                   >
                   <input
-                    v-model="form.fullName"
-                    required
+                    v-model="form.nisSantri"
                     class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#602515]"
                   />
                 </div>
+                <div>
+                  <label class="block text-sm font-medium text-slate-700 mb-1"
+                    >NISN</label
+                  >
+                  <input
+                    v-model="form.nisn"
+                    class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#602515]"
+                  />
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1"
+                  >Nama Lengkap <span class="text-red-500">*</span></label
+                >
+                <input
+                  v-model="form.fullName"
+                  required
+                  class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#602515]"
+                />
               </div>
               <div>
                 <label class="block text-sm font-medium text-slate-700 mb-1"
@@ -610,6 +645,18 @@
             >
               {{ view.item.nis }}
             </div>
+            <div
+              v-if="view.item.nisSantri"
+              class="inline-block px-3 py-1 rounded-full bg-slate-50 border border-slate-200 text-xs font-medium text-slate-600 mt-1 ml-2"
+            >
+              {{ view.item.nisSantri }}
+            </div>
+            <div
+              v-if="view.item.nisn"
+              class="inline-block px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-xs font-medium text-blue-600 mt-1 ml-2"
+            >
+              NISN: {{ view.item.nisn }}
+            </div>
           </div>
           <div class="p-6 space-y-4">
             <div class="grid grid-cols-2 gap-4">
@@ -620,7 +667,7 @@
                   {{
                     view.item.birthDate
                       ? new Date(view.item.birthDate).toLocaleDateString(
-                          "id-ID"
+                          "id-ID",
                         )
                       : "-"
                   }}
@@ -726,6 +773,22 @@ const columns = [
   {
     field: "nis",
     label: "NIS",
+    sortable: true,
+    width: "min-w-[120px]",
+    headerClass: "p-3 md:p-4",
+    cellClass: "p-3 md:p-4",
+  },
+  {
+    field: "nisSantri",
+    label: "NIS Santri",
+    sortable: true,
+    width: "min-w-[120px]",
+    headerClass: "p-3 md:p-4",
+    cellClass: "p-3 md:p-4",
+  },
+  {
+    field: "nisn",
+    label: "NISN",
     sortable: true,
     width: "min-w-[120px]",
     headerClass: "p-3 md:p-4",
@@ -935,6 +998,8 @@ const modal = reactive({
 const form = reactive({
   id: null,
   nis: "",
+  nisn: "",
+  nisSantri: "",
   fullName: "",
   fullNameAr: "",
   birthDate: "",
@@ -965,6 +1030,8 @@ function onImportSuccess() {
 const studentImportTemplate = [
   {
     NIS: "12345",
+    NISN: "0012345678",
+    "NIS Santri": "P-12345",
     "Nama Lengkap": "Contoh Nama Santri",
     "Nama Arab": "محمد علي",
     "Jenis Kelamin": "Laki-laki",
@@ -1056,6 +1123,8 @@ async function submitForm() {
     const payload = {
       id: form.id,
       nis: form.nis,
+      nisn: form.nisn,
+      nisSantri: form.nisSantri,
       fullName: form.fullName,
       fullNameAr: form.fullNameAr || undefined,
       birthDate: form.birthDate || undefined,
@@ -1093,7 +1162,7 @@ async function submitForm() {
       "Berhasil!",
       modal.mode === "create"
         ? "Data santri berhasil ditambahkan."
-        : "Data santri berhasil diperbarui."
+        : "Data santri berhasil diperbarui.",
     );
   } catch (err) {
     if (err.response && err.response.data && err.response.data.message) {
@@ -1124,7 +1193,7 @@ async function deleteStudent() {
     openStatusModal(
       "error",
       "Gagal Menghapus",
-      err.response?.data?.message || err.message
+      err.response?.data?.message || err.message,
     );
   } finally {
     saving.value = false;
@@ -1178,7 +1247,10 @@ function openCreate() {
   modal.error = "";
   Object.assign(form, {
     id: null,
+    id: null,
     nis: "",
+    nisn: "",
+    nisSantri: "",
     fullName: "",
     fullNameAr: "",
     birthDate: "",
@@ -1230,7 +1302,10 @@ function openEdit(item) {
 
   Object.assign(form, {
     id: item.id,
+    id: item.id,
     nis: item.nis || "",
+    nisn: item.nisn || "",
+    nisSantri: item.nisSantri || "",
     fullName: item.fullName || "",
     fullNameAr: item.fullNameAr || "",
     birthDate: formattedBirthDate,

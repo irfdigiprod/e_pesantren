@@ -32,7 +32,9 @@ export const parents = mysqlTable("parents", {
 export const students = mysqlTable("students", {
   id: int("id").primaryKey().autoincrement(),
   userId: int("user_id").references(() => users.id),
-  nis: varchar("nis", { length: 50 }).notNull().unique(), // Nomor Induk Siswa
+  nis: varchar("nis", { length: 50 }).notNull().unique(), // Nomor Induk Siswa (Kemenag/Sekolah)
+  nisn: varchar("nisn", { length: 20 }), // NISN (Nasional)
+  nisSantri: varchar("nis_santri", { length: 50 }), // NIS Internal Pesantren
   fullName: varchar("full_name", { length: 255 }).notNull(),
   fullNameAr: varchar("full_name_ar", { length: 255 }),
   birthDate: date("birth_date"),
