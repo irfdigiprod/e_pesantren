@@ -169,7 +169,13 @@ studentsRoute.post(
       const buffer = await file.arrayBuffer();
       const workbook = XLSX.read(buffer, { type: "array" });
       const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
+      if (!sheetName) {
+        return c.json(
+          { success: false, message: "Excel file has no sheets" },
+          400,
+        );
+      }
+      const worksheet = workbook.Sheets[sheetName]!;
       const data = XLSX.utils.sheet_to_json(worksheet) as any[];
 
       if (!data || data.length === 0) {
@@ -425,7 +431,13 @@ studentsRoute.post("/import", requireRole("admin", "staff"), async (c) => {
     const buffer = await file.arrayBuffer();
     const workbook = XLSX.read(buffer, { type: "array" });
     const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
+    if (!sheetName) {
+      return c.json(
+        { success: false, message: "Excel file has no sheets" },
+        400,
+      );
+    }
+    const worksheet = workbook.Sheets[sheetName]!;
     const data = XLSX.utils.sheet_to_json(worksheet) as any[];
 
     if (!data || data.length === 0) {

@@ -8,7 +8,7 @@ async function updateStudentData() {
     const allStudents = await db.select().from(students).limit(1);
 
     if (allStudents.length > 0) {
-      const student = allStudents[0];
+      const student = allStudents[0]!;
       console.log(`Updating student ID ${student.id} (${student.fullName})...`);
 
       await db
@@ -25,6 +25,10 @@ async function updateStudentData() {
       const updated = await db.query.students.findFirst({
         where: eq(students.id, student.id),
       });
+      if (!updated) {
+        console.log("Could not find updated student.");
+        process.exit(1);
+      }
       console.log("Updated data:", {
         nis: updated.nis,
         nisn: updated.nisn,

@@ -6,11 +6,12 @@ async function checkAndCreateTables() {
   try {
     // Check if message_attachments table exists
     const result = await db.execute(
-      sql`SHOW TABLES LIKE 'message_attachments'`
+      sql`SHOW TABLES LIKE 'message_attachments'`,
     );
-    console.log("message_attachments table check:", result);
+    const rows = result[0] as unknown as any[];
+    console.log("message_attachments table check:", rows);
 
-    if (result.rows.length === 0) {
+    if (rows.length === 0) {
       console.log("Creating message_attachments table...");
       await db.execute(sql`
         CREATE TABLE IF NOT EXISTS message_attachments (
