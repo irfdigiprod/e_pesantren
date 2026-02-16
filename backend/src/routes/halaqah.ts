@@ -73,7 +73,7 @@ halaqahRoute.get("/", async (c) => {
       .from(halaqahGroups)
       .leftJoin(
         tahfidzTargets,
-        eq(halaqahGroups.targetLevelId, tahfidzTargets.id)
+        eq(halaqahGroups.targetLevelId, tahfidzTargets.id),
       )
       .$dynamic(); // Enable dynamic query building
 
@@ -82,7 +82,7 @@ halaqahRoute.get("/", async (c) => {
       query = query
         .leftJoin(
           halaqahMembers,
-          eq(halaqahGroups.id, halaqahMembers.halaqahId)
+          eq(halaqahGroups.id, halaqahMembers.halaqahId),
         )
         .leftJoin(students, eq(halaqahMembers.studentId, students.id));
       conditions.push(eq(students.gender, gender as "male" | "female"));
@@ -91,7 +91,7 @@ halaqahRoute.get("/", async (c) => {
     if (mentorId) {
       query = query.leftJoin(
         halaqahMentors,
-        eq(halaqahGroups.id, halaqahMentors.halaqahId)
+        eq(halaqahGroups.id, halaqahMentors.halaqahId),
       );
       conditions.push(eq(halaqahMentors.teacherId, Number(mentorId)));
     }
@@ -121,7 +121,7 @@ halaqahRoute.get("/", async (c) => {
         if (!mentorsMap[m.halaqahId]) {
           mentorsMap[m.halaqahId] = [];
         }
-        mentorsMap[m.halaqahId].push(m);
+        mentorsMap[m.halaqahId]!.push(m);
       });
     }
 
@@ -150,7 +150,7 @@ halaqahRoute.get("/", async (c) => {
           "Failed to get halaqah groups: " +
           ((error as any)?.message || String(error)),
       },
-      500
+      500,
     );
   }
 });
@@ -201,7 +201,7 @@ halaqahRoute.get("/by-student/:studentId", async (c) => {
     const membership = await db.query.halaqahMembers.findFirst({
       where: and(
         eq(halaqahMembers.studentId, studentId),
-        eq(halaqahMembers.status, "active")
+        eq(halaqahMembers.status, "active"),
       ),
     });
 
@@ -241,7 +241,7 @@ halaqahRoute.get("/by-student/:studentId", async (c) => {
     console.error("Get halaqah by student error:", error);
     return c.json(
       { success: false, message: "Failed to get student halaqah" },
-      500
+      500,
     );
   }
 });
@@ -270,10 +270,10 @@ halaqahRoute.post(
       console.error("Create halaqah error:", error);
       return c.json(
         { success: false, message: "Failed to create halaqah group" },
-        500
+        500,
       );
     }
-  }
+  },
 );
 
 // Update halaqah group
@@ -309,10 +309,10 @@ halaqahRoute.put(
       console.error("Update halaqah error:", error);
       return c.json(
         { success: false, message: "Failed to update halaqah" },
-        500
+        500,
       );
     }
-  }
+  },
 );
 
 // Delete halaqah group
@@ -364,7 +364,7 @@ halaqahRoute.get("/:id/members", async (c) => {
           ...member,
           student,
         };
-      })
+      }),
     );
 
     return c.json({
@@ -410,7 +410,7 @@ halaqahRoute.post(
       const existingInSame = await db.query.halaqahMembers.findFirst({
         where: and(
           eq(halaqahMembers.halaqahId, halaqahId),
-          eq(halaqahMembers.studentId, data.studentId)
+          eq(halaqahMembers.studentId, data.studentId),
         ),
       });
 
@@ -420,7 +420,7 @@ halaqahRoute.post(
             success: false,
             message: "Santri sudah menjadi anggota halaqah ini",
           },
-          400
+          400,
         );
       }
 
@@ -475,12 +475,18 @@ halaqahRoute.post(
       });
     } catch (error) {
       console.error("Add halaqah member error:", error);
+      if (error instanceof Error) {
+        console.error("Error stack:", error.stack);
+      }
       return c.json(
-        { success: false, message: "Gagal menambahkan anggota" },
-        500
+        {
+          success: false,
+          message: "Gagal menambahkan anggota: " + (error as any).message,
+        },
+        500,
       );
     }
-  }
+  },
 );
 
 // Update member status
@@ -497,7 +503,7 @@ halaqahRoute.put(
       const member = await db.query.halaqahMembers.findFirst({
         where: and(
           eq(halaqahMembers.halaqahId, halaqahId),
-          eq(halaqahMembers.studentId, studentId)
+          eq(halaqahMembers.studentId, studentId),
         ),
       });
 
@@ -526,10 +532,10 @@ halaqahRoute.put(
       console.error("Update halaqah member error:", error);
       return c.json(
         { success: false, message: "Failed to update member" },
-        500
+        500,
       );
     }
-  }
+  },
 );
 
 // Remove member from halaqah
@@ -544,7 +550,7 @@ halaqahRoute.delete(
       const member = await db.query.halaqahMembers.findFirst({
         where: and(
           eq(halaqahMembers.halaqahId, halaqahId),
-          eq(halaqahMembers.studentId, studentId)
+          eq(halaqahMembers.studentId, studentId),
         ),
       });
 
@@ -562,10 +568,10 @@ halaqahRoute.delete(
       console.error("Remove halaqah member error:", error);
       return c.json(
         { success: false, message: "Failed to remove member" },
-        500
+        500,
       );
     }
-  }
+  },
 );
 
 // ============ HALAQAH MENTORS ============
@@ -589,7 +595,7 @@ halaqahRoute.get("/:id/mentors", async (c) => {
           ...mentor,
           teacher,
         };
-      })
+      }),
     );
 
     return c.json({
@@ -634,14 +640,14 @@ halaqahRoute.post(
       const existing = await db.query.halaqahMentors.findFirst({
         where: and(
           eq(halaqahMentors.halaqahId, halaqahId),
-          eq(halaqahMentors.teacherId, data.teacherId)
+          eq(halaqahMentors.teacherId, data.teacherId),
         ),
       });
 
       if (existing) {
         return c.json(
           { success: false, message: "Teacher is already a mentor" },
-          400
+          400,
         );
       }
 
@@ -666,7 +672,7 @@ halaqahRoute.post(
       console.error("Add halaqah mentor error:", error);
       return c.json({ success: false, message: "Failed to add mentor" }, 500);
     }
-  }
+  },
 );
 
 // Update mentor role
@@ -683,7 +689,7 @@ halaqahRoute.put(
       const mentor = await db.query.halaqahMentors.findFirst({
         where: and(
           eq(halaqahMentors.halaqahId, halaqahId),
-          eq(halaqahMentors.teacherId, teacherId)
+          eq(halaqahMentors.teacherId, teacherId),
         ),
       });
 
@@ -712,10 +718,10 @@ halaqahRoute.put(
       console.error("Update halaqah mentor error:", error);
       return c.json(
         { success: false, message: "Failed to update mentor" },
-        500
+        500,
       );
     }
-  }
+  },
 );
 
 // Remove mentor from halaqah
@@ -730,7 +736,7 @@ halaqahRoute.delete(
       const mentor = await db.query.halaqahMentors.findFirst({
         where: and(
           eq(halaqahMentors.halaqahId, halaqahId),
-          eq(halaqahMentors.teacherId, teacherId)
+          eq(halaqahMentors.teacherId, teacherId),
         ),
       });
 
@@ -748,10 +754,10 @@ halaqahRoute.delete(
       console.error("Remove halaqah mentor error:", error);
       return c.json(
         { success: false, message: "Failed to remove mentor" },
-        500
+        500,
       );
     }
-  }
+  },
 );
 
 export default halaqahRoute;

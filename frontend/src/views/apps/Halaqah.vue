@@ -669,7 +669,9 @@ async function submitForm() {
     const payload = {
       name: form.name.trim(),
       description: form.description?.trim() || undefined,
-      targetLevelId: form.targetLevelId ? Number(form.targetLevelId) : null,
+      targetLevelId: form.targetLevelId
+        ? Number(form.targetLevelId)
+        : undefined,
     };
 
     if (modal.mode === "edit" && form.id) {
