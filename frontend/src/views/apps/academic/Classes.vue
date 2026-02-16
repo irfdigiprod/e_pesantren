@@ -578,7 +578,7 @@ async function fetchData() {
 async function fetchStudents() {
   loadingStudents.value = true;
   try {
-    const res = await studentsApi.getAll();
+    const res = await studentsApi.getAll({ limit: 0 });
     allStudents.value = Array.isArray(res?.data) ? res.data : [];
   } catch (e) {
     console.error(e);
@@ -700,7 +700,7 @@ async function addStudent(student) {
     // Use assignStudent endpoint which handles single class enforcement
     const res = await academicApi.assignStudent(
       studentsModal.classItem.id,
-      student.id
+      student.id,
     );
 
     // Check if requires confirmation
@@ -728,7 +728,7 @@ async function confirmMoveStudent() {
     await academicApi.assignStudent(
       studentsModal.classItem.id,
       confirmMove.student.id,
-      true // force updated
+      true, // force updated
     );
 
     await fetchStudents();
@@ -797,10 +797,10 @@ async function addHomeroomTeacher(teacher) {
   try {
     await academicApi.addHomeroomTeacher(
       homeroomModal.classItem.id,
-      teacher.id
+      teacher.id,
     );
     const res = await academicApi.getHomeroomTeachers(
-      homeroomModal.classItem.id
+      homeroomModal.classItem.id,
     );
     homeroomModal.teachers = Array.isArray(res?.data) ? res.data : [];
     await fetchTeachers(); // Refresh teacher data to update class labels
@@ -815,10 +815,10 @@ async function removeHomeroomTeacher(teacher) {
   try {
     await academicApi.removeHomeroomTeacher(
       homeroomModal.classItem.id,
-      teacher.teacherId || teacher.id
+      teacher.teacherId || teacher.id,
     );
     const res = await academicApi.getHomeroomTeachers(
-      homeroomModal.classItem.id
+      homeroomModal.classItem.id,
     );
     homeroomModal.teachers = Array.isArray(res?.data) ? res.data : [];
     await fetchTeachers(); // Refresh teacher data to update class labels

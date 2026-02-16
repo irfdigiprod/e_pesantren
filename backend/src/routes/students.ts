@@ -61,19 +61,34 @@ studentsRoute.get("/", async (c) => {
 
     // Get paginated students
     let allStudents;
-    if (conditions.length > 0) {
-      allStudents = await db.query.students.findMany({
-        where: and(...conditions),
-        limit: limit,
-        offset: offset,
-        orderBy: (students, { asc }) => [asc(students.id)],
-      });
+    if (limit === 0) {
+      // No limit/pagination
+      if (conditions.length > 0) {
+        allStudents = await db.query.students.findMany({
+          where: and(...conditions),
+          orderBy: (students, { asc }) => [asc(students.id)],
+        });
+      } else {
+        allStudents = await db.query.students.findMany({
+          orderBy: (students, { asc }) => [asc(students.id)],
+        });
+      }
     } else {
-      allStudents = await db.query.students.findMany({
-        limit: limit,
-        offset: offset,
-        orderBy: (students, { asc }) => [asc(students.id)],
-      });
+      // Normal pagination
+      if (conditions.length > 0) {
+        allStudents = await db.query.students.findMany({
+          where: and(...conditions),
+          limit: limit,
+          offset: offset,
+          orderBy: (students, { asc }) => [asc(students.id)],
+        });
+      } else {
+        allStudents = await db.query.students.findMany({
+          limit: limit,
+          offset: offset,
+          orderBy: (students, { asc }) => [asc(students.id)],
+        });
+      }
     }
 
     // Enrich students with halaqah, room, and class info
