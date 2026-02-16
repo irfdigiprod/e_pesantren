@@ -437,7 +437,7 @@ const availableStudents = computed(() => {
 // Computed: Available supervisors
 const availableSupervisors = computed(() => {
   const memberIds = supervisorsModal.supervisors.map(
-    (t) => t.teacherId || t.id
+    (t) => t.teacherId || t.id,
   );
   return allTeachers.value.filter((t) => !memberIds.includes(t.id));
 });
@@ -501,7 +501,7 @@ async function fetchData() {
         } catch {
           return { ...r, students: [], supervisors: [] };
         }
-      })
+      }),
     );
 
     rooms.value = enriched;
@@ -520,7 +520,7 @@ async function fetchData() {
 async function fetchStudents() {
   loadingStudents.value = true;
   try {
-    const res = await studentsApi.getAll();
+    const res = await studentsApi.getAll({ limit: 0 });
     allStudents.value = Array.isArray(res?.data) ? res.data : [];
   } catch (e) {
     console.error(e);
@@ -649,7 +649,7 @@ async function confirmMoveStudent() {
     await roomsApi.assignStudent(
       studentsModal.room.id,
       confirmMove.student.id,
-      true // force = true
+      true, // force = true
     );
 
     // Reload students
@@ -681,7 +681,7 @@ async function removeStudent(member) {
   try {
     await roomsApi.removeStudent(
       studentsModal.room.id,
-      member.studentId || member.id
+      member.studentId || member.id,
     );
     const res = await roomsApi.getStudents(studentsModal.room.id);
     studentsModal.students = Array.isArray(res?.data) ? res.data : [];
@@ -732,7 +732,7 @@ async function removeSupervisor(supervisor) {
   try {
     await roomsApi.removeSupervisor(
       supervisorsModal.room.id,
-      supervisor.teacherId || supervisor.id
+      supervisor.teacherId || supervisor.id,
     );
     const res = await roomsApi.getSupervisors(supervisorsModal.room.id);
     supervisorsModal.supervisors = Array.isArray(res?.data) ? res.data : [];

@@ -607,7 +607,7 @@ async function fetchData() {
         } catch {
           return { ...h, members: [], mentors: [] };
         }
-      })
+      }),
     );
 
     groups.value = enriched;
@@ -634,7 +634,7 @@ function getMentorCount(h) {
 async function fetchStudents() {
   loadingStudents.value = true;
   try {
-    const res = await studentsApi.getAll();
+    const res = await studentsApi.getAll({ limit: 0 });
     allStudents.value = Array.isArray(res?.data) ? res.data : [];
   } catch (e) {
     console.error(e);
@@ -763,7 +763,7 @@ async function confirmMoveMember() {
     await halaqahApi.addMember(
       membersModal.group.id,
       confirmMove.student.id,
-      true // force = true
+      true, // force = true
     );
 
     // Reload members
@@ -795,7 +795,7 @@ async function removeMember(member) {
   try {
     await halaqahApi.removeMember(
       membersModal.group.id,
-      member.studentId || member.id
+      member.studentId || member.id,
     );
     const res = await halaqahApi.getMembers(membersModal.group.id);
     membersModal.members = Array.isArray(res?.data) ? res.data : [];
@@ -846,7 +846,7 @@ async function removeMentor(mentor) {
   try {
     await halaqahApi.removeMentor(
       mentorsModal.group.id,
-      mentor.teacherId || mentor.id
+      mentor.teacherId || mentor.id,
     );
     const res = await halaqahApi.getMentors(mentorsModal.group.id);
     mentorsModal.mentors = Array.isArray(res?.data) ? res.data : [];
