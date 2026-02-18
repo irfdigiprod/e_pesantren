@@ -49,7 +49,7 @@ teachersRoute.get("/", async (c) => {
       .leftJoin(salaryGrades, eq(teachers.salaryGradeId, salaryGrades.id))
       .leftJoin(
         positionAllowances,
-        eq(teachers.positionAllowanceId, positionAllowances.id)
+        eq(teachers.positionAllowanceId, positionAllowances.id),
       )
       .orderBy(desc(teachers.createdAt));
 
@@ -138,7 +138,7 @@ teachersRoute.get("/", async (c) => {
           (error.sqlMessage || error.message || String(error)) +
           (error.sql ? ` \nSQL: ${error.sql}` : ""),
       },
-      500
+      500,
     );
   }
 });
@@ -196,7 +196,7 @@ teachersRoute.post(
         if (existingUser) {
           return c.json(
             { success: false, message: "Email already exists" },
-            400
+            400,
           );
         }
 
@@ -248,10 +248,10 @@ teachersRoute.post(
       console.error("Create teacher error:", error);
       return c.json(
         { success: false, message: "Failed to create teacher" },
-        500
+        500,
       );
     }
-  }
+  },
 );
 
 // Update teacher
@@ -304,10 +304,10 @@ teachersRoute.put(
       console.error("Update teacher error:", error);
       return c.json(
         { success: false, message: "Failed to update teacher" },
-        500
+        500,
       );
     }
-  }
+  },
 );
 
 // Delete teacher
@@ -371,7 +371,7 @@ teachersRoute.post(
             message:
               "Invalid file type. Please upload an Excel file (.xlsx or .xls)",
           },
-          400
+          400,
         );
       }
 
@@ -380,7 +380,22 @@ teachersRoute.post(
       const buffer = await file.arrayBuffer();
       const workbook = XLSX.read(buffer, { type: "array" });
       const sheetName = workbook.SheetNames[0];
+      if (!sheetName) {
+        return c.json(
+          { success: false, message: "Invalid Excel file: No sheets found" },
+          400,
+        );
+      }
       const worksheet = workbook.Sheets[sheetName];
+      if (!worksheet) {
+        return c.json(
+          {
+            success: false,
+            message: "Invalid Excel file: Sheet data not found",
+          },
+          400,
+        );
+      }
       const data = XLSX.utils.sheet_to_json(worksheet) as any[];
 
       if (!data || data.length === 0) {
@@ -389,7 +404,7 @@ teachersRoute.post(
             success: false,
             message: "Excel file is empty or has no data rows",
           },
-          400
+          400,
         );
       }
 
@@ -543,7 +558,7 @@ teachersRoute.post(
       console.error("Preview import error:", error);
       return c.json({ success: false, message: error?.message }, 500);
     }
-  }
+  },
 );
 
 // Import teachers from Excel
@@ -558,7 +573,20 @@ teachersRoute.post("/import", requireRole("admin", "staff"), async (c) => {
     const buffer = await file.arrayBuffer();
     const workbook = XLSX.read(buffer, { type: "array" });
     const sheetName = workbook.SheetNames[0];
-    const data = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]) as any[];
+    if (!sheetName) {
+      return c.json(
+        { success: false, message: "Invalid Excel file: No sheets found" },
+        400,
+      );
+    }
+    const worksheet = workbook.Sheets[sheetName];
+    if (!worksheet) {
+      return c.json(
+        { success: false, message: "Invalid Excel file: Sheet data not found" },
+        400,
+      );
+    }
+    const data = XLSX.utils.sheet_to_json(worksheet) as any[];
 
     // Mappings (Same as preview)
     const columnMapping: { [key: string]: string } = {
@@ -650,27 +678,69 @@ teachersRoute.post("/import", requireRole("admin", "staff"), async (c) => {
           }
         }
 
-        // Create User if needed
+        // Prepare User Profile Data
+        const userProfileData = {
+          name: rawData.fullName,
+          firstName: rawData.fullName.split(" ")[0],
+          lastName: rawData.fullName.split(" ").slice(1).join(" "),
+          gender: rawData.gender,
+          birthPlace: rawData.birthPlace,
+          birthDate: rawData.birthDate,
+          phone: rawData.phone ? String(rawData.phone) : undefined,
+          address: rawData.address || undefined,
+          province: rawData.province
+            ? JSON.stringify({ code: null, name: String(rawData.province) })
+            : undefined,
+          regency: rawData.regency
+            ? JSON.stringify({ code: null, name: String(rawData.regency) })
+            : undefined,
+          district: rawData.district
+            ? JSON.stringify({ code: null, name: String(rawData.district) })
+            : undefined,
+          village: rawData.village
+            ? JSON.stringify({ code: null, name: String(rawData.village) })
+            : undefined,
+          addressDetail: rawData.addressDetail,
+          postalCode: rawData.postalCode
+            ? String(rawData.postalCode)
+            : undefined,
+          // Ensure role is updated/set correctly
+          role: (rawData.employeeType === "staff" ? "staff" : "teacher") as
+            | "staff"
+            | "teacher",
+        };
+
+        // Create or Update User
         let userId: number | undefined;
-        if (rawData.email && rawData.password) {
+        if (rawData.email) {
           const existUser = await db.query.users.findFirst({
             where: eq(users.email, rawData.email),
           });
-          if (!existUser) {
+
+          if (existUser) {
+            // Update existing user profile
+            await db
+              .update(users)
+              .set({
+                ...userProfileData,
+                // Do not update password or role if they already exist, unless we want to enforce it?
+                // Let's keep existing role if it's admin/higher, but maybe safe to update profile info.
+                updatedAt: new Date(),
+              })
+              .where(eq(users.id, existUser.id));
+
+            userId = existUser.id;
+          } else if (rawData.password) {
+            // Create New User
             const hashed = await hashPassword(rawData.password);
-
-            // Fix: Set role based on employee type
-            const role = rawData.employeeType === "staff" ? "staff" : "teacher";
-
             const newUser = await db.insert(users).values({
               email: rawData.email,
               password: hashed,
-              name: rawData.fullName,
-              role: role,
+              ...userProfileData,
+              role: userProfileData.role as any, // Cast to match enum if needed
             });
             userId = Number(newUser[0].insertId);
           }
-          // If user exists, we skip creating logic for simplicity/safety
         }
 
         // Format Address Fields to JSON structure
