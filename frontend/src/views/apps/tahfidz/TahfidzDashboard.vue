@@ -106,12 +106,12 @@
             item.type === "ziyadah"
               ? "Ziyadah"
               : item.type === "murajaah"
-              ? "Muraja'ah"
-              : item.type === "sakit"
-              ? "Sakit"
-              : item.type === "izin"
-              ? "Izin"
-              : "Alpha"
+                ? "Muraja'ah"
+                : item.type === "sakit"
+                  ? "Sakit"
+                  : item.type === "izin"
+                    ? "Izin"
+                    : "Alpha"
           }}
         </span>
       </template>
@@ -203,12 +203,12 @@
                 item.type === "ziyadah"
                   ? "Ziyadah"
                   : item.type === "murajaah"
-                  ? "Muraja'ah"
-                  : item.type === "sakit"
-                  ? "Sakit"
-                  : item.type === "izin"
-                  ? "Izin"
-                  : "Alpha"
+                    ? "Muraja'ah"
+                    : item.type === "sakit"
+                      ? "Sakit"
+                      : item.type === "izin"
+                        ? "Izin"
+                        : "Alpha"
               }}
             </span>
             <span
@@ -832,7 +832,7 @@ async function loadData() {
 
     // Remove undefined keys so they don't become "undefined" string
     Object.keys(params).forEach(
-      (key) => params[key] === undefined && delete params[key]
+      (key) => params[key] === undefined && delete params[key],
     );
 
     const [statsRes, depositsRes] = await Promise.all([
@@ -1106,7 +1106,7 @@ async function submitDeposit() {
 
     const payload = {
       studentId: Number(form.studentId),
-      teacherId: currentUser.value?.teacher?.id || 1,
+      teacherId: currentUser.value?.teacher?.id || currentUser.value?.id || 1,
       type: form.type,
       fluency: isDepositType ? form.fluency : undefined,
       isLate: isDepositType ? form.isLate || false : false,
@@ -1146,7 +1146,7 @@ function filterStudents() {
   }
   const q = studentSearch.value.toLowerCase();
   filteredStudents.value = studentsList.value.filter(
-    (s) => s.fullName.toLowerCase().includes(q) || (s.nis && s.nis.includes(q))
+    (s) => s.fullName.toLowerCase().includes(q) || (s.nis && s.nis.includes(q)),
   );
   showStudentDropdown.value = true;
 }

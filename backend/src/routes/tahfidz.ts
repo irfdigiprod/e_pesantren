@@ -31,8 +31,12 @@ import {
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import { getJuzFromPage, getJuzFromSurah } from "../utils/quran-mapping";
+import { authMiddleware } from "../middleware/auth";
 
 const app = new Hono();
+
+// Apply auth to all routes
+app.use("*", authMiddleware);
 
 // --- Schemas ---
 const depositSchema = z.object({
@@ -126,8 +130,8 @@ app.get("/stats", async (c) => {
           halaqahMembers,
           and(
             eq(tahfidzDeposits.studentId, halaqahMembers.studentId),
-            eq(halaqahMembers.status, "active")
-          )
+            eq(halaqahMembers.status, "active"),
+          ),
         );
 
       if (whereClause) {
@@ -150,8 +154,8 @@ app.get("/stats", async (c) => {
         halaqahMembers,
         and(
           eq(tahfidzDeposits.studentId, halaqahMembers.studentId),
-          eq(halaqahMembers.status, "active")
-        )
+          eq(halaqahMembers.status, "active"),
+        ),
       );
 
     if (whereClause) {
@@ -170,7 +174,7 @@ app.get("/stats", async (c) => {
   } catch (e: any) {
     return c.json(
       { success: false, message: e.message || "Internal Error" },
-      500
+      500,
     );
   }
 });
@@ -214,8 +218,8 @@ app.get("/deposits", async (c) => {
         halaqahMembers,
         and(
           eq(tahfidzDeposits.studentId, halaqahMembers.studentId),
-          eq(halaqahMembers.status, "active") // Only active members? Maybe not strictly needed if we want history
-        )
+          eq(halaqahMembers.status, "active"), // Only active members? Maybe not strictly needed if we want history
+        ),
       )
       .orderBy(desc(tahfidzDeposits.depositDate));
 
@@ -230,8 +234,8 @@ app.get("/deposits", async (c) => {
       conditions.push(
         or(
           like(students.fullName, `%${search}%`),
-          like(students.nis, `%${search}%`)
-        )
+          like(students.nis, `%${search}%`),
+        ),
       );
     }
 
@@ -267,8 +271,8 @@ app.get("/deposits", async (c) => {
         halaqahMembers,
         and(
           eq(tahfidzDeposits.studentId, halaqahMembers.studentId),
-          eq(halaqahMembers.status, "active")
-        )
+          eq(halaqahMembers.status, "active"),
+        ),
       )
       .where(whereClause);
 
@@ -295,7 +299,7 @@ app.get("/deposits", async (c) => {
   } catch (e: any) {
     return c.json(
       { success: false, message: e.message || "Internal Error" },
-      500
+      500,
     );
   }
 });
@@ -332,9 +336,19 @@ app.post("/deposits", zValidator("json", depositSchema), async (c) => {
     });
     return c.json({ success: true, message: "Setoran berhasil dicatat" });
   } catch (e: any) {
+    if (e.code === "ER_NO_REFERENCED_ROW_2") {
+      return c.json(
+        {
+          success: false,
+          message:
+            "Data santri atau guru tidak valid atau sudah dihapus. Silakan muat ulang halaman.",
+        },
+        400,
+      );
+    }
     return c.json(
       { success: false, message: e.message || "Internal Error" },
-      500
+      500,
     );
   }
 });
@@ -377,9 +391,18 @@ app.put("/deposits/:id", zValidator("json", depositSchema), async (c) => {
 
     return c.json({ success: true, message: "Setoran berhasil diperbarui" });
   } catch (e: any) {
+    if (e.code === "ER_NO_REFERENCED_ROW_2") {
+      return c.json(
+        {
+          success: false,
+          message: "Data santri atau guru tidak valid atau sudah dihapus.",
+        },
+        400,
+      );
+    }
     return c.json(
       { success: false, message: e.message || "Internal Error" },
-      500
+      500,
     );
   }
 });
@@ -393,7 +416,7 @@ app.delete("/deposits/:id", async (c) => {
   } catch (e: any) {
     return c.json(
       { success: false, message: e.message || "Internal Error" },
-      500
+      500,
     );
   }
 });
@@ -425,8 +448,8 @@ app.get("/exams", async (c) => {
       conditions.push(
         or(
           like(students.fullName, `%${search}%`),
-          like(students.nis, `%${search}%`)
-        )
+          like(students.nis, `%${search}%`),
+        ),
       );
     }
     if (startDate)
@@ -459,8 +482,8 @@ app.get("/exams", async (c) => {
         halaqahMembers,
         and(
           eq(tahfidzExams.studentId, halaqahMembers.studentId),
-          eq(halaqahMembers.status, "active")
-        )
+          eq(halaqahMembers.status, "active"),
+        ),
       );
     }
 
@@ -505,8 +528,8 @@ app.get("/exams", async (c) => {
         halaqahMembers,
         and(
           eq(tahfidzExams.studentId, halaqahMembers.studentId),
-          eq(halaqahMembers.status, "active")
-        )
+          eq(halaqahMembers.status, "active"),
+        ),
       );
     }
 
@@ -535,7 +558,7 @@ app.get("/exams", async (c) => {
   } catch (e: any) {
     return c.json(
       { success: false, message: e.message || "Internal Error" },
-      500
+      500,
     );
   }
 });
@@ -551,7 +574,7 @@ app.post("/exams", zValidator("json", examSchema), async (c) => {
           eq(tahfidzExams.studentId, body.studentId),
           eq(tahfidzExams.examCategory, body.examCategory),
           eq(tahfidzExams.academicYear, body.academicYear || ""),
-          eq(tahfidzExams.semester, body.semester || "ganjil")
+          eq(tahfidzExams.semester, body.semester || "ganjil"),
         ),
       });
 
@@ -563,7 +586,7 @@ app.post("/exams", zValidator("json", examSchema), async (c) => {
             success: false,
             message: `Data ${categoryLabel} untuk siswa ini di semester dan tahun pelajaran yang sama sudah ada. Silakan edit data yang sudah ada.`,
           },
-          400
+          400,
         );
       }
     }
@@ -576,7 +599,7 @@ app.post("/exams", zValidator("json", examSchema), async (c) => {
   } catch (e: any) {
     return c.json(
       { success: false, message: e.message || "Internal Error" },
-      500
+      500,
     );
   }
 });
@@ -602,7 +625,7 @@ app.put("/exams/:id", zValidator("json", examSchema), async (c) => {
   } catch (e: any) {
     return c.json(
       { success: false, message: e.message || "Internal Error" },
-      500
+      500,
     );
   }
 });
@@ -616,7 +639,7 @@ app.delete("/exams/:id", async (c) => {
   } catch (e: any) {
     return c.json(
       { success: false, message: e.message || "Internal Error" },
-      500
+      500,
     );
   }
 });
@@ -646,7 +669,7 @@ app.get("/halaqah/:groupId/daily-summary", async (c) => {
     const deposits = await db.query.tahfidzDeposits.findMany({
       where: and(
         inArray(tahfidzDeposits.studentId, studentIds),
-        sql`DATE(${tahfidzDeposits.depositDate}) = ${dateStr}`
+        sql`DATE(${tahfidzDeposits.depositDate}) = ${dateStr}`,
       ),
     });
 
@@ -667,10 +690,10 @@ app.get("/halaqah/:groupId/daily-summary", async (c) => {
           ? studentDeposit.type === "izin"
             ? "izin"
             : studentDeposit.type === "alpha"
-            ? "alpha"
-            : studentDeposit.type === "sakit"
-            ? "sakit"
-            : "done"
+              ? "alpha"
+              : studentDeposit.type === "sakit"
+                ? "sakit"
+                : "done"
           : "none",
         deposit: studentDeposit || null,
       };
@@ -688,7 +711,7 @@ app.get("/halaqah/:groupId/daily-summary", async (c) => {
   } catch (e: any) {
     return c.json(
       { success: false, message: e.message || "Internal Error" },
-      500
+      500,
     );
   }
 });
@@ -703,7 +726,7 @@ app.get("/halaqah/:groupId/monthly-summary", async (c) => {
     if (!month || !year) {
       return c.json(
         { success: false, message: "Month and Year required" },
-        400
+        400,
       );
     }
 
@@ -712,7 +735,7 @@ app.get("/halaqah/:groupId/monthly-summary", async (c) => {
     const members = await db.query.halaqahMembers.findMany({
       where: and(
         eq(halaqahMembers.halaqahId, groupId),
-        eq(halaqahMembers.status, "active")
+        eq(halaqahMembers.status, "active"),
       ),
     });
 
@@ -743,14 +766,14 @@ app.get("/halaqah/:groupId/monthly-summary", async (c) => {
         halaqahMembers,
         and(
           eq(tahfidzDeposits.studentId, halaqahMembers.studentId),
-          eq(halaqahMembers.halaqahId, groupId)
-        )
+          eq(halaqahMembers.halaqahId, groupId),
+        ),
       )
       .where(
         and(
           sql`DATE(${tahfidzDeposits.depositDate}) >= ${startDate}`,
-          sql`DATE(${tahfidzDeposits.depositDate}) <= ${endDate}`
-        )
+          sql`DATE(${tahfidzDeposits.depositDate}) <= ${endDate}`,
+        ),
       )
       .groupBy(sql`DATE(${tahfidzDeposits.depositDate})`, tahfidzDeposits.type);
 
@@ -789,7 +812,7 @@ app.get("/halaqah/:groupId/monthly-summary", async (c) => {
   } catch (e: any) {
     return c.json(
       { success: false, message: e.message || "Internal Error" },
-      500
+      500,
     );
   }
 });
@@ -804,7 +827,7 @@ app.get("/halaqah-report", async (c) => {
   if (!halaqahId || !startDate || !endDate) {
     return c.json(
       { success: false, message: "halaqahId, startDate, endDate required" },
-      400
+      400,
     );
   }
 
@@ -847,8 +870,8 @@ app.get("/halaqah-report", async (c) => {
       .where(
         and(
           eq(halaqahMembers.halaqahId, Number(halaqahId)),
-          eq(halaqahMembers.status, "active")
-        )
+          eq(halaqahMembers.status, "active"),
+        ),
       );
 
     const members = await membersQuery;
@@ -868,8 +891,8 @@ app.get("/halaqah-report", async (c) => {
             and(
               eq(tahfidzDeposits.studentId, member.studentId),
               gte(tahfidzDeposits.depositDate, new Date(startDate)),
-              lte(tahfidzDeposits.depositDate, new Date(endDate))
-            )
+              lte(tahfidzDeposits.depositDate, new Date(endDate)),
+            ),
           );
 
         // Count attendance
@@ -923,7 +946,7 @@ app.get("/halaqah-report", async (c) => {
                 .map((r) =>
                   r.start === r.end
                     ? `Hal. ${r.start}`
-                    : `Hal. ${r.start}-${r.end}`
+                    : `Hal. ${r.start}-${r.end}`,
                 )
                 .join(", ")
             : "-";
@@ -948,7 +971,7 @@ app.get("/halaqah-report", async (c) => {
           hafalanRanges,
           totalDeposits: actualDeposits.length,
         };
-      })
+      }),
     );
 
     return c.json({
@@ -964,7 +987,7 @@ app.get("/halaqah-report", async (c) => {
     console.error("Halaqah report error:", e);
     return c.json(
       { success: false, message: e.message || "Internal Error" },
-      500
+      500,
     );
   }
 });
@@ -1173,7 +1196,7 @@ app.get("/report-card/:studentId", async (c) => {
     const halaqahMember = await db.query.halaqahMembers.findFirst({
       where: and(
         eq(halaqahMembers.studentId, studentId),
-        eq(halaqahMembers.status, "active")
+        eq(halaqahMembers.status, "active"),
       ),
       with: {
         halaqah: true,
@@ -1190,8 +1213,8 @@ app.get("/report-card/:studentId", async (c) => {
         .where(
           and(
             eq(classHomeroomTeachers.classId, student.classId),
-            eq(classHomeroomTeachers.role, "wali_kelas")
-          )
+            eq(classHomeroomTeachers.role, "wali_kelas"),
+          ),
         )
         .limit(1);
       if (waliQuery.length > 0) {
@@ -1223,11 +1246,11 @@ app.get("/report-card/:studentId", async (c) => {
         and(
           eq(tahfidzExams.studentId, studentId),
           eq(tahfidzExams.examCategory, "UKJ"),
-          eq(tahfidzExams.verdict, "pass")
-        )
+          eq(tahfidzExams.verdict, "pass"),
+        ),
       );
     const uniqueJuzUKJ = new Set(
-      passedUKJ.map((e) => e.juz).filter((j) => j != null)
+      passedUKJ.map((e) => e.juz).filter((j) => j != null),
     );
     const totalJuzUKJ = uniqueJuzUKJ.size;
 
@@ -1270,8 +1293,8 @@ app.get("/report-card/:studentId", async (c) => {
           eq(tahfidzDeposits.studentId, studentId),
           eq(tahfidzDeposits.type, "ziyadah"),
           gte(tahfidzDeposits.depositDate, startDate),
-          lte(tahfidzDeposits.depositDate, endDate)
-        )
+          lte(tahfidzDeposits.depositDate, endDate),
+        ),
       );
 
     let totalPages = 0;
@@ -1318,7 +1341,7 @@ app.get("/report-card/:studentId", async (c) => {
     if (!target && student.class?.name) {
       const className = student.class.name.toUpperCase();
       const exactMatch = allTargets.find((t) =>
-        className.includes(t.level.toUpperCase())
+        className.includes(t.level.toUpperCase()),
       );
       if (exactMatch) target = exactMatch;
       else if (
@@ -1428,7 +1451,7 @@ app.get("/report-card/:studentId", async (c) => {
 
     // a. UPK Average
     const upkExams = exams.filter(
-      (e) => e.examCategory === "UPK" && e.finalScore != null
+      (e) => e.examCategory === "UPK" && e.finalScore != null,
     );
     const avgUPK =
       upkExams.length > 0
@@ -1438,7 +1461,7 @@ app.get("/report-card/:studentId", async (c) => {
 
     // b. UKJ Average
     const ukjExams = exams.filter(
-      (e) => e.examCategory === "UKJ" && e.finalScore != null
+      (e) => e.examCategory === "UKJ" && e.finalScore != null,
     );
     const avgUKJ =
       ukjExams.length > 0
@@ -1450,7 +1473,7 @@ app.get("/report-card/:studentId", async (c) => {
     // Note: Frontend uses exams with valid scoreAdab.
     // Usually Suluk exam category has scoreAdab, but check all.
     const sulukExams = exams.filter(
-      (e) => e.scoreAdab != null && e.scoreAdab > 0
+      (e) => e.scoreAdab != null && e.scoreAdab > 0,
     );
     const avgSuluk =
       sulukExams.length > 0
@@ -1463,7 +1486,7 @@ app.get("/report-card/:studentId", async (c) => {
       (e) =>
         e.examCategory === "UA" ||
         e.examType === "Ujian Akhir" ||
-        e.examType === "UA"
+        e.examType === "UA",
     );
     const uaScore = uaExam ? Number(uaExam.finalScore) : 0;
 
@@ -1559,7 +1582,7 @@ app.get("/exams/template", async (c) => {
   if (!filterType || !filterId) {
     return c.json(
       { success: false, message: "Filter (Class/Halaqah) required" },
-      400
+      400,
     );
   }
 
@@ -1578,8 +1601,8 @@ app.get("/exams/template", async (c) => {
         .where(
           and(
             eq(students.classId, Number(filterId)),
-            eq(students.status, "active")
-          )
+            eq(students.status, "active"),
+          ),
         )
         .orderBy(asc(students.fullName));
       studentList = results;
@@ -1595,8 +1618,8 @@ app.get("/exams/template", async (c) => {
         .where(
           and(
             eq(halaqahMembers.halaqahId, Number(filterId)),
-            eq(halaqahMembers.status, "active")
-          )
+            eq(halaqahMembers.status, "active"),
+          ),
         )
         .orderBy(asc(students.fullName));
       studentList = results;
@@ -1605,7 +1628,7 @@ app.get("/exams/template", async (c) => {
     if (studentList.length === 0) {
       return c.json(
         { success: false, message: "Tidak ada siswa dalam filter ini" },
-        404
+        404,
       );
     }
 
@@ -1624,7 +1647,7 @@ app.get("/exams/template", async (c) => {
         "Tajwid (0-100)",
         "Makhraj (0-100)",
         "Adab (0-100)",
-        "Catatan"
+        "Catatan",
       );
       keys.push(
         "juz",
@@ -1634,7 +1657,7 @@ app.get("/exams/template", async (c) => {
         "scoreTajwid",
         "scoreMakhraj",
         "scoreAdab",
-        "notes"
+        "notes",
       );
     } else if (category === "UKJ") {
       headers.push(
@@ -1643,7 +1666,7 @@ app.get("/exams/template", async (c) => {
         "Tajwid (0-100)",
         "Makhraj (0-100)",
         "Adab (0-100)",
-        "Catatan"
+        "Catatan",
       );
       keys.push(
         "juz",
@@ -1651,14 +1674,14 @@ app.get("/exams/template", async (c) => {
         "scoreTajwid",
         "scoreMakhraj",
         "scoreAdab",
-        "notes"
+        "notes",
       );
     } else {
       // UA, Suluk, Other
       headers.push(
         "Nilai Akhir (0-100)",
         "Keterangan (Lulus/Tidak/Bersyarat)",
-        "Catatan"
+        "Catatan",
       );
       keys.push("finalScore", "verdict", "notes");
     }
@@ -1721,12 +1744,12 @@ app.get("/exams/template", async (c) => {
       "Content-Disposition",
       `attachment; filename="Template_Exams_${category}_${year.replace(
         /[^a-zA-Z0-9]/g,
-        ""
-      )}_${semester}.xlsx"`
+        "",
+      )}_${semester}.xlsx"`,
     );
     c.header(
       "Content-Type",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     );
     return c.body(buf);
   } catch (e: any) {
@@ -1759,7 +1782,7 @@ app.post("/exams/import", async (c) => {
       // But let's enforce strictness for simplicity
       return c.json(
         { success: false, message: "Examiner and Date required" },
-        400
+        400,
       );
     }
 
@@ -1770,7 +1793,7 @@ app.post("/exams/import", async (c) => {
     if (!sheetName) {
       return c.json(
         { success: false, message: "File Excel kosong atau tidak valid" },
-        400
+        400,
       );
     }
     const worksheet = workbook.Sheets[sheetName];
@@ -1849,7 +1872,7 @@ app.post("/exams/import", async (c) => {
           ].map((v) => Number(v) || 0);
 
           calculatedFinalScore = Math.round(
-            scores.reduce((a, b) => a + b, 0) / 4
+            scores.reduce((a, b) => a + b, 0) / 4,
           );
         } else if (category === "UKJ") {
           payload.juz = row["Juz (Angka)"];
@@ -1866,7 +1889,7 @@ app.post("/exams/import", async (c) => {
             payload.scoreAdab,
           ].map((v) => Number(v) || 0);
           calculatedFinalScore = Math.round(
-            scores.reduce((a, b) => a + b, 0) / 4
+            scores.reduce((a, b) => a + b, 0) / 4,
           );
         } else {
           calculatedFinalScore = Number(row["Nilai Akhir (0-100)"]) || 0;
@@ -1907,7 +1930,7 @@ app.post("/exams/import", async (c) => {
               eq(tahfidzExams.studentId, student.id),
               eq(tahfidzExams.examCategory, category as any),
               eq(tahfidzExams.academicYear, String(academicYear).trim()),
-              eq(tahfidzExams.semester, String(semester).trim() as any)
+              eq(tahfidzExams.semester, String(semester).trim() as any),
             ),
           });
 

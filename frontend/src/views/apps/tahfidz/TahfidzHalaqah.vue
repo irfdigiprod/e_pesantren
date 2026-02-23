@@ -698,8 +698,8 @@
                     saving
                       ? "Menyimpan..."
                       : selectedStudent?.deposit
-                      ? "Update Setoran"
-                      : "Simpan Setoran"
+                        ? "Update Setoran"
+                        : "Simpan Setoran"
                   }}
                 </button>
               </div>
@@ -849,7 +849,7 @@ const endSurahInfo = computed(() => {
 const currentMonthName = computed(() => {
   return new Date(currentYear.value, currentMonth.value).toLocaleString(
     "id-ID",
-    { month: "long" }
+    { month: "long" },
   );
 });
 
@@ -1017,7 +1017,7 @@ async function loadMonthlyStats() {
     const res = await tahfidzApi.getHalaqahMonthlySummary(
       selectedHalaqahId.value,
       currentMonth.value + 1,
-      currentYear.value
+      currentYear.value,
     );
     if (res.success) {
       monthlyStats.value = res;
@@ -1033,7 +1033,7 @@ async function loadDateData() {
   try {
     const res = await tahfidzApi.getHalaqahDailySummary(
       selectedHalaqahId.value,
-      selectedDate.value
+      selectedDate.value,
     );
     if (res.success) {
       students.value = res.data;
@@ -1304,10 +1304,10 @@ async function openModal(item, bulk = false) {
       form.endAyat = item.deposit.endAyat;
       // Find surah name for display
       const startS = surahList.value.find(
-        (s) => s.sora === item.deposit.startSurah
+        (s) => s.sora === item.deposit.startSurah,
       );
       const endS = surahList.value.find(
-        (s) => s.sora === item.deposit.endSurah
+        (s) => s.sora === item.deposit.endSurah,
       );
       if (startS)
         startSurahSearch.value = `${startS.sora}. ${startS.sora_name_ar}`;
@@ -1408,7 +1408,15 @@ async function processDepositSubmission() {
 
   try {
     const userRes = await authApi.getCurrentUser();
-    const teacherId = userRes.data?.teacher?.id || userRes.data?.id || 1;
+    let teacherId = userRes.data?.teacher?.id;
+    if (!teacherId && selectedHalaqah.value?.mentors?.length > 0) {
+      teacherId =
+        selectedHalaqah.value.mentors[0].teacherId ||
+        selectedHalaqah.value.mentors[0].id;
+    }
+    if (!teacherId) {
+      teacherId = userRes.data?.id || 1;
+    }
 
     const studentsToProcess = [];
 
