@@ -5,7 +5,7 @@ import { eq, and } from "drizzle-orm";
 import { db } from "../db";
 import { divisions, teacherDivisions } from "../db/schema/divisions";
 import { teachers } from "../db/schema/teachers";
-import { authMiddleware, requireRole } from "../middleware/auth";
+import { authMiddleware, requirePermission } from "../middleware/auth";
 
 const divisionsRoute = new Hono();
 
@@ -92,7 +92,7 @@ divisionsRoute.get("/:id", async (c) => {
 // Create division
 divisionsRoute.post(
   "/",
-  requireRole("admin", "staff"),
+  requirePermission("/apps/divisions"),
   zValidator("json", createDivisionSchema),
   async (c) => {
     try {
@@ -122,7 +122,7 @@ divisionsRoute.post(
 // Update division
 divisionsRoute.put(
   "/:id",
-  requireRole("admin", "staff"),
+  requirePermission("/apps/divisions"),
   zValidator("json", updateDivisionSchema),
   async (c) => {
     try {
@@ -159,7 +159,7 @@ divisionsRoute.put(
 );
 
 // Delete division
-divisionsRoute.delete("/:id", requireRole("admin"), async (c) => {
+divisionsRoute.delete("/:id", requirePermission("/apps/divisions"), async (c) => {
   try {
     const id = parseInt(c.req.param("id"));
 
@@ -216,7 +216,7 @@ divisionsRoute.get("/:id/members", async (c) => {
 // Add member to division
 divisionsRoute.post(
   "/:id/members",
-  requireRole("admin", "staff"),
+  requirePermission("/apps/divisions"),
   async (c) => {
     try {
       const divisionId = parseInt(c.req.param("id"));
@@ -312,7 +312,7 @@ divisionsRoute.post(
 // Remove member from division
 divisionsRoute.delete(
   "/:id/members/:teacherId",
-  requireRole("admin"),
+  requirePermission("/apps/divisions"),
   async (c) => {
     try {
       const divisionId = parseInt(c.req.param("id"));

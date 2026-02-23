@@ -12,7 +12,7 @@ import {
 } from "../db/schema/clinic";
 import { students } from "../db/schema/students";
 import { teachers } from "../db/schema/teachers";
-import { authMiddleware, requireRole } from "../middleware/auth";
+import { authMiddleware, requirePermission } from "../middleware/auth";
 import {
   createMedicineSchema,
   updateMedicineSchema,
@@ -58,7 +58,7 @@ clinicRoute.get("/patients/search", async (c) => {
         })
         .from(students)
         .where(
-          or(like(students.fullName, `%${q}%`), like(students.nis, `%${q}%`))
+          or(like(students.fullName, `%${q}%`), like(students.nis, `%${q}%`)),
         )
         .limit(10);
 
@@ -67,7 +67,7 @@ clinicRoute.get("/patients/search", async (c) => {
           ...s,
           type: "student",
           source: "db_students",
-        }))
+        })),
       );
     }
 
@@ -84,7 +84,7 @@ clinicRoute.get("/patients/search", async (c) => {
         })
         .from(teachers)
         .where(
-          or(like(teachers.fullName, `%${q}%`), like(teachers.nip, `%${q}%`))
+          or(like(teachers.fullName, `%${q}%`), like(teachers.nip, `%${q}%`)),
         )
         .limit(10);
 
@@ -93,7 +93,7 @@ clinicRoute.get("/patients/search", async (c) => {
           ...t,
           type: "teacher",
           source: "db_teachers",
-        }))
+        })),
       );
     }
 
@@ -108,8 +108,8 @@ clinicRoute.get("/patients/search", async (c) => {
         .where(
           and(
             eq(clinicPatients.type, "external"),
-            like(clinicPatients.name, `%${q}%`)
-          )
+            like(clinicPatients.name, `%${q}%`),
+          ),
         )
         .limit(10);
 
@@ -123,7 +123,7 @@ clinicRoute.get("/patients/search", async (c) => {
           address: e.address,
           type: "external",
           source: "clinic_patients",
-        }))
+        })),
       );
     }
 
@@ -139,7 +139,7 @@ clinicRoute.get("/patients/search", async (c) => {
     console.error("Search patients error:", error);
     return c.json(
       { success: false, message: "Failed to search patients" },
-      500
+      500,
     );
   }
 });
@@ -190,7 +190,7 @@ async function getOrCreateClinicPatient(data: {
     const existing = await db.query.clinicPatients.findFirst({
       where: and(
         eq(clinicPatients.type, data.type),
-        eq(clinicPatients.refId, data.refId)
+        eq(clinicPatients.refId, data.refId),
       ),
     });
 
@@ -306,7 +306,7 @@ clinicRoute.put("/patients/:id", async (c) => {
 // Delete Patient
 clinicRoute.delete(
   "/patients/:id",
-  requireRole("admin", "clinic"),
+  requirePermission("/apps/clinic/patients"),
   async (c) => {
     try {
       const id = parseInt(c.req.param("id"));
@@ -326,7 +326,7 @@ clinicRoute.delete(
             message:
               "Pasien tidak dapat dihapus karena masih memiliki riwayat pemeriksaan/rawat inap. Hapus data riwayat terlebih dahulu.",
           },
-          400
+          400,
         );
       }
 
@@ -335,7 +335,7 @@ clinicRoute.delete(
     } catch (e) {
       return c.json({ success: false, message: "Failed" }, 500);
     }
-  }
+  },
 );
 
 // ============ ROOMS ============
@@ -370,67 +370,82 @@ clinicRoute.get("/rooms", async (c) => {
 });
 
 // Create Room
-clinicRoute.post("/rooms", requireRole("admin", "clinic"), async (c) => {
-  try {
-    const body = await c.req.json();
-    const res = await db.insert(clinicRooms).values({
-      name: body.name,
-      capacity: body.capacity || 1,
-      gender: body.gender || "mixed",
-      description: body.description,
-    });
-    return c.json({ success: true, message: "Room created" });
-  } catch (e) {
-    return c.json({ success: false, message: "Failed" }, 500);
-  }
-});
+clinicRoute.post(
+  "/rooms",
+  requirePermission("/apps/clinic/rooms"),
+  async (c) => {
+    try {
+      const body = await c.req.json();
+      const res = await db.insert(clinicRooms).values({
+        name: body.name,
+        capacity: body.capacity || 1,
+        gender: body.gender || "mixed",
+        description: body.description,
+      });
+      return c.json({ success: true, message: "Room created" });
+    } catch (e) {
+      return c.json({ success: false, message: "Failed" }, 500);
+    }
+  },
+);
 
 // Update Room
-clinicRoute.put("/rooms/:id", requireRole("admin", "clinic"), async (c) => {
-  try {
-    const id = parseInt(c.req.param("id"));
-    const body = await c.req.json();
-    await db
-      .update(clinicRooms)
-      .set({
-        name: body.name,
-        capacity: body.capacity,
-        gender: body.gender,
-        description: body.description,
-      })
-      .where(eq(clinicRooms.id, id));
-    return c.json({ success: true, message: "Room updated" });
-  } catch (e) {
-    return c.json({ success: false, message: "Failed" }, 500);
-  }
-});
+clinicRoute.put(
+  "/rooms/:id",
+  requirePermission("/apps/clinic/rooms"),
+  async (c) => {
+    try {
+      const id = parseInt(c.req.param("id"));
+      const body = await c.req.json();
+      await db
+        .update(clinicRooms)
+        .set({
+          name: body.name,
+          capacity: body.capacity,
+          gender: body.gender,
+          description: body.description,
+        })
+        .where(eq(clinicRooms.id, id));
+      return c.json({ success: true, message: "Room updated" });
+    } catch (e) {
+      return c.json({ success: false, message: "Failed" }, 500);
+    }
+  },
+);
 
 // Delete Room
-clinicRoute.delete("/rooms/:id", requireRole("admin", "clinic"), async (c) => {
-  try {
-    const id = parseInt(c.req.param("id"));
-    // Check if room has active inpatients
-    const activeUsage = await db.query.inpatients.findFirst({
-      where: and(eq(inpatients.roomId, id), eq(inpatients.status, "admitted")),
-    });
+clinicRoute.delete(
+  "/rooms/:id",
+  requirePermission("/apps/clinic/rooms"),
+  async (c) => {
+    try {
+      const id = parseInt(c.req.param("id"));
+      // Check if room has active inpatients
+      const activeUsage = await db.query.inpatients.findFirst({
+        where: and(
+          eq(inpatients.roomId, id),
+          eq(inpatients.status, "admitted"),
+        ),
+      });
 
-    if (activeUsage) {
-      return c.json(
-        {
-          success: false,
-          message:
-            "Ruangan tidak dapat dihapus karena ada pasien yang sedang dirawat.",
-        },
-        400
-      );
+      if (activeUsage) {
+        return c.json(
+          {
+            success: false,
+            message:
+              "Ruangan tidak dapat dihapus karena ada pasien yang sedang dirawat.",
+          },
+          400,
+        );
+      }
+
+      await db.delete(clinicRooms).where(eq(clinicRooms.id, id));
+      return c.json({ success: true, message: "Room deleted" });
+    } catch (e) {
+      return c.json({ success: false, message: "Failed to delete room" }, 500);
     }
-
-    await db.delete(clinicRooms).where(eq(clinicRooms.id, id));
-    return c.json({ success: true, message: "Room deleted" });
-  } catch (e) {
-    return c.json({ success: false, message: "Failed to delete room" }, 500);
-  }
-});
+  },
+);
 
 // ============ MEDICINES ============
 
@@ -451,7 +466,7 @@ clinicRoute.get("/medicines", async (c) => {
 // Create medicine
 clinicRoute.post(
   "/medicines",
-  requireRole("admin", "clinic", "staff"),
+  requirePermission("/apps/clinic/medicines"),
   zValidator("json", createMedicineSchema),
   async (c) => {
     const data = c.req.valid("json");
@@ -461,13 +476,13 @@ clinicRoute.post(
       expiryDate: data.expiryDate ? new Date(data.expiryDate) : undefined,
     });
     return c.json({ success: true, message: "Medicine added" });
-  }
+  },
 );
 
 // Update medicine
 clinicRoute.put(
   "/medicines/:id",
-  requireRole("admin", "clinic", "staff"),
+  requirePermission("/apps/clinic/medicines"),
   zValidator("json", updateMedicineSchema),
   async (c) => {
     const id = parseInt(c.req.param("id"));
@@ -481,46 +496,50 @@ clinicRoute.put(
       })
       .where(eq(medicines.id, id));
     return c.json({ success: true, message: "Medicine updated" });
-  }
+  },
 );
 
 // Delete medicine
-clinicRoute.delete("/medicines/:id", requireRole("admin"), async (c) => {
-  try {
-    const id = parseInt(c.req.param("id"));
+clinicRoute.delete(
+  "/medicines/:id",
+  requirePermission("/apps/clinic/medicines"),
+  async (c) => {
+    try {
+      const id = parseInt(c.req.param("id"));
 
-    // Check usage history
-    const usage = await db.query.medicineUsages.findFirst({
-      where: eq(medicineUsages.medicineId, id),
-    });
+      // Check usage history
+      const usage = await db.query.medicineUsages.findFirst({
+        where: eq(medicineUsages.medicineId, id),
+      });
 
-    if (usage) {
+      if (usage) {
+        return c.json(
+          {
+            success: false,
+            message:
+              "Obat tidak dapat dihapus karena memiliki riwayat penggunaan.",
+          },
+          400,
+        );
+      }
+
+      await db.delete(medicines).where(eq(medicines.id, id));
+      return c.json({ success: true, message: "Medicine deleted" });
+    } catch (e) {
       return c.json(
-        {
-          success: false,
-          message:
-            "Obat tidak dapat dihapus karena memiliki riwayat penggunaan.",
-        },
-        400
+        { success: false, message: "Failed to delete medicine" },
+        500,
       );
     }
-
-    await db.delete(medicines).where(eq(medicines.id, id));
-    return c.json({ success: true, message: "Medicine deleted" });
-  } catch (e) {
-    return c.json(
-      { success: false, message: "Failed to delete medicine" },
-      500
-    );
-  }
-});
+  },
+);
 
 // ============ IMPORT MEDICINES ============
 
 // Preview import medicines
 clinicRoute.post(
   "/medicines/import/preview",
-  requireRole("admin", "clinic", "staff"),
+  requirePermission("/apps/clinic/medicines"),
   async (c) => {
     try {
       const formData = await c.req.formData();
@@ -544,7 +563,7 @@ clinicRoute.post(
             success: false,
             message: "File Excel kosong atau tidak ada data",
           },
-          400
+          400,
         );
       }
 
@@ -597,7 +616,7 @@ clinicRoute.post(
               const date = XLSX.SSF.parse_date_code(item.expiryDate);
               item.expiryDate = `${date.y}-${String(date.m).padStart(
                 2,
-                "0"
+                "0",
               )}-${String(date.d).padStart(2, "0")}`;
             } else {
               // Try to parse string date
@@ -625,13 +644,13 @@ clinicRoute.post(
       console.error(e);
       return c.json({ success: false, message: e.message }, 500);
     }
-  }
+  },
 );
 
 // Import medicines
 clinicRoute.post(
   "/medicines/import",
-  requireRole("admin", "clinic", "staff"),
+  requirePermission("/apps/clinic/medicines"),
   async (c) => {
     try {
       const formData = await c.req.formData();
@@ -643,7 +662,7 @@ clinicRoute.post(
       const workbook = XLSX.read(buffer, { type: "array" });
       const sheetName = workbook.SheetNames[0];
       const data = XLSX.utils.sheet_to_json(
-        workbook.Sheets[sheetName]
+        workbook.Sheets[sheetName],
       ) as any[];
 
       const map: { [key: string]: string } = {
@@ -727,7 +746,7 @@ clinicRoute.post(
     } catch (e: any) {
       return c.json({ success: false, message: e.message }, 500);
     }
-  }
+  },
 );
 
 // ============ INPATIENTS ============
@@ -767,7 +786,7 @@ clinicRoute.get("/inpatients", async (c) => {
       .from(inpatients)
       .leftJoin(
         clinicPatients,
-        eq(inpatients.clinicPatientId, clinicPatients.id)
+        eq(inpatients.clinicPatientId, clinicPatients.id),
       )
       .leftJoin(clinicRooms, eq(inpatients.roomId, clinicRooms.id))
       .orderBy(desc(inpatients.admissionDate));
@@ -796,7 +815,7 @@ clinicRoute.get("/inpatients", async (c) => {
 // Admit patient (Updated)
 clinicRoute.post(
   "/inpatients",
-  requireRole("admin", "clinic", "staff"),
+  requirePermission("/apps/clinic/inpatients"),
   async (c) => {
     try {
       const body = await c.req.json();
@@ -839,12 +858,12 @@ clinicRoute.post(
       console.error(e);
       return c.json({ success: false, message: "Failed" }, 500);
     }
-  }
+  },
 );
 
 clinicRoute.put(
   "/inpatients/:id",
-  requireRole("admin", "clinic", "staff"),
+  requirePermission("/apps/clinic/inpatients"),
   async (c) => {
     try {
       const id = parseInt(c.req.param("id"));
@@ -878,8 +897,8 @@ clinicRoute.put(
             .where(
               and(
                 eq(inpatients.roomId, body.roomId),
-                eq(inpatients.status, "admitted")
-              )
+                eq(inpatients.status, "admitted"),
+              ),
             );
 
           if (occupied[0].count >= room.capacity) {
@@ -888,7 +907,7 @@ clinicRoute.put(
                 success: false,
                 message: `Ruangan ${room.name} penuh! Kapasitas: ${room.capacity}`,
               },
-              400
+              400,
             );
           }
         }
@@ -920,12 +939,12 @@ clinicRoute.put(
     } catch (e) {
       return c.json({ success: false, message: "Failed to update" }, 500);
     }
-  }
+  },
 );
 
 clinicRoute.delete(
   "/inpatients/:id",
-  requireRole("admin", "clinic", "staff"),
+  requirePermission("/apps/clinic/dashboard"),
   async (c) => {
     try {
       const id = parseInt(c.req.param("id"));
@@ -946,7 +965,7 @@ clinicRoute.delete(
     } catch (e) {
       return c.json({ success: false, message: "Failed" }, 500);
     }
-  }
+  },
 );
 
 // ============ EXAMINATIONS (Updated) ============
@@ -975,7 +994,7 @@ clinicRoute.get("/examinations", async (c) => {
     .from(healthExaminations)
     .leftJoin(
       clinicPatients,
-      eq(healthExaminations.clinicPatientId, clinicPatients.id)
+      eq(healthExaminations.clinicPatientId, clinicPatients.id),
     )
     .orderBy(desc(healthExaminations.examinationDate))
     .limit(50);
@@ -995,7 +1014,7 @@ clinicRoute.get("/examinations", async (c) => {
 
 clinicRoute.post(
   "/examinations",
-  requireRole("admin", "clinic", "staff"),
+  requirePermission("/apps/clinic/dashboard"),
   async (c) => {
     try {
       const body = await c.req.json();
@@ -1131,12 +1150,12 @@ clinicRoute.post(
       console.error(e);
       return c.json({ success: false, message: "Failed" }, 500);
     }
-  }
+  },
 );
 
 clinicRoute.put(
   "/examinations/:id",
-  requireRole("admin", "clinic", "staff"),
+  requirePermission("/apps/clinic/dashboard"),
   async (c) => {
     try {
       const id = parseInt(c.req.param("id"));
@@ -1251,12 +1270,12 @@ clinicRoute.put(
       console.error(e);
       return c.json({ success: false, message: "Failed to update" }, 500);
     }
-  }
+  },
 );
 
 clinicRoute.delete(
   "/examinations/:id",
-  requireRole("admin", "clinic", "staff"),
+  requirePermission("/apps/clinic/dashboard"),
   async (c) => {
     try {
       const id = parseInt(c.req.param("id"));
@@ -1275,7 +1294,7 @@ clinicRoute.delete(
       console.error(e);
       return c.json({ success: false, message: "Failed to delete" }, 500);
     }
-  }
+  },
 );
 
 // ============ REPORTS ============
@@ -1303,8 +1322,8 @@ clinicRoute.get("/reports/summary", async (c) => {
       .where(
         and(
           sql`${healthExaminations.examinationDate} >= ${start}`,
-          sql`${healthExaminations.examinationDate} <= ${end}`
-        )
+          sql`${healthExaminations.examinationDate} <= ${end}`,
+        ),
       )
       .groupBy(sql`DATE(${healthExaminations.examinationDate})`)
       .orderBy(sql`DATE(${healthExaminations.examinationDate})`);
@@ -1321,8 +1340,8 @@ clinicRoute.get("/reports/summary", async (c) => {
           sql`${healthExaminations.examinationDate} >= ${start}`,
           sql`${healthExaminations.examinationDate} <= ${end}`,
           sql`${healthExaminations.diagnosis} IS NOT NULL`,
-          sql`${healthExaminations.diagnosis} != ''`
-        )
+          sql`${healthExaminations.diagnosis} != ''`,
+        ),
       )
       .groupBy(healthExaminations.diagnosis)
       .orderBy(desc(sql`count(*)`))
@@ -1338,8 +1357,8 @@ clinicRoute.get("/reports/summary", async (c) => {
       .where(
         and(
           sql`${healthExaminations.examinationDate} >= ${start}`,
-          sql`${healthExaminations.examinationDate} <= ${end}`
-        )
+          sql`${healthExaminations.examinationDate} <= ${end}`,
+        ),
       )
       .groupBy(healthExaminations.patientType);
 
@@ -1355,7 +1374,7 @@ clinicRoute.get("/reports/summary", async (c) => {
     console.error("Report Error", e);
     return c.json(
       { success: false, message: "Failed to generate report" },
-      500
+      500,
     );
   }
 });

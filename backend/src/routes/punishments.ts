@@ -6,7 +6,7 @@ import {
   rewardsPunishments,
   pointImages,
 } from "../db/schema/rewards-punishments";
-import { authMiddleware, requireRole } from "../middleware/auth";
+import { authMiddleware, requirePermission } from "../middleware/auth";
 import {
   createRewardPunishmentSchema,
   updateRewardPunishmentSchema,
@@ -110,7 +110,7 @@ punishmentsRoute.get("/:id", async (c) => {
 // Create punishment
 punishmentsRoute.post(
   "/",
-  requireRole("admin", "teacher", "staff"),
+  requirePermission("/apps/rewards/reports"),
   zValidator("json", createRewardPunishmentSchema),
   async (c) => {
     try {
@@ -167,7 +167,7 @@ punishmentsRoute.post(
 // Update punishment
 punishmentsRoute.put(
   "/:id",
-  requireRole("admin", "teacher", "staff"),
+  requirePermission("/apps/rewards/reports"),
   zValidator("json", updateRewardPunishmentSchema),
   async (c) => {
     try {
@@ -215,7 +215,7 @@ punishmentsRoute.put(
 );
 
 // Delete punishment
-punishmentsRoute.delete("/:id", requireRole("admin", "teacher"), async (c) => {
+punishmentsRoute.delete("/:id", requirePermission("/apps/rewards/reports"), async (c) => {
   try {
     const id = parseInt(c.req.param("id"));
 

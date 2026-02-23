@@ -3,7 +3,7 @@ import { zValidator } from "@hono/zod-validator";
 import { eq, and } from "drizzle-orm";
 import { db } from "../db";
 import { pointRules } from "../db/schema/rewards-punishments";
-import { authMiddleware, requireRole } from "../middleware/auth";
+import { authMiddleware, requirePermission } from "../middleware/auth";
 import { z } from "zod";
 
 const rulesRoute = new Hono();
@@ -52,7 +52,7 @@ rulesRoute.get("/", async (c) => {
 // Create rule
 rulesRoute.post(
   "/",
-  requireRole("admin", "teacher", "staff"),
+  requirePermission("/apps/rewards/rules"),
   zValidator("json", createRuleSchema),
   async (c) => {
     try {
@@ -85,7 +85,7 @@ rulesRoute.post(
 // Update rule
 rulesRoute.put(
   "/:id",
-  requireRole("admin", "teacher", "staff"),
+  requirePermission("/apps/rewards/rules"),
   zValidator("json", updateRuleSchema),
   async (c) => {
     try {
@@ -119,7 +119,7 @@ rulesRoute.put(
 );
 
 // Delete rule
-rulesRoute.delete("/:id", requireRole("admin"), async (c) => {
+rulesRoute.delete("/:id", requirePermission("/apps/rewards/rules"), async (c) => {
   try {
     const id = parseInt(c.req.param("id"));
 
@@ -158,7 +158,7 @@ rulesRoute.delete("/:id", requireRole("admin"), async (c) => {
 // Import Preview Endpoint
 rulesRoute.post(
   "/import-preview",
-  requireRole("admin", "teacher", "staff"),
+  requirePermission("/apps/rewards/rules"),
   async (c) => {
     try {
       const body = await c.req.parseBody();
@@ -263,7 +263,7 @@ rulesRoute.post(
 // Import Confirm Endpoint
 rulesRoute.post(
   "/import",
-  requireRole("admin", "teacher", "staff"),
+  requirePermission("/apps/rewards/rules"),
   async (c) => {
     try {
       const body = await c.req.parseBody();

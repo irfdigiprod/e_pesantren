@@ -10,7 +10,7 @@ import {
   reports,
   reportCardPredicates,
 } from "../db/schema/academic";
-import { authMiddleware, requireRole } from "../middleware/auth";
+import { authMiddleware, requirePermission } from "../middleware/auth";
 import {
   createClassSchema,
   updateClassSchema,
@@ -208,7 +208,7 @@ academicRoute.get("/classes/:id", async (c) => {
 // Create class
 academicRoute.post(
   "/classes",
-  requireRole("admin", "staff"),
+  requirePermission("/apps/academic/classes"),
   zValidator("json", createClassSchema),
   async (c) => {
     try {
@@ -235,7 +235,7 @@ academicRoute.post(
 // Update class
 academicRoute.put(
   "/classes/:id",
-  requireRole("admin", "staff"),
+  requirePermission("/apps/academic/classes"),
   zValidator("json", updateClassSchema),
   async (c) => {
     try {
@@ -272,7 +272,7 @@ academicRoute.put(
 );
 
 // Delete class
-academicRoute.delete("/classes/:id", requireRole("admin"), async (c) => {
+academicRoute.delete("/classes/:id", requirePermission("/apps/academic/classes"), async (c) => {
   try {
     const id = parseInt(c.req.param("id"));
 
@@ -291,7 +291,7 @@ academicRoute.delete("/classes/:id", requireRole("admin"), async (c) => {
 // Assign student to class
 academicRoute.post(
   "/classes/:id/students",
-  requireRole("admin", "staff"),
+  requirePermission("/apps/academic/classes"),
   async (c) => {
     try {
       const classId = parseInt(c.req.param("id"));
@@ -418,7 +418,7 @@ academicRoute.get("/classes/:id/homeroom-teachers", async (c) => {
 // Add homeroom teacher to class
 academicRoute.post(
   "/classes/:id/homeroom-teachers",
-  requireRole("admin", "staff"),
+  requirePermission("/apps/academic/classes"),
   async (c) => {
     try {
       const classId = parseInt(c.req.param("id"));
@@ -488,7 +488,7 @@ academicRoute.post(
 // Remove homeroom teacher from class
 academicRoute.delete(
   "/classes/:id/homeroom-teachers/:teacherId",
-  requireRole("admin"),
+  requirePermission("/apps/academic/classes"),
   async (c) => {
     try {
       const classId = parseInt(c.req.param("id"));
@@ -570,7 +570,7 @@ academicRoute.get("/subjects/:id", async (c) => {
 // Create subject
 academicRoute.post(
   "/subjects",
-  requireRole("admin", "staff"),
+  requirePermission("/apps/academic/classes"),
   zValidator("json", createSubjectSchema),
   async (c) => {
     try {
@@ -609,7 +609,7 @@ academicRoute.post(
 // Update subject
 academicRoute.put(
   "/subjects/:id",
-  requireRole("admin", "staff"),
+  requirePermission("/apps/academic/classes"),
   zValidator("json", updateSubjectSchema),
   async (c) => {
     try {
@@ -668,7 +668,7 @@ academicRoute.put(
 );
 
 // Delete subject
-academicRoute.delete("/subjects/:id", requireRole("admin"), async (c) => {
+academicRoute.delete("/subjects/:id", requirePermission("/apps/academic/classes"), async (c) => {
   try {
     const id = parseInt(c.req.param("id"));
 
@@ -782,7 +782,7 @@ academicRoute.get("/schedules/teacher/:teacherId", async (c) => {
 // Create schedule
 academicRoute.post(
   "/schedules",
-  requireRole("admin", "staff"),
+  requirePermission("/apps/academic/classes"),
   zValidator("json", createScheduleSchema),
   async (c) => {
     try {
@@ -812,7 +812,7 @@ academicRoute.post(
 // Update schedule
 academicRoute.put(
   "/schedules/:id",
-  requireRole("admin", "staff"),
+  requirePermission("/apps/academic/classes"),
   zValidator("json", updateScheduleSchema),
   async (c) => {
     try {
@@ -846,7 +846,7 @@ academicRoute.put(
 // Delete schedule
 academicRoute.delete(
   "/schedules/:id",
-  requireRole("admin", "staff"),
+  requirePermission("/apps/academic/classes"),
   async (c) => {
     try {
       const id = parseInt(c.req.param("id"));
@@ -897,7 +897,7 @@ academicRoute.get("/grades/student/:studentId", async (c) => {
 // Create/Update grade
 academicRoute.post(
   "/grades",
-  requireRole("admin", "teacher", "staff"),
+  requirePermission("/apps/academic/classes"),
   zValidator("json", createGradeSchema),
   async (c) => {
     try {
@@ -1022,7 +1022,7 @@ academicRoute.post(
 // Update grade
 academicRoute.put(
   "/grades/:id",
-  requireRole("admin", "teacher", "staff"),
+  requirePermission("/apps/academic/classes"),
   zValidator("json", updateGradeSchema),
   async (c) => {
     try {
@@ -1212,7 +1212,7 @@ academicRoute.get("/grades", async (c) => {
 // Get grades list for bulk input
 academicRoute.get(
   "/grades/list",
-  requireRole("admin", "teacher", "staff"),
+  requirePermission("/apps/academic/classes"),
   async (c) => {
     try {
       const classId = c.req.query("classId");
@@ -1272,7 +1272,7 @@ academicRoute.get(
 // Bulk save grades
 academicRoute.post(
   "/grades/bulk",
-  requireRole("admin", "teacher", "staff"),
+  requirePermission("/apps/academic/classes"),
   zValidator("json", bulkGradeSchema),
   async (c) => {
     try {
@@ -1442,7 +1442,7 @@ academicRoute.get("/reports/:id", async (c) => {
 // Generate report
 academicRoute.post(
   "/reports/generate",
-  requireRole("admin", "teacher", "staff"),
+  requirePermission("/apps/academic/classes"),
   zValidator("json", generateReportSchema),
   async (c) => {
     try {
@@ -1533,7 +1533,7 @@ academicRoute.post(
 // Update report
 academicRoute.put(
   "/reports/:id",
-  requireRole("admin", "teacher", "staff"),
+  requirePermission("/apps/academic/classes"),
   zValidator("json", updateReportSchema),
   async (c) => {
     try {
@@ -1726,7 +1726,7 @@ academicRoute.get(
 );
 
 // Create predicate
-academicRoute.post("/settings/predicates", requireRole("admin"), async (c) => {
+academicRoute.post("/settings/predicates", requirePermission("/apps/academic/classes"), async (c) => {
   try {
     const body = await c.req.json();
     // Basic validation
@@ -1763,7 +1763,7 @@ academicRoute.post("/settings/predicates", requireRole("admin"), async (c) => {
 // Update predicate
 academicRoute.put(
   "/settings/predicates/:id",
-  requireRole("admin"),
+  requirePermission("/apps/academic/classes"),
   async (c) => {
     try {
       const id = parseInt(c.req.param("id"));
@@ -1791,7 +1791,7 @@ academicRoute.put(
 // Delete predicate
 academicRoute.delete(
   "/settings/predicates/:id",
-  requireRole("admin"),
+  requirePermission("/apps/academic/classes"),
   async (c) => {
     try {
       const id = parseInt(c.req.param("id"));
@@ -1812,7 +1812,7 @@ academicRoute.delete(
 // Preview import grades from Excel
 academicRoute.post(
   "/grades/import/preview",
-  requireRole("admin", "teacher", "staff"),
+  requirePermission("/apps/academic/classes"),
   async (c) => {
     try {
       const formData = await c.req.formData();
@@ -1980,7 +1980,7 @@ academicRoute.post(
 // Import grades from Excel
 academicRoute.post(
   "/grades/import",
-  requireRole("admin", "teacher", "staff"),
+  requirePermission("/apps/academic/classes"),
   async (c) => {
     try {
       const formData = await c.req.formData();
@@ -2158,7 +2158,7 @@ academicRoute.post(
 // Preview import subjects from Excel
 academicRoute.post(
   "/subjects/import/preview",
-  requireRole("admin", "staff"),
+  requirePermission("/apps/academic/classes"),
   async (c) => {
     try {
       const formData = await c.req.formData();
@@ -2363,7 +2363,7 @@ academicRoute.post(
 // Import subjects from Excel
 academicRoute.post(
   "/subjects/import",
-  requireRole("admin", "staff"),
+  requirePermission("/apps/academic/classes"),
   async (c) => {
     try {
       const formData = await c.req.formData();

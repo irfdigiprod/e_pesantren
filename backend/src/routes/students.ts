@@ -5,7 +5,7 @@ import { db } from "../db";
 import { students, parents } from "../db/schema/students";
 import { studentParents } from "../db/schema/student-parents";
 import { users } from "../db/schema/users";
-import { authMiddleware, requireRole } from "../middleware/auth";
+import { authMiddleware, requirePermission } from "../middleware/auth";
 import { hashPassword } from "../utils/password";
 import {
   createStudentSchema,
@@ -149,7 +149,7 @@ studentsRoute.get("/", async (c) => {
 // Preview import students from Excel (validation only, no database insert)
 studentsRoute.post(
   "/import/preview",
-  requireRole("admin", "staff"),
+  requirePermission("/apps/students"),
   async (c) => {
     try {
       const formData = await c.req.formData();
@@ -412,7 +412,7 @@ studentsRoute.post(
 );
 
 // Import students from Excel
-studentsRoute.post("/import", requireRole("admin", "staff"), async (c) => {
+studentsRoute.post("/import", requirePermission("/apps/students"), async (c) => {
   try {
     const formData = await c.req.formData();
     const file = formData.get("file") as File;
@@ -849,7 +849,7 @@ studentsRoute.get("/:id", async (c) => {
 // Create student
 studentsRoute.post(
   "/",
-  requireRole("admin", "staff"),
+  requirePermission("/apps/students"),
   zValidator("json", createStudentSchema),
   async (c) => {
     try {
@@ -938,7 +938,7 @@ studentsRoute.post(
 // Update student
 studentsRoute.put(
   "/:id",
-  requireRole("admin", "staff"),
+  requirePermission("/apps/students"),
   zValidator("json", updateStudentSchema),
   async (c) => {
     try {
@@ -994,7 +994,7 @@ studentsRoute.put(
 );
 
 // Delete student
-studentsRoute.delete("/:id", requireRole("admin"), async (c) => {
+studentsRoute.delete("/:id", requirePermission("/apps/students"), async (c) => {
   try {
     const id = parseInt(c.req.param("id"));
 
@@ -1114,7 +1114,7 @@ studentsRoute.get("/:id/parents", async (c) => {
 // Add parent to student
 studentsRoute.post(
   "/:id/parents",
-  requireRole("admin", "staff"),
+  requirePermission("/apps/students"),
   zValidator("json", addStudentParentSchema),
   async (c) => {
     try {
@@ -1182,7 +1182,7 @@ studentsRoute.post(
 // Update parent relation
 studentsRoute.put(
   "/:id/parents/:parentId",
-  requireRole("admin", "staff"),
+  requirePermission("/apps/students"),
   zValidator("json", updateStudentParentSchema),
   async (c) => {
     try {
@@ -1228,7 +1228,7 @@ studentsRoute.put(
 // Remove parent from student
 studentsRoute.delete(
   "/:id/parents/:parentId",
-  requireRole("admin"),
+  requirePermission("/apps/students"),
   async (c) => {
     try {
       const studentId = parseInt(c.req.param("id"));

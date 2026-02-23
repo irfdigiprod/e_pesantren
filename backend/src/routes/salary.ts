@@ -8,7 +8,7 @@ import {
   tenureAllowances,
   customAllowances,
 } from "../db/schema/salary";
-import { authMiddleware, requireRole } from "../middleware/auth";
+import { authMiddleware, requirePermission } from "../middleware/auth";
 import {
   updateSalarySettingsSchema,
   createPositionAllowanceSchema,
@@ -23,7 +23,7 @@ const salaryRoute = new Hono();
 
 // Middleware: Auth required, mostly admin/staff access
 salaryRoute.use("*", authMiddleware);
-salaryRoute.use("*", requireRole("admin", "staff"));
+salaryRoute.use("*", requirePermission("/apps/salary"));
 
 // Get all settings and allowances configuration
 salaryRoute.get("/settings", async (c) => {

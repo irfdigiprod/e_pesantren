@@ -6,7 +6,7 @@ import {
   rewardsPunishments,
   pointImages,
 } from "../db/schema/rewards-punishments";
-import { authMiddleware, requireRole } from "../middleware/auth";
+import { authMiddleware, requirePermission } from "../middleware/auth";
 import {
   createRewardPunishmentSchema,
   updateRewardPunishmentSchema,
@@ -78,7 +78,7 @@ rewardsRoute.get("/rewards/:id", async (c) => {
 // Create reward
 rewardsRoute.post(
   "/rewards",
-  requireRole("admin", "teacher", "staff"),
+  requirePermission("/apps/rewards/entry"),
   zValidator("json", createRewardPunishmentSchema),
   async (c) => {
     try {
@@ -129,7 +129,7 @@ rewardsRoute.post(
 // Update reward
 rewardsRoute.put(
   "/rewards/:id",
-  requireRole("admin", "teacher", "staff"),
+  requirePermission("/apps/rewards/entry"),
   zValidator("json", updateRewardPunishmentSchema),
   async (c) => {
     try {
@@ -179,7 +179,7 @@ rewardsRoute.put(
 // Delete reward
 rewardsRoute.delete(
   "/rewards/:id",
-  requireRole("admin", "teacher"),
+  requirePermission("/apps/rewards/entry"),
   async (c) => {
     try {
       const id = parseInt(c.req.param("id"));
@@ -275,7 +275,7 @@ rewardsRoute.get("/punishments/:id", async (c) => {
 // Create punishment
 rewardsRoute.post(
   "/punishments",
-  requireRole("admin", "teacher", "staff"),
+  requirePermission("/apps/rewards/entry"),
   zValidator("json", createRewardPunishmentSchema),
   async (c) => {
     try {
@@ -332,7 +332,7 @@ rewardsRoute.post(
 // Update punishment
 rewardsRoute.put(
   "/punishments/:id",
-  requireRole("admin", "teacher", "staff"),
+  requirePermission("/apps/rewards/entry"),
   zValidator("json", updateRewardPunishmentSchema),
   async (c) => {
     try {
@@ -382,7 +382,7 @@ rewardsRoute.put(
 // Delete punishment
 rewardsRoute.delete(
   "/punishments/:id",
-  requireRole("admin", "teacher"),
+  requirePermission("/apps/rewards/entry"),
   async (c) => {
     try {
       const id = parseInt(c.req.param("id"));
@@ -492,7 +492,7 @@ rewardsRoute.get("/student/:studentId", async (c) => {
 // Generic Create (handles both based on type)
 rewardsRoute.post(
   "/",
-  requireRole("admin", "teacher", "staff"),
+  requirePermission("/apps/rewards/entry"),
   zValidator("json", createRewardPunishmentSchema),
   async (c) => {
     try {

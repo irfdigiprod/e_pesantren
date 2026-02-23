@@ -5,7 +5,7 @@ import { db } from "../db";
 import { rooms, roomSupervisors } from "../db/schema/rooms";
 import { students } from "../db/schema/students";
 import { teachers } from "../db/schema/teachers";
-import { authMiddleware, requireRole } from "../middleware/auth";
+import { authMiddleware, requirePermission } from "../middleware/auth";
 import {
   createRoomSchema,
   updateRoomSchema,
@@ -79,7 +79,7 @@ roomsRoute.get("/:id", async (c) => {
           ...sup,
           teacher,
         };
-      })
+      }),
     );
 
     return c.json({
@@ -99,7 +99,7 @@ roomsRoute.get("/:id", async (c) => {
 // Create room
 roomsRoute.post(
   "/",
-  requireRole("admin", "staff"),
+  requirePermission("/apps/rooms"),
   zValidator("json", createRoomSchema),
   async (c) => {
     try {
@@ -120,13 +120,13 @@ roomsRoute.post(
       console.error("Create room error:", error);
       return c.json({ success: false, message: "Failed to create room" }, 500);
     }
-  }
+  },
 );
 
 // Update room
 roomsRoute.put(
   "/:id",
-  requireRole("admin", "staff"),
+  requirePermission("/apps/rooms"),
   zValidator("json", updateRoomSchema),
   async (c) => {
     try {
@@ -156,11 +156,11 @@ roomsRoute.put(
       console.error("Update room error:", error);
       return c.json({ success: false, message: "Failed to update room" }, 500);
     }
-  }
+  },
 );
 
 // Delete room
-roomsRoute.delete("/:id", requireRole("admin"), async (c) => {
+roomsRoute.delete("/:id", requirePermission("/apps/rooms"), async (c) => {
   try {
     const id = parseInt(c.req.param("id"));
 
@@ -184,7 +184,7 @@ roomsRoute.delete("/:id", requireRole("admin"), async (c) => {
           message:
             "Cannot delete room with students. Please reassign students first.",
         },
-        400
+        400,
       );
     }
 
@@ -226,7 +226,7 @@ roomsRoute.get("/:id/students", async (c) => {
 // Assign student to room
 roomsRoute.post(
   "/:id/students/:studentId",
-  requireRole("admin", "staff"),
+  requirePermission("/apps/rooms"),
   async (c) => {
     try {
       const roomId = parseInt(c.req.param("id"));
@@ -256,7 +256,7 @@ roomsRoute.post(
       if (student.roomId === roomId) {
         return c.json(
           { success: false, message: "Santri sudah ada di kamar ini" },
-          400
+          400,
         );
       }
 
@@ -311,16 +311,16 @@ roomsRoute.post(
       console.error("Assign student to room error:", error);
       return c.json(
         { success: false, message: "Gagal menambahkan santri" },
-        500
+        500,
       );
     }
-  }
+  },
 );
 
 // Remove student from room
 roomsRoute.delete(
   "/:id/students/:studentId",
-  requireRole("admin", "staff"),
+  requirePermission("/apps/rooms"),
   async (c) => {
     try {
       const roomId = parseInt(c.req.param("id"));
@@ -333,7 +333,7 @@ roomsRoute.delete(
       if (!student) {
         return c.json(
           { success: false, message: "Student not found in this room" },
-          404
+          404,
         );
       }
 
@@ -351,10 +351,10 @@ roomsRoute.delete(
       console.error("Remove student from room error:", error);
       return c.json(
         { success: false, message: "Failed to remove student" },
-        500
+        500,
       );
     }
-  }
+  },
 );
 
 // ============ ROOM SUPERVISORS ============
@@ -378,7 +378,7 @@ roomsRoute.get("/:id/supervisors", async (c) => {
           ...sup,
           teacher,
         };
-      })
+      }),
     );
 
     return c.json({
@@ -389,7 +389,7 @@ roomsRoute.get("/:id/supervisors", async (c) => {
     console.error("Get room supervisors error:", error);
     return c.json(
       { success: false, message: "Failed to get supervisors" },
-      500
+      500,
     );
   }
 });
@@ -397,7 +397,7 @@ roomsRoute.get("/:id/supervisors", async (c) => {
 // Add supervisor to room
 roomsRoute.post(
   "/:id/supervisors",
-  requireRole("admin", "staff"),
+  requirePermission("/apps/rooms"),
   zValidator("json", addSupervisorSchema),
   async (c) => {
     try {
@@ -426,14 +426,14 @@ roomsRoute.post(
       const existing = await db.query.roomSupervisors.findFirst({
         where: and(
           eq(roomSupervisors.roomId, roomId),
-          eq(roomSupervisors.teacherId, data.teacherId)
+          eq(roomSupervisors.teacherId, data.teacherId),
         ),
       });
 
       if (existing) {
         return c.json(
           { success: false, message: "Teacher is already a supervisor" },
-          400
+          400,
         );
       }
 
@@ -456,16 +456,16 @@ roomsRoute.post(
       console.error("Add room supervisor error:", error);
       return c.json(
         { success: false, message: "Failed to add supervisor" },
-        500
+        500,
       );
     }
-  }
+  },
 );
 
 // Update supervisor role
 roomsRoute.put(
   "/:id/supervisors/:teacherId",
-  requireRole("admin", "staff"),
+  requirePermission("/apps/rooms"),
   zValidator("json", updateSupervisorSchema),
   async (c) => {
     try {
@@ -476,7 +476,7 @@ roomsRoute.put(
       const supervisor = await db.query.roomSupervisors.findFirst({
         where: and(
           eq(roomSupervisors.roomId, roomId),
-          eq(roomSupervisors.teacherId, teacherId)
+          eq(roomSupervisors.teacherId, teacherId),
         ),
       });
 
@@ -502,16 +502,16 @@ roomsRoute.put(
       console.error("Update room supervisor error:", error);
       return c.json(
         { success: false, message: "Failed to update supervisor" },
-        500
+        500,
       );
     }
-  }
+  },
 );
 
 // Remove supervisor from room
 roomsRoute.delete(
   "/:id/supervisors/:teacherId",
-  requireRole("admin"),
+  requirePermission("/apps/rooms"),
   async (c) => {
     try {
       const roomId = parseInt(c.req.param("id"));
@@ -520,7 +520,7 @@ roomsRoute.delete(
       const supervisor = await db.query.roomSupervisors.findFirst({
         where: and(
           eq(roomSupervisors.roomId, roomId),
-          eq(roomSupervisors.teacherId, teacherId)
+          eq(roomSupervisors.teacherId, teacherId),
         ),
       });
 
@@ -540,10 +540,10 @@ roomsRoute.delete(
       console.error("Remove room supervisor error:", error);
       return c.json(
         { success: false, message: "Failed to remove supervisor" },
-        500
+        500,
       );
     }
-  }
+  },
 );
 
 export default roomsRoute;

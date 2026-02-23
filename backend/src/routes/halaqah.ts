@@ -10,7 +10,7 @@ import {
 import { students } from "../db/schema/students";
 import { teachers } from "../db/schema/teachers";
 import { tahfidzTargets } from "../db/schema/tahfidz";
-import { authMiddleware, requireRole } from "../middleware/auth";
+import { authMiddleware, requirePermission } from "../middleware/auth";
 import {
   createHalaqahSchema,
   updateHalaqahSchema,
@@ -249,7 +249,7 @@ halaqahRoute.get("/by-student/:studentId", async (c) => {
 // Create halaqah group
 halaqahRoute.post(
   "/",
-  requireRole("admin", "teacher", "staff"),
+  requirePermission("/apps/halaqah"),
   zValidator("json", createHalaqahSchema),
   async (c) => {
     try {
@@ -279,7 +279,7 @@ halaqahRoute.post(
 // Update halaqah group
 halaqahRoute.put(
   "/:id",
-  requireRole("admin", "teacher", "staff"),
+  requirePermission("/apps/halaqah"),
   zValidator("json", updateHalaqahSchema),
   async (c) => {
     try {
@@ -316,7 +316,7 @@ halaqahRoute.put(
 );
 
 // Delete halaqah group
-halaqahRoute.delete("/:id", requireRole("admin"), async (c) => {
+halaqahRoute.delete("/:id", requirePermission("/apps/halaqah"), async (c) => {
   try {
     const id = parseInt(c.req.param("id"));
 
@@ -380,7 +380,7 @@ halaqahRoute.get("/:id/members", async (c) => {
 // Add member to halaqah
 halaqahRoute.post(
   "/:id/members",
-  requireRole("admin", "teacher", "staff"),
+  requirePermission("/apps/halaqah"),
   zValidator("json", addMemberSchema),
   async (c) => {
     try {
@@ -492,7 +492,7 @@ halaqahRoute.post(
 // Update member status
 halaqahRoute.put(
   "/:id/members/:studentId",
-  requireRole("admin", "teacher", "staff"),
+  requirePermission("/apps/halaqah"),
   zValidator("json", updateMemberSchema),
   async (c) => {
     try {
@@ -541,7 +541,7 @@ halaqahRoute.put(
 // Remove member from halaqah
 halaqahRoute.delete(
   "/:id/members/:studentId",
-  requireRole("admin", "teacher"),
+  requirePermission("/apps/halaqah"),
   async (c) => {
     try {
       const halaqahId = parseInt(c.req.param("id"));
@@ -611,7 +611,7 @@ halaqahRoute.get("/:id/mentors", async (c) => {
 // Add mentor to halaqah
 halaqahRoute.post(
   "/:id/mentors",
-  requireRole("admin", "staff"),
+  requirePermission("/apps/halaqah"),
   zValidator("json", addMentorSchema),
   async (c) => {
     try {
@@ -678,7 +678,7 @@ halaqahRoute.post(
 // Update mentor role
 halaqahRoute.put(
   "/:id/mentors/:teacherId",
-  requireRole("admin", "staff"),
+  requirePermission("/apps/halaqah"),
   zValidator("json", updateMentorSchema),
   async (c) => {
     try {
@@ -727,7 +727,7 @@ halaqahRoute.put(
 // Remove mentor from halaqah
 halaqahRoute.delete(
   "/:id/mentors/:teacherId",
-  requireRole("admin"),
+  requirePermission("/apps/halaqah"),
   async (c) => {
     try {
       const halaqahId = parseInt(c.req.param("id"));

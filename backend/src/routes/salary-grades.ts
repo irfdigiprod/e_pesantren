@@ -3,7 +3,7 @@ import { zValidator } from "@hono/zod-validator";
 import { eq, desc, asc } from "drizzle-orm";
 import { db } from "../db";
 import { salaryGrades } from "../db/schema/salary";
-import { authMiddleware, requireRole } from "../middleware/auth";
+import { authMiddleware, requirePermission } from "../middleware/auth";
 import {
   createSalaryGradeSchema,
   updateSalaryGradeSchema,
@@ -13,7 +13,7 @@ const salaryGradesRoute = new Hono();
 
 // Middleware: Auth required, admin/staff access
 salaryGradesRoute.use("*", authMiddleware);
-salaryGradesRoute.use("*", requireRole("admin", "staff"));
+salaryGradesRoute.use("*", requirePermission("/settings/salary-grading"));
 
 // GET all grades
 salaryGradesRoute.get("/", async (c) => {

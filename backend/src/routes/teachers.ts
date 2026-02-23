@@ -6,7 +6,7 @@ import { teachers } from "../db/schema/teachers";
 import { divisions, teacherDivisions } from "../db/schema/divisions";
 import { users } from "../db/schema/users";
 import { salaryGrades, positionAllowances } from "../db/schema/salary";
-import { authMiddleware, requireRole } from "../middleware/auth";
+import { authMiddleware, requirePermission } from "../middleware/auth";
 import { hashPassword } from "../utils/password";
 import {
   createTeacherSchema,
@@ -168,7 +168,7 @@ teachersRoute.get("/:id", async (c) => {
 // Create teacher
 teachersRoute.post(
   "/",
-  requireRole("admin", "staff"),
+  requirePermission("/apps/teachers"),
   zValidator("json", createTeacherSchema),
   async (c) => {
     try {
@@ -257,7 +257,7 @@ teachersRoute.post(
 // Update teacher
 teachersRoute.put(
   "/:id",
-  requireRole("admin", "staff"),
+  requirePermission("/apps/teachers"),
   zValidator("json", updateTeacherSchema),
   async (c) => {
     try {
@@ -311,7 +311,7 @@ teachersRoute.put(
 );
 
 // Delete teacher
-teachersRoute.delete("/:id", requireRole("admin"), async (c) => {
+teachersRoute.delete("/:id", requirePermission("/apps/teachers"), async (c) => {
   try {
     const id = parseInt(c.req.param("id"));
 
@@ -345,7 +345,7 @@ teachersRoute.delete("/:id", requireRole("admin"), async (c) => {
 // Preview import teachers from Excel
 teachersRoute.post(
   "/import/preview",
-  requireRole("admin", "staff"),
+  requirePermission("/apps/teachers"),
   async (c) => {
     try {
       const formData = await c.req.formData();
@@ -562,7 +562,7 @@ teachersRoute.post(
 );
 
 // Import teachers from Excel
-teachersRoute.post("/import", requireRole("admin", "staff"), async (c) => {
+teachersRoute.post("/import", requirePermission("/apps/teachers"), async (c) => {
   try {
     const formData = await c.req.formData();
     const file = formData.get("file") as File;

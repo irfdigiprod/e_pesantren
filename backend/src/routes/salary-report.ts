@@ -9,12 +9,12 @@ import {
   tenureAllowances,
   customAllowances,
 } from "../db/schema/salary";
-import { authMiddleware, requireRole } from "../middleware/auth";
+import { authMiddleware, requirePermission } from "../middleware/auth";
 
 const salaryReportRoute = new Hono();
 
 salaryReportRoute.use("*", authMiddleware);
-salaryReportRoute.use("*", requireRole("admin", "staff"));
+salaryReportRoute.use("*", requirePermission("/apps/salary-report"));
 
 salaryReportRoute.get("/", async (c) => {
   try {

@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { db } from "../db";
 import { parents } from "../db/schema/students";
 import { users } from "../db/schema/users";
-import { authMiddleware, requireRole } from "../middleware/auth";
+import { authMiddleware, requirePermission } from "../middleware/auth";
 import { hashPassword } from "../utils/password";
 import { createParentSchema, updateParentSchema } from "../validators/students";
 
@@ -76,7 +76,7 @@ parentsRoute.get("/:id", async (c) => {
 // Create parent
 parentsRoute.post(
   "/",
-  requireRole("admin", "staff"),
+  requirePermission("/security/users"),
   zValidator("json", createParentSchema),
   async (c) => {
     try {
@@ -145,7 +145,7 @@ parentsRoute.post(
 // Update parent
 parentsRoute.put(
   "/:id",
-  requireRole("admin", "staff"),
+  requirePermission("/security/users"),
   zValidator("json", updateParentSchema),
   async (c) => {
     try {
@@ -187,7 +187,7 @@ parentsRoute.put(
 );
 
 // Delete parent
-parentsRoute.delete("/:id", requireRole("admin"), async (c) => {
+parentsRoute.delete("/:id", requirePermission("/security/users"), async (c) => {
   try {
     const id = parseInt(c.req.param("id"));
 
@@ -258,7 +258,7 @@ parentsRoute.get("/:id/children", async (c) => {
 // Add child to parent
 parentsRoute.post(
   "/:id/children",
-  requireRole("admin", "staff"),
+  requirePermission("/security/users"),
   zValidator("json", addParentChildSchema),
   async (c) => {
     try {
@@ -326,7 +326,7 @@ parentsRoute.post(
 // Remove child from parent
 parentsRoute.delete(
   "/:id/children/:studentId",
-  requireRole("admin"),
+  requirePermission("/security/users"),
   async (c) => {
     try {
       const parentId = parseInt(c.req.param("id"));

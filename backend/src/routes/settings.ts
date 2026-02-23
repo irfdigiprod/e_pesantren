@@ -3,7 +3,7 @@ import { zValidator } from "@hono/zod-validator";
 import { sql, inArray } from "drizzle-orm";
 import { db } from "../db";
 import { settings } from "../db/schema";
-import { authMiddleware, requireRole } from "../middleware/auth";
+import { authMiddleware, requirePermission } from "../middleware/auth";
 import { updateSettingsSchema } from "../validators/settings";
 
 const settingsRoute = new Hono();
@@ -95,7 +95,7 @@ settingsRoute.get("/", async (c) => {
 // Update settings
 settingsRoute.put(
   "/",
-  requireRole("admin"),
+  requirePermission("/settings/institution"),
   zValidator("json", updateSettingsSchema),
   async (c) => {
     try {

@@ -10,7 +10,7 @@ import { students } from "../db/schema/students";
 import { teachers } from "../db/schema/teachers";
 import { teacherDivisions, divisions } from "../db/schema/divisions";
 import { settings } from "../db/schema/settings";
-import { authMiddleware, requireRole } from "../middleware/auth";
+import { authMiddleware, requirePermission } from "../middleware/auth";
 import {
   createStudentAttendanceSchema,
   bulkStudentAttendanceSchema,
@@ -206,7 +206,7 @@ attendanceRoute.get("/students", async (c) => {
 // Create student attendance
 attendanceRoute.post(
   "/students",
-  requireRole("admin", "teacher", "staff"),
+  requirePermission("/apps/attendance"),
   zValidator("json", createStudentAttendanceSchema),
   async (c) => {
     try {
@@ -272,7 +272,7 @@ attendanceRoute.post(
 // Bulk create student attendance
 attendanceRoute.post(
   "/students/bulk",
-  requireRole("admin", "teacher", "staff"),
+  requirePermission("/apps/attendance"),
   zValidator("json", bulkStudentAttendanceSchema),
   async (c) => {
     try {
@@ -339,7 +339,7 @@ attendanceRoute.post(
 // Delete student attendance
 attendanceRoute.delete(
   "/students/:id",
-  requireRole("admin", "teacher", "staff"),
+  requirePermission("/apps/attendance"),
   async (c) => {
     try {
       const id = parseInt(c.req.param("id"), 10);
@@ -396,7 +396,7 @@ attendanceRoute.get("/teachers", async (c) => {
 // Create teacher attendance
 attendanceRoute.post(
   "/teachers",
-  requireRole("admin", "staff"),
+  requirePermission("/apps/attendance"),
   zValidator("json", createTeacherAttendanceSchema),
   async (c) => {
     try {
@@ -674,7 +674,7 @@ attendanceRoute.post(
 );
 
 // Recap Endpoint
-attendanceRoute.get("/teachers/recap", requireRole("admin"), async (c) => {
+attendanceRoute.get("/teachers/recap", requirePermission("/apps/attendance"), async (c) => {
   try {
     const {
       month,
@@ -905,7 +905,7 @@ attendanceRoute.get("/teachers/recap", requireRole("admin"), async (c) => {
 // Delete Teacher Attendance (e.g. Claim)
 attendanceRoute.delete(
   "/teachers/attendances/:id",
-  requireRole("admin"),
+  requirePermission("/apps/attendance"),
   async (c) => {
     try {
       const id = parseInt(c.req.param("id"));

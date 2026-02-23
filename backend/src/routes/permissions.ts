@@ -9,7 +9,7 @@ import {
   teachers,
   settings,
 } from "../db/schema";
-import { authMiddleware, requireRole } from "../middleware/auth";
+import { authMiddleware, requirePermission } from "../middleware/auth";
 import {
   createPermissionSchema,
   updatePermissionStatusSchema,
@@ -207,7 +207,7 @@ permissionsRoute.post(
 // Approve/Reject (Admin)
 permissionsRoute.post(
   "/:id/status",
-  requireRole("admin"),
+  requirePermission("/security/roles"),
   zValidator("json", updatePermissionStatusSchema),
   async (c) => {
     const id = parseInt(c.req.param("id"));
@@ -349,7 +349,7 @@ permissionsRoute.post(
 // Manage Permission by Date (Toggle/Delete)
 permissionsRoute.post(
   "/manage-by-date",
-  requireRole("admin"),
+  requirePermission("/security/roles"),
   zValidator(
     "json",
     z.object({

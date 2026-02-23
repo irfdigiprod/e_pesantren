@@ -4,7 +4,7 @@ import { eq, and, desc } from "drizzle-orm";
 import { db } from "../db";
 import { studentWarnings } from "../db/schema/rewards-punishments";
 import { students } from "../db/schema/students";
-import { authMiddleware, requireRole } from "../middleware/auth";
+import { authMiddleware, requirePermission } from "../middleware/auth";
 import { z } from "zod";
 
 const warningsRoute = new Hono();
@@ -71,7 +71,7 @@ warningsRoute.get("/", async (c) => {
 // Create Warning (Issue SP)
 warningsRoute.post(
   "/",
-  requireRole("admin", "teacher", "headmaster"), // Headmaster usually issues SP
+  requirePermission("/apps/rewards/warnings"), // Headmaster usually issues SP
   zValidator("json", createWarningSchema),
   async (c) => {
     try {
@@ -111,7 +111,7 @@ warningsRoute.post(
 // Update Warning
 warningsRoute.put(
   "/:id",
-  requireRole("admin", "teacher", "headmaster"),
+  requirePermission("/apps/rewards/warnings"),
   zValidator("json", updateWarningSchema),
   async (c) => {
     try {
@@ -156,7 +156,7 @@ warningsRoute.put(
 );
 
 // Delete Warning
-warningsRoute.delete("/:id", requireRole("admin", "headmaster"), async (c) => {
+warningsRoute.delete("/:id", requirePermission("/apps/rewards/warnings"), async (c) => {
   try {
     const id = parseInt(c.req.param("id"));
 
