@@ -707,6 +707,7 @@ import {
   authApi,
   halaqahApi,
   quranApi,
+  teachersApi,
 } from "@/services/api";
 
 const loading = ref(false);
@@ -725,6 +726,7 @@ const filteredStudents = ref([]);
 const studentSearch = ref("");
 const showStudentDropdown = ref(false);
 const currentUser = ref(null);
+const defaultTeacherId = ref(null);
 
 // Quran data
 const surahList = ref([]);
@@ -1059,6 +1061,22 @@ async function openInputModal() {
     currentUser.value = userRes.data;
   }
 
+  // Fetch a default teacher ID if user doesn't have a linked teacher profile (e.g., Admin)
+  if (
+    currentUser.value &&
+    !currentUser.value.teacher?.id &&
+    !defaultTeacherId.value
+  ) {
+    try {
+      const teachersRes = await teachersApi.getAll({ limit: 1 });
+      if (teachersRes.data && teachersRes.data.length > 0) {
+        defaultTeacherId.value = teachersRes.data[0].id;
+      }
+    } catch (e) {
+      console.error("Failed to fetch default teacher:", e);
+    }
+  }
+
   // Reset form
   Object.assign(form, {
     studentId: "",
@@ -1106,7 +1124,7 @@ async function submitDeposit() {
 
     const payload = {
       studentId: Number(form.studentId),
-      teacherId: currentUser.value?.teacher?.id || 1,
+      teacherId: currentUser.value?.teacher?.id || defaultTeacherId.value || 1,
       type: form.type,
       fluency: isDepositType ? form.fluency : undefined,
       isLate: isDepositType ? form.isLate || false : false,
