@@ -1106,7 +1106,7 @@ async function submitDeposit() {
 
     const payload = {
       studentId: Number(form.studentId),
-      teacherId: currentUser.value?.teacher?.id || currentUser.value?.id || 1,
+      teacherId: currentUser.value?.teacher?.id || 1,
       type: form.type,
       fluency: isDepositType ? form.fluency : undefined,
       isLate: isDepositType ? form.isLate || false : false,

@@ -336,7 +336,13 @@ app.post("/deposits", zValidator("json", depositSchema), async (c) => {
     });
     return c.json({ success: true, message: "Setoran berhasil dicatat" });
   } catch (e: any) {
-    if (e.code === "ER_NO_REFERENCED_ROW_2") {
+    const isForeignKeyError =
+      e.code === "ER_NO_REFERENCED_ROW_2" ||
+      e?.cause?.code === "ER_NO_REFERENCED_ROW_2" ||
+      (e.message && e.message.includes("ER_NO_REFERENCED_ROW_2")) ||
+      (e.message && e.message.includes("a foreign key constraint fails"));
+
+    if (isForeignKeyError) {
       return c.json(
         {
           success: false,
@@ -391,11 +397,18 @@ app.put("/deposits/:id", zValidator("json", depositSchema), async (c) => {
 
     return c.json({ success: true, message: "Setoran berhasil diperbarui" });
   } catch (e: any) {
-    if (e.code === "ER_NO_REFERENCED_ROW_2") {
+    const isForeignKeyError =
+      e.code === "ER_NO_REFERENCED_ROW_2" ||
+      e?.cause?.code === "ER_NO_REFERENCED_ROW_2" ||
+      (e.message && e.message.includes("ER_NO_REFERENCED_ROW_2")) ||
+      (e.message && e.message.includes("a foreign key constraint fails"));
+
+    if (isForeignKeyError) {
       return c.json(
         {
           success: false,
-          message: "Data santri atau guru tidak valid atau sudah dihapus.",
+          message:
+            "Data santri atau guru tidak valid atau sudah dihapus. Silakan muat ulang halaman.",
         },
         400,
       );
