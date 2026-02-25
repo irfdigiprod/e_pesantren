@@ -15,6 +15,8 @@ import {
   tahfidzExamTypes,
   classHomeroomTeachers,
   settings,
+  classes,
+  rooms,
 } from "../db/schema";
 import {
   eq,
@@ -191,6 +193,7 @@ app.get("/deposits", async (c) => {
     let query = db
       .select({
         id: tahfidzDeposits.id,
+        studentId: tahfidzDeposits.studentId,
         date: tahfidzDeposits.depositDate,
         type: tahfidzDeposits.type,
         surah: tahfidzDeposits.surahName,
@@ -209,10 +212,15 @@ app.get("/deposits", async (c) => {
         notes: tahfidzDeposits.notes,
         studentName: students.fullName,
         teacherName: teachers.fullName,
+        className: classes.name,
+        roomName: rooms.name,
+        halaqahName: halaqahGroups.name,
       })
       .from(tahfidzDeposits)
       .leftJoin(students, eq(tahfidzDeposits.studentId, students.id))
       .leftJoin(teachers, eq(tahfidzDeposits.teacherId, teachers.id))
+      .leftJoin(classes, eq(students.classId, classes.id))
+      .leftJoin(rooms, eq(students.roomId, rooms.id))
       // Join with halaqahMembers if filtering by halaqah
       .leftJoin(
         halaqahMembers,
@@ -221,6 +229,7 @@ app.get("/deposits", async (c) => {
           eq(halaqahMembers.status, "active"), // Only active members? Maybe not strictly needed if we want history
         ),
       )
+      .leftJoin(halaqahGroups, eq(halaqahMembers.halaqahId, halaqahGroups.id))
       .orderBy(desc(tahfidzDeposits.depositDate));
 
     const page = Number(c.req.query("page") || 1);

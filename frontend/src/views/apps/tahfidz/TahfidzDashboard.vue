@@ -73,6 +73,37 @@
           Input Setoran
         </button>
       </template>
+      <template #cell-className="{ item }">
+        <span class="text-slate-600">{{ item.className || "-" }}</span>
+      </template>
+
+      <template #cell-roomName="{ item }">
+        <span class="text-slate-600">{{ item.roomName || "-" }}</span>
+      </template>
+
+      <template #cell-halaqahName="{ item }">
+        <span class="text-slate-600">{{ item.halaqahName || "-" }}</span>
+      </template>
+
+      <template #cell-actions="{ item }">
+        <div class="flex items-center gap-2">
+          <button
+            @click="editDeposit(item)"
+            class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+            title="Edit"
+          >
+            <Icon icon="solar:pen-bold-duotone" class="text-lg" />
+          </button>
+          <button
+            @click="confirmDelete(item)"
+            class="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+            title="Hapus"
+          >
+            <Icon icon="solar:trash-bin-trash-bold-duotone" class="text-lg" />
+          </button>
+        </div>
+      </template>
+
       <template #cell-fluency="{ item }">
         <span
           class="px-2 py-1 rounded-full text-xs font-medium"
@@ -177,8 +208,41 @@
                 <h3 class="font-semibold text-slate-800 truncate">
                   {{ item.studentName }}
                 </h3>
-                <p class="text-xs text-slate-500">{{ item.date }}</p>
+                <p class="text-xs text-slate-500">
+                  <span v-if="item.className">{{ item.className }}</span>
+                  <span v-if="item.className && item.roomName"> • </span>
+                  <span v-if="item.roomName">{{ item.roomName }}</span>
+                </p>
+                <p
+                  v-if="item.halaqahName"
+                  class="text-xs text-[#602515] mt-0.5"
+                >
+                  <Icon
+                    icon="solar:users-group-rounded-bold"
+                    class="inline text-sm align-text-bottom mr-1"
+                  />{{ item.halaqahName }}
+                </p>
+                <p class="text-[11px] text-slate-400 mt-0.5">{{ item.date }}</p>
               </div>
+            </div>
+            <div class="flex flex-col gap-1">
+              <button
+                @click="editDeposit(item)"
+                class="text-slate-400 hover:text-blue-600 p-1"
+                title="Edit"
+              >
+                <Icon icon="solar:pen-bold-duotone" class="text-lg" />
+              </button>
+              <button
+                @click="confirmDelete(item)"
+                class="text-slate-400 hover:text-red-600 p-1"
+                title="Hapus"
+              >
+                <Icon
+                  icon="solar:trash-bin-trash-bold-duotone"
+                  class="text-lg"
+                />
+              </button>
             </div>
           </div>
 
@@ -693,6 +757,27 @@
         Mohon perbaiki urutan surah atau ayat.
       </span>
     </ConfirmModal>
+
+    <!-- Delete Confirmation Modal -->
+    <ConfirmModal
+      :isOpen="showDeleteConfirm"
+      type="danger"
+      title="Hapus Setoran"
+      confirmText="Hapus"
+      cancelText="Batal"
+      @confirm="deleteDeposit"
+      @cancel="
+        showDeleteConfirm = false;
+        depositToDelete = null;
+      "
+    >
+      <span>
+        Apakah Anda yakin ingin menghapus catatan setoran hafalan atas nama
+        <strong>{{ depositToDelete?.studentName }}</strong> pada
+        <strong>{{ depositToDelete?.date }}</strong
+        >? Tindakan ini tidak dapat dibatalkan.
+      </span>
+    </ConfirmModal>
   </div>
 </template>
 
@@ -734,6 +819,9 @@ const calculatedResult = ref(null);
 const showBackwardWarning = ref(false);
 const backwardConfirmed = ref(false);
 
+const showDeleteConfirm = ref(false);
+const depositToDelete = ref(null);
+
 // Searchable surah dropdowns
 const startSurahSearch = ref("");
 const endSurahSearch = ref("");
@@ -745,13 +833,18 @@ const filteredEndSurahs = ref([]);
 const columns = [
   { field: "date", label: "TANGGAL", sortable: true },
   { field: "studentName", label: "NAMA SANTRI", sortable: true },
+  { field: "className", label: "ROMBEL", sortable: true },
+  { field: "roomName", label: "KAMAR", sortable: true },
+  { field: "halaqahName", label: "GRUP HALAQAH", sortable: true },
   { field: "type", label: "JENIS" },
   { field: "location", label: "HAFALAN" },
   { field: "fluency", label: "KUALITAS" },
   { field: "teacherName", label: "MUSYRIF" },
+  { field: "actions", label: "AKSI", align: "center" },
 ];
 
 const form = reactive({
+  id: null,
   studentId: "",
   type: "ziyadah",
   fluency: "lancar",
@@ -1079,6 +1172,7 @@ async function openInputModal() {
 
   // Reset form
   Object.assign(form, {
+    id: null,
     studentId: "",
     type: "ziyadah",
     fluency: "lancar",
@@ -1146,13 +1240,93 @@ async function submitDeposit() {
         isDepositType && form.totalPages ? Number(form.totalPages) : null,
     };
 
-    await tahfidzApi.createDeposit(payload);
+    if (form.id) {
+      await tahfidzApi.updateDeposit(form.id, payload);
+      alert("Setoran berhasil diperbarui!");
+    } else {
+      await tahfidzApi.createDeposit(payload);
+      alert("Setoran berhasil dicatat!");
+    }
+
     showModal.value = false;
     loadData();
   } catch (e) {
     alert("Gagal menyimpan: " + e.message);
   } finally {
     saving.value = false;
+  }
+}
+
+async function editDeposit(item) {
+  // Load necessary data first
+  if (studentsList.value.length === 0) {
+    try {
+      const res = await studentsApi.getAll({ limit: 1000 });
+      if (res.data) {
+        studentsList.value = res.data;
+        filteredStudents.value = res.data;
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  } else {
+    filteredStudents.value = studentsList.value;
+  }
+
+  await loadSurahs();
+
+  // Get current user (teacher) id if any missing dependencies exist
+  if (!currentUser.value) {
+    const userRes = await authApi.getCurrentUser();
+    currentUser.value = userRes.data;
+  }
+
+  // Find accurate student reference to populate search text properly
+  const studentMatch = studentsList.value.find((s) => s.id === item.studentId);
+  studentSearch.value = studentMatch ? studentMatch.fullName : item.studentName;
+
+  Object.assign(form, {
+    id: item.id,
+    studentId: item.studentId,
+    type: item.type,
+    fluency: item.fluency || "lancar",
+    startSurah: item.startSurah || "",
+    startAyat: item.startAyat || "",
+    startPage: item.startPage || "",
+    endSurah: item.endSurah || "",
+    endAyat: item.endAyat || "",
+    endPage: item.endPage || "",
+    totalLines: item.totalLines || "",
+    totalPages: item.totalPages || "",
+    notes: item.notes || "",
+    isLate: item.isLate || false,
+  });
+
+  calculatedResult.value = null;
+  showBackwardWarning.value = false;
+
+  showStartSurahDropdown.value = false;
+  showEndSurahDropdown.value = false;
+  filteredStartSurahs.value = surahList.value;
+  filteredEndSurahs.value = surahList.value;
+
+  showModal.value = true;
+}
+
+function confirmDelete(item) {
+  depositToDelete.value = item;
+  showDeleteConfirm.value = true;
+}
+
+async function deleteDeposit() {
+  if (!depositToDelete.value) return;
+  try {
+    await tahfidzApi.deleteDeposit(depositToDelete.value.id);
+    showDeleteConfirm.value = false;
+    depositToDelete.value = null;
+    loadData();
+  } catch (e) {
+    alert("Gagal menghapus: " + e.message);
   }
 }
 
