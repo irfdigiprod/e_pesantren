@@ -830,9 +830,25 @@ router.beforeEach((to, from, next) => {
     return next();
   }
 
-  // User login mencoba ke login/register → redirect ke dashboard
+  // User login mencoba ke login/register → redirect ke dashboard sesuai tipe device & role
   if (token && isAuthPage) {
-    return next("/apps/teacher-attendance");
+    let userRole = "admin";
+    try {
+      const userStr = localStorage.getItem("user");
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        userRole = user.role || "admin";
+      }
+    } catch (e) {
+      console.error("Failed to parse user from localStorage", e);
+    }
+
+    if (userRole === "parent" || userRole === "student") {
+      return next("/parent-dashboard");
+    }
+
+    const isMobileOrTablet = window.innerWidth < 1024;
+    return next(isMobileOrTablet ? "/mobile-dashboard/attendance" : "/apps/teacher-attendance");
   }
 
   // Check blockedRoles - redirect blocked users
