@@ -892,6 +892,9 @@ function changeMonth(delta) {
   } else {
     currentMonth.value = newMonth;
   }
+
+  // Load the monthly indicator graph data immediately upon switching month
+  loadMonthlyStats();
 }
 
 function selectDate(day) {
