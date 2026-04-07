@@ -132,6 +132,15 @@ export async function request(endpoint, options = {}) {
     const data = await parseResponse(res);
 
     if (!res.ok) {
+      // Handle Unauthorized (Token Expired)
+      if (res.status === 401) {
+        removeToken();
+        if (window.location.pathname !== "/login") {
+          window.location.href = "/login";
+        }
+        throw new Error("Sesi Anda telah berakhir. Silakan login kembali.");
+      }
+
       let errorMsg =
         data?.message || data?.errors || res.statusText || `HTTP ${res.status}`;
 
