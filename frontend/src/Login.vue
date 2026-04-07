@@ -102,7 +102,7 @@
             </button>
           </div>
 
-          <p class="mt-4 text-center text-sm text-slate-500">
+          <p v-if="!adminExists" class="mt-4 text-center text-sm text-slate-500">
             Belum punya akun?
             <router-link
               to="/register"
@@ -134,6 +134,9 @@ const showPassword = ref(false);
 
 // Remember me
 const rememberMe = ref(true);
+
+// Admin existence state
+const adminExists = ref(true);
 
 // Computed logo URL
 const logoUrl = computed(() => {
@@ -265,8 +268,20 @@ async function handleLogin() {
   }
 }
 
+async function checkAdminExists() {
+  try {
+    const res = await authApi.checkAdminExists();
+    if (res.success) {
+      adminExists.value = res.data.adminExists;
+    }
+  } catch (e) {
+    console.warn("Could not check admin status:", e);
+  }
+}
+
 onMounted(() => {
   loadInstitutionInfo();
+  checkAdminExists();
 
   // Check if there's a saved email from "remember me"
   const savedEmail = localStorage.getItem("rememberedEmail");
