@@ -338,7 +338,21 @@
       @close="closeStudentsModal"
       @add="addStudent"
       @remove="removeStudent"
-    />
+    >
+      <template #available-filter>
+        <div class="mt-2 flex items-center gap-2 px-1">
+          <input
+            type="checkbox"
+            id="show-assigned-class"
+            v-model="showAssignedClass"
+            class="w-4 h-4 text-green-600 bg-slate-100 border-slate-300 rounded focus:ring-green-500 focus:ring-2 cursor-pointer"
+          />
+          <label for="show-assigned-class" class="text-xs text-slate-600 cursor-pointer select-none">
+            Tampilkan sudah memiliki kelas
+          </label>
+        </div>
+      </template>
+    </SideBySidePicker>
 
     <!-- Side-by-Side Homeroom Teachers Modal -->
     <SideBySidePicker
@@ -499,12 +513,19 @@ const confirmMove = reactive({
   existingClass: null,
 });
 
+const showAssignedClass = ref(false);
+
 // Computed: Available students with class info
 const availableStudents = computed(() => {
   const memberIds = studentsModal.students.map((s) => s.studentId || s.id);
-  return allStudents.value
-    .filter((s) => !memberIds.includes(s.id))
-    .map((s) => {
+  
+  let students = allStudents.value.filter((s) => !memberIds.includes(s.id));
+  
+  if (!showAssignedClass.value) {
+    students = students.filter((s) => !s.class?.name);
+  }
+  
+  return students.map((s) => {
       const className = s.class?.name;
       return {
         ...s,

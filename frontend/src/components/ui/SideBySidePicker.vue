@@ -65,6 +65,7 @@
                   class="w-full border border-slate-200 rounded-lg pl-10 pr-3 py-2 text-sm focus:outline-none focus:border-green-500 transition-colors"
                 />
               </div>
+              <slot name="available-filter"></slot>
             </div>
             <div class="flex-1 overflow-auto p-2 bg-green-50/30">
               <div v-if="loadingAvailable" class="text-center py-8">

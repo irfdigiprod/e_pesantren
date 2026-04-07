@@ -343,7 +343,21 @@
       @close="closeMembersModal"
       @add="addMember"
       @remove="removeMember"
-    />
+    >
+      <template #available-filter>
+        <div class="mt-2 flex items-center gap-2 px-1">
+          <input
+            type="checkbox"
+            id="show-assigned-halaqah"
+            v-model="showAssignedHalaqah"
+            class="w-4 h-4 text-green-600 bg-slate-100 border-slate-300 rounded focus:ring-green-500 focus:ring-2 cursor-pointer"
+          />
+          <label for="show-assigned-halaqah" class="text-xs text-slate-600 cursor-pointer select-none">
+            Tampilkan sudah memiliki kelompok
+          </label>
+        </div>
+      </template>
+    </SideBySidePicker>
 
     <!-- Side-by-Side Mentors Modal -->
     <SideBySidePicker
@@ -501,12 +515,19 @@ const confirmMove = reactive({
   existingHalaqah: null,
 });
 
+const showAssignedHalaqah = ref(false);
+
 // Computed: Available students with halaqah info
 const availableStudents = computed(() => {
   const memberIds = membersModal.members.map((s) => s.studentId || s.id);
-  return allStudents.value
-    .filter((s) => !memberIds.includes(s.id))
-    .map((s) => {
+  
+  let students = allStudents.value.filter((s) => !memberIds.includes(s.id));
+  
+  if (!showAssignedHalaqah.value) {
+    students = students.filter((s) => !(s.halaqah?.name || s.group?.name));
+  }
+  
+  return students.map((s) => {
       const groupName = s.halaqah?.name || s.group?.name;
       return {
         ...s,

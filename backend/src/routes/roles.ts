@@ -78,6 +78,11 @@ const availableRoutes = [
     label: "Mata Pelajaran",
     category: "Akademik",
   },
+  {
+    path: "/apps/academic/schedules",
+    label: "Jadwal Pelajaran",
+    category: "Akademik",
+  },
   { path: "/apps/academic/grades", label: "Nilai", category: "Akademik" },
   { path: "/apps/academic/report-card", label: "Rapor", category: "Akademik" },
   {
@@ -181,7 +186,7 @@ rolesRoute.get("/:role/permissions", authMiddleware, async (c) => {
 
     // Map to include all routes with their permission status
     const permissionsMap = new Map(
-      permissions.map((p) => [p.routePath, p.isAllowed])
+      permissions.map((p) => [p.routePath, p.isAllowed]),
     );
 
     const result = availableRoutes.map((route) => ({
@@ -196,7 +201,7 @@ rolesRoute.get("/:role/permissions", authMiddleware, async (c) => {
     console.error("Get role permissions error:", error);
     return c.json(
       { success: false, message: "Failed to get permissions" },
-      500
+      500,
     );
   }
 });
@@ -214,17 +219,17 @@ rolesRoute.put("/:role/permissions", authMiddleware, async (c) => {
         {
           success: false,
           message: `Invalid role: ${role}. Valid roles are: ${VALID_ROLES.join(
-            ", "
+            ", ",
           )}`,
         },
-        400
+        400,
       );
     }
 
     if (!Array.isArray(permissions)) {
       return c.json(
         { success: false, message: "Invalid permissions format" },
-        400
+        400,
       );
     }
 
@@ -263,7 +268,7 @@ rolesRoute.put("/:role/permissions", authMiddleware, async (c) => {
     console.error("Update role permissions error:", error);
     return c.json(
       { success: false, message: "Failed to update permissions" },
-      500
+      500,
     );
   }
 });
@@ -280,7 +285,7 @@ rolesRoute.get("/users/:id/permissions", authMiddleware, async (c) => {
 
     // Map to include all routes with their permission status
     const permissionsMap = new Map(
-      permissions.map((p) => [p.routePath, p.isAllowed])
+      permissions.map((p) => [p.routePath, p.isAllowed]),
     );
 
     const result = availableRoutes.map((route) => ({
@@ -296,7 +301,7 @@ rolesRoute.get("/users/:id/permissions", authMiddleware, async (c) => {
     console.error("Get user permissions error:", error);
     return c.json(
       { success: false, message: "Failed to get permissions" },
-      500
+      500,
     );
   }
 });
@@ -311,7 +316,7 @@ rolesRoute.put("/users/:id/permissions", authMiddleware, async (c) => {
     if (!Array.isArray(permissions)) {
       return c.json(
         { success: false, message: "Invalid permissions format" },
-        400
+        400,
       );
     }
 
@@ -340,7 +345,7 @@ rolesRoute.put("/users/:id/permissions", authMiddleware, async (c) => {
     console.error("Update user permissions error:", error);
     return c.json(
       { success: false, message: "Failed to update permissions" },
-      500
+      500,
     );
   }
 });
@@ -403,10 +408,10 @@ rolesRoute.get(
       console.error("Get effective permissions error:", error);
       return c.json(
         { success: false, message: "Failed to get permissions" },
-        500
+        500,
       );
     }
-  }
+  },
 );
 
 // Get current user's effective permissions (for sidebar/menu filtering)
@@ -459,7 +464,7 @@ rolesRoute.get("/my-permissions", authMiddleware, async (c) => {
     console.error("Get my permissions error:", error);
     return c.json(
       { success: false, message: "Failed to get permissions" },
-      500
+      500,
     );
   }
 });

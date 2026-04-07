@@ -102,7 +102,7 @@ const submenuByMain = {
         children: [
           { label: "Kelas", route: "/apps/academic/classes" },
           { label: "Mata Pelajaran", route: "/apps/academic/subjects" },
-          // { label: "Jadwal", route: "/apps/academic/schedules" },
+          { label: "Jadwal Pelajaran", route: "/apps/academic/schedules" },
           { label: "Nilai", route: "/apps/academic/grades" },
           { label: "Rapor", route: "/apps/academic/report-card" },
           {
@@ -252,7 +252,7 @@ const filteredSubmenuByMain = computed(() => {
         if (item.children) {
           // Filter children
           const filteredChildren = item.children.filter((child) =>
-            isRouteAllowed(child.route)
+            isRouteAllowed(child.route),
           );
           if (filteredChildren.length === 0) return null;
           return { ...item, children: filteredChildren };
@@ -271,7 +271,7 @@ const filteredSubmenuByMain = computed(() => {
 });
 
 const currentSubmenu = computed(
-  () => filteredSubmenuByMain.value[activeMainId.value]
+  () => filteredSubmenuByMain.value[activeMainId.value],
 );
 
 const navigate = (to) => {
@@ -302,7 +302,7 @@ watch(
       }
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 /* =========================
@@ -455,7 +455,7 @@ const photoUrl = computed(() => {
 });
 
 const fullname = computed(
-  () => user.value?.name || user.value?.email?.split("@")[0] || "Pengguna"
+  () => user.value?.name || user.value?.email?.split("@")[0] || "Pengguna",
 );
 const email = computed(() => user.value?.email || "—");
 function onUserUpdated(e) {
@@ -674,7 +674,9 @@ onUnmounted(() => {
 <style scoped>
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.12s ease, transform 0.12s ease;
+  transition:
+    opacity 0.12s ease,
+    transform 0.12s ease;
 }
 .fade-enter-from,
 .fade-leave-to {

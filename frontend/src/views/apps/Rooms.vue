@@ -279,7 +279,21 @@
       @close="studentsModal.show = false"
       @add="addStudent"
       @remove="removeStudent"
-    />
+    >
+      <template #available-filter>
+        <div class="mt-2 flex items-center gap-2 px-1">
+          <input
+            type="checkbox"
+            id="show-assigned-room"
+            v-model="showAssignedRoom"
+            class="w-4 h-4 text-green-600 bg-slate-100 border-slate-300 rounded focus:ring-green-500 focus:ring-2 cursor-pointer"
+          />
+          <label for="show-assigned-room" class="text-xs text-slate-600 cursor-pointer select-none">
+            Tampilkan sudah memiliki kamar
+          </label>
+        </div>
+      </template>
+    </SideBySidePicker>
 
     <!-- Side-by-Side Supervisors Modal -->
     <SideBySidePicker
@@ -420,12 +434,18 @@ const confirmMove = reactive({
   existingRoom: null,
 });
 
+const showAssignedRoom = ref(false);
+
 // Computed: Available students with room info
 const availableStudents = computed(() => {
   const memberIds = studentsModal.students.map((s) => s.studentId || s.id);
-  return allStudents.value
-    .filter((s) => !memberIds.includes(s.id))
-    .map((s) => {
+  let students = allStudents.value.filter((s) => !memberIds.includes(s.id));
+
+  if (!showAssignedRoom.value) {
+    students = students.filter(s => !s.room?.name);
+  }
+
+  return students.map((s) => {
       const roomName = s.room?.name;
       return {
         ...s,

@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import { eq, and, sql, desc } from "drizzle-orm";
+import { eq, and, sql, desc, lt, gt, ne } from "drizzle-orm";
 import { db } from "../db";
 import {
   classes,
@@ -30,7 +30,7 @@ import {
 async function checkDuplicateSubject(
   name: string,
   gradesStr: string | null | undefined,
-  excludeId?: number
+  excludeId?: number,
 ) {
   // Find all subjects with same name (limit to reasonable amount if needed, but names are usually unique-ish)
   const candidates = await db.query.subjects.findMany({
@@ -119,7 +119,7 @@ academicRoute.get("/classes", async (c) => {
               where: eq(teachers.id, ht.teacherId),
             });
             return { ...ht, teacher };
-          })
+          }),
         );
 
         // Also keep backward compatibility with single homeroom teacher
@@ -136,7 +136,7 @@ academicRoute.get("/classes", async (c) => {
           homeRoomTeacher,
           homeroomTeachers,
         };
-      })
+      }),
     );
 
     return c.json({
@@ -229,7 +229,7 @@ academicRoute.post(
       console.error("Create class error:", error);
       return c.json({ success: false, message: "Failed to create class" }, 500);
     }
-  }
+  },
 );
 
 // Update class
@@ -268,25 +268,29 @@ academicRoute.put(
       console.error("Update class error:", error);
       return c.json({ success: false, message: "Failed to update class" }, 500);
     }
-  }
+  },
 );
 
 // Delete class
-academicRoute.delete("/classes/:id", requirePermission("/apps/academic/classes"), async (c) => {
-  try {
-    const id = parseInt(c.req.param("id"));
+academicRoute.delete(
+  "/classes/:id",
+  requirePermission("/apps/academic/classes"),
+  async (c) => {
+    try {
+      const id = parseInt(c.req.param("id"));
 
-    await db.delete(classes).where(eq(classes.id, id));
+      await db.delete(classes).where(eq(classes.id, id));
 
-    return c.json({
-      success: true,
-      message: "Class deleted successfully",
-    });
-  } catch (error) {
-    console.error("Delete class error:", error);
-    return c.json({ success: false, message: "Failed to delete class" }, 500);
-  }
-});
+      return c.json({
+        success: true,
+        message: "Class deleted successfully",
+      });
+    } catch (error) {
+      console.error("Delete class error:", error);
+      return c.json({ success: false, message: "Failed to delete class" }, 500);
+    }
+  },
+);
 
 // Assign student to class
 academicRoute.post(
@@ -302,7 +306,7 @@ academicRoute.post(
       if (!studentId) {
         return c.json(
           { success: false, message: "Student ID is required" },
-          400
+          400,
         );
       }
 
@@ -330,7 +334,7 @@ academicRoute.post(
       if (student.classId === classId) {
         return c.json(
           { success: false, message: "Santri sudah ada di kelas ini" },
-          400
+          400,
         );
       }
 
@@ -370,10 +374,10 @@ academicRoute.post(
       console.error("Assign student to class error:", error);
       return c.json(
         { success: false, message: "Gagal menambahkan santri ke kelas" },
-        500
+        500,
       );
     }
-  }
+  },
 );
 
 // ============ CLASS HOMEROOM TEACHERS ============
@@ -399,7 +403,7 @@ academicRoute.get("/classes/:id/homeroom-teachers", async (c) => {
           ...ht,
           teacher,
         };
-      })
+      }),
     );
 
     return c.json({
@@ -410,7 +414,7 @@ academicRoute.get("/classes/:id/homeroom-teachers", async (c) => {
     console.error("Get homeroom teachers error:", error);
     return c.json(
       { success: false, message: "Failed to get homeroom teachers" },
-      500
+      500,
     );
   }
 });
@@ -428,7 +432,7 @@ academicRoute.post(
       if (!teacherId) {
         return c.json(
           { success: false, message: "Teacher ID is required" },
-          400
+          400,
         );
       }
 
@@ -455,13 +459,13 @@ academicRoute.post(
       const existing = await db.query.classHomeroomTeachers.findFirst({
         where: and(
           eq(classHomeroomTeachers.classId, classId),
-          eq(classHomeroomTeachers.teacherId, teacherId)
+          eq(classHomeroomTeachers.teacherId, teacherId),
         ),
       });
       if (existing) {
         return c.json(
           { success: false, message: "Teacher is already a homeroom teacher" },
-          400
+          400,
         );
       }
 
@@ -479,10 +483,10 @@ academicRoute.post(
       console.error("Add homeroom teacher error:", error);
       return c.json(
         { success: false, message: "Failed to add homeroom teacher" },
-        500
+        500,
       );
     }
-  }
+  },
 );
 
 // Remove homeroom teacher from class
@@ -499,14 +503,14 @@ academicRoute.delete(
       const existing = await db.query.classHomeroomTeachers.findFirst({
         where: and(
           eq(classHomeroomTeachers.classId, classId),
-          eq(classHomeroomTeachers.teacherId, teacherId)
+          eq(classHomeroomTeachers.teacherId, teacherId),
         ),
       });
 
       if (!existing) {
         return c.json(
           { success: false, message: "Homeroom teacher not found" },
-          404
+          404,
         );
       }
 
@@ -522,10 +526,10 @@ academicRoute.delete(
       console.error("Remove homeroom teacher error:", error);
       return c.json(
         { success: false, message: "Failed to remove homeroom teacher" },
-        500
+        500,
       );
     }
-  }
+  },
 );
 
 // ============ SUBJECTS ============
@@ -600,10 +604,10 @@ academicRoute.post(
       console.error("Create subject error:", error);
       return c.json(
         { success: false, message: "Failed to create subject" },
-        500
+        500,
       );
     }
-  }
+  },
 );
 
 // Update subject
@@ -633,7 +637,7 @@ academicRoute.put(
         const dupCheck = await checkDuplicateSubject(
           data.name,
           gradesToCheck,
-          id
+          id,
         );
         if (dupCheck.isDuplicate) {
           return c.json({ success: false, message: dupCheck.message }, 400);
@@ -661,35 +665,56 @@ academicRoute.put(
       console.error("Update subject error:", error);
       return c.json(
         { success: false, message: "Failed to update subject" },
-        500
+        500,
       );
     }
-  }
+  },
 );
 
 // Delete subject
-academicRoute.delete("/subjects/:id", requirePermission("/apps/academic/classes"), async (c) => {
-  try {
-    const id = parseInt(c.req.param("id"));
+academicRoute.delete(
+  "/subjects/:id",
+  requirePermission("/apps/academic/classes"),
+  async (c) => {
+    try {
+      const id = parseInt(c.req.param("id"));
 
-    await db.delete(subjects).where(eq(subjects.id, id));
+      await db.delete(subjects).where(eq(subjects.id, id));
 
-    return c.json({
-      success: true,
-      message: "Subject deleted successfully",
-    });
-  } catch (error) {
-    console.error("Delete subject error:", error);
-    return c.json({ success: false, message: "Failed to delete subject" }, 500);
-  }
-});
+      return c.json({
+        success: true,
+        message: "Subject deleted successfully",
+      });
+    } catch (error) {
+      console.error("Delete subject error:", error);
+      return c.json(
+        { success: false, message: "Failed to delete subject" },
+        500,
+      );
+    }
+  },
+);
 
 // ============ SCHEDULES ============
 
 // Get all schedules
 academicRoute.get("/schedules", async (c) => {
   try {
-    const allSchedules = await db.query.schedules.findMany();
+    const academicYear = c.req.query("academicYear");
+    const semesterStr = c.req.query("semester");
+    const semester = semesterStr ? parseInt(semesterStr) : undefined;
+
+    const conditions = [];
+    if (academicYear) {
+      conditions.push(eq(schedules.academicYear, academicYear));
+    }
+    if (semester) {
+      conditions.push(eq(schedules.semester, semester));
+    }
+
+    const allSchedules = await db.query.schedules.findMany({
+      where: conditions.length > 0 ? and(...conditions) : undefined,
+    });
 
     return c.json({
       success: true,
@@ -705,8 +730,20 @@ academicRoute.get("/schedules", async (c) => {
 academicRoute.get("/schedules/class/:classId", async (c) => {
   try {
     const classId = parseInt(c.req.param("classId"));
+    const academicYear = c.req.query("academicYear");
+    const semesterStr = c.req.query("semester");
+    const semester = semesterStr ? parseInt(semesterStr) : undefined;
+
+    const conditions = [eq(schedules.classId, classId)];
+    if (academicYear) {
+      conditions.push(eq(schedules.academicYear, academicYear));
+    }
+    if (semester) {
+      conditions.push(eq(schedules.semester, semester));
+    }
+
     const classSchedules = await db.query.schedules.findMany({
-      where: eq(schedules.classId, classId),
+      where: and(...conditions),
     });
 
     // Group by day
@@ -719,13 +756,16 @@ academicRoute.get("/schedules/class/:classId", async (c) => {
       "Jumat",
       "Sabtu",
     ];
-    const grouped = classSchedules.reduce((acc, schedule) => {
-      const dayIndex = schedule.dayOfWeek ?? 0;
-      const dayName = dayNames[dayIndex]!;
-      if (!acc[dayName]) acc[dayName] = [];
-      acc[dayName].push(schedule);
-      return acc;
-    }, {} as Record<string, typeof classSchedules>);
+    const grouped = classSchedules.reduce(
+      (acc, schedule) => {
+        const dayIndex = schedule.dayOfWeek ?? 0;
+        const dayName = dayNames[dayIndex]!;
+        if (!acc[dayName]) acc[dayName] = [];
+        acc[dayName].push(schedule);
+        return acc;
+      },
+      {} as Record<string, typeof classSchedules>,
+    );
 
     return c.json({
       success: true,
@@ -744,8 +784,20 @@ academicRoute.get("/schedules/class/:classId", async (c) => {
 academicRoute.get("/schedules/teacher/:teacherId", async (c) => {
   try {
     const teacherId = parseInt(c.req.param("teacherId"));
+    const academicYear = c.req.query("academicYear");
+    const semesterStr = c.req.query("semester");
+    const semester = semesterStr ? parseInt(semesterStr) : undefined;
+
+    const conditions = [eq(schedules.teacherId, teacherId)];
+    if (academicYear) {
+      conditions.push(eq(schedules.academicYear, academicYear));
+    }
+    if (semester) {
+      conditions.push(eq(schedules.semester, semester));
+    }
+
     const teacherSchedules = await db.query.schedules.findMany({
-      where: eq(schedules.teacherId, teacherId),
+      where: and(...conditions),
     });
 
     // Group by day
@@ -758,13 +810,16 @@ academicRoute.get("/schedules/teacher/:teacherId", async (c) => {
       "Jumat",
       "Sabtu",
     ];
-    const grouped = teacherSchedules.reduce((acc, schedule) => {
-      const dayIndex = schedule.dayOfWeek ?? 0;
-      const dayName = dayNames[dayIndex]!;
-      if (!acc[dayName]) acc[dayName] = [];
-      acc[dayName].push(schedule);
-      return acc;
-    }, {} as Record<string, typeof teacherSchedules>);
+    const grouped = teacherSchedules.reduce(
+      (acc, schedule) => {
+        const dayIndex = schedule.dayOfWeek ?? 0;
+        const dayName = dayNames[dayIndex]!;
+        if (!acc[dayName]) acc[dayName] = [];
+        acc[dayName].push(schedule);
+        return acc;
+      },
+      {} as Record<string, typeof teacherSchedules>,
+    );
 
     return c.json({
       success: true,
@@ -788,6 +843,58 @@ academicRoute.post(
     try {
       const data = c.req.valid("json");
 
+      // ====== ANTI-CLASH VALIDATION ======
+      // Check for Teacher Clash
+      const teacherClash = await db.query.schedules.findFirst({
+        where: and(
+          eq(schedules.teacherId, data.teacherId),
+          eq(schedules.dayOfWeek, data.dayOfWeek),
+          lt(schedules.startTime, data.endTime),
+          gt(schedules.endTime, data.startTime),
+          data.academicYear
+            ? eq(schedules.academicYear, data.academicYear)
+            : undefined,
+          data.semester ? eq(schedules.semester, data.semester) : undefined,
+        ),
+      });
+
+      if (teacherClash) {
+        return c.json(
+          {
+            success: false,
+            message:
+              "Bentrok: Guru tersebut sudah memiliki jadwal di kelas lain pada waktu yang beririsan.",
+          },
+          400,
+        );
+      }
+
+      // Check for Class Clash
+      const classClash = await db.query.schedules.findFirst({
+        where: and(
+          eq(schedules.classId, data.classId),
+          eq(schedules.dayOfWeek, data.dayOfWeek),
+          lt(schedules.startTime, data.endTime),
+          gt(schedules.endTime, data.startTime),
+          data.academicYear
+            ? eq(schedules.academicYear, data.academicYear)
+            : undefined,
+          data.semester ? eq(schedules.semester, data.semester) : undefined,
+        ),
+      });
+
+      if (classClash) {
+        return c.json(
+          {
+            success: false,
+            message:
+              "Bentrok: Kelas ini sudah memiliki jadwal mata pelajaran lain pada waktu yang beririsan.",
+          },
+          400,
+        );
+      }
+      // ===================================
+
       const result = await db.insert(schedules).values(data);
 
       const newSchedule = await db.query.schedules.findFirst({
@@ -803,10 +910,10 @@ academicRoute.post(
       console.error("Create schedule error:", error);
       return c.json(
         { success: false, message: "Failed to create schedule" },
-        500
+        500,
       );
     }
-  }
+  },
 );
 
 // Update schedule
@@ -818,6 +925,75 @@ academicRoute.put(
     try {
       const id = parseInt(c.req.param("id"));
       const data = c.req.valid("json");
+
+      // Fetch existing schedule to merge data for validation if partial update
+      const existingSchedule = await db.query.schedules.findFirst({
+        where: eq(schedules.id, id),
+      });
+
+      if (!existingSchedule) {
+        return c.json({ success: false, message: "Schedule not found" }, 404);
+      }
+
+      const mergedData = { ...existingSchedule, ...data };
+
+      // ====== ANTI-CLASH VALIDATION ======
+      // Check for Teacher Clash
+      const teacherClash = await db.query.schedules.findFirst({
+        where: and(
+          ne(schedules.id, id),
+          eq(schedules.teacherId, mergedData.teacherId),
+          eq(schedules.dayOfWeek, mergedData.dayOfWeek),
+          lt(schedules.startTime, mergedData.endTime),
+          gt(schedules.endTime, mergedData.startTime),
+          mergedData.academicYear
+            ? eq(schedules.academicYear, mergedData.academicYear)
+            : undefined,
+          mergedData.semester
+            ? eq(schedules.semester, mergedData.semester)
+            : undefined,
+        ),
+      });
+
+      if (teacherClash) {
+        return c.json(
+          {
+            success: false,
+            message:
+              "Bentrok: Guru tersebut sudah memiliki jadwal di kelas lain pada waktu yang beririsan.",
+          },
+          400,
+        );
+      }
+
+      // Check for Class Clash
+      const classClash = await db.query.schedules.findFirst({
+        where: and(
+          ne(schedules.id, id),
+          eq(schedules.classId, mergedData.classId),
+          eq(schedules.dayOfWeek, mergedData.dayOfWeek),
+          lt(schedules.startTime, mergedData.endTime),
+          gt(schedules.endTime, mergedData.startTime),
+          mergedData.academicYear
+            ? eq(schedules.academicYear, mergedData.academicYear)
+            : undefined,
+          mergedData.semester
+            ? eq(schedules.semester, mergedData.semester)
+            : undefined,
+        ),
+      });
+
+      if (classClash) {
+        return c.json(
+          {
+            success: false,
+            message:
+              "Bentrok: Kelas ini sudah memiliki jadwal mata pelajaran lain pada waktu yang beririsan.",
+          },
+          400,
+        );
+      }
+      // ===================================
 
       await db
         .update(schedules)
@@ -837,10 +1013,10 @@ academicRoute.put(
       console.error("Update schedule error:", error);
       return c.json(
         { success: false, message: "Failed to update schedule" },
-        500
+        500,
       );
     }
-  }
+  },
 );
 
 // Delete schedule
@@ -861,10 +1037,10 @@ academicRoute.delete(
       console.error("Delete schedule error:", error);
       return c.json(
         { success: false, message: "Failed to delete schedule" },
-        500
+        500,
       );
     }
-  }
+  },
 );
 
 // ============ GRADES ============
@@ -909,7 +1085,7 @@ academicRoute.post(
           eq(grades.studentId, data.studentId),
           eq(grades.subjectId, data.subjectId),
           eq(grades.academicYear, data.academicYear),
-          eq(grades.semester, data.semester)
+          eq(grades.semester, data.semester),
         ),
       });
 
@@ -1016,7 +1192,7 @@ academicRoute.post(
       console.error("Create grade error:", error);
       return c.json({ success: false, message: "Failed to add grade" }, 500);
     }
-  }
+  },
 );
 
 // Update grade
@@ -1092,7 +1268,7 @@ academicRoute.put(
       console.error("Update grade error:", error);
       return c.json({ success: false, message: "Failed to update grade" }, 500);
     }
-  }
+  },
 );
 
 // Get grades with filters (for report card)
@@ -1172,7 +1348,7 @@ academicRoute.get("/grades", async (c) => {
         if (grade?.averageScore) {
           calculatedGrade = await calculateGrade(
             Number(grade.averageScore),
-            subject.id
+            subject.id,
           );
         }
 
@@ -1199,7 +1375,7 @@ academicRoute.get("/grades", async (c) => {
           notes: grade?.notes || null,
           subject,
         };
-      })
+      }),
     );
 
     return c.json({ success: true, data: mergedData });
@@ -1223,7 +1399,7 @@ academicRoute.get(
       if (!classId || !subjectId || !academicYear || !semester) {
         return c.json(
           { success: false, message: "Missing required params" },
-          400
+          400,
         );
       }
 
@@ -1241,7 +1417,7 @@ academicRoute.get(
           eq(grades.classId, Number(classId)),
           eq(grades.subjectId, Number(subjectId)),
           eq(grades.academicYear, academicYear),
-          eq(grades.semester, Number(semester))
+          eq(grades.semester, Number(semester)),
         ),
       });
 
@@ -1263,10 +1439,10 @@ academicRoute.get(
       console.error("Get grades list error:", error);
       return c.json(
         { success: false, message: "Failed to get grades list" },
-        500
+        500,
       );
     }
-  }
+  },
 );
 
 // Bulk save grades
@@ -1318,7 +1494,7 @@ academicRoute.post(
               eq(grades.studentId, item.studentId),
               eq(grades.subjectId, item.subjectId),
               eq(grades.academicYear, item.academicYear),
-              eq(grades.semester, item.semester)
+              eq(grades.semester, item.semester),
             ),
           });
 
@@ -1394,7 +1570,7 @@ academicRoute.post(
       console.error("Bulk save grades error:", error);
       return c.json({ success: false, message: "Gagal menyimpan nilai" }, 500);
     }
-  }
+  },
 );
 
 // ============ REPORTS ============
@@ -1453,14 +1629,14 @@ academicRoute.post(
         where: and(
           eq(grades.studentId, data.studentId),
           eq(grades.academicYear, data.academicYear),
-          eq(grades.semester, data.semester)
+          eq(grades.semester, data.semester),
         ),
       });
 
       // Calculate totals
       const totalScore = studentGrades.reduce(
         (sum, g) => sum + (parseFloat(g.averageScore ?? "0") || 0),
-        0
+        0,
       );
       const averageScore =
         studentGrades.length > 0 ? totalScore / studentGrades.length : 0;
@@ -1470,7 +1646,7 @@ academicRoute.post(
         where: and(
           eq(reports.studentId, data.studentId),
           eq(reports.academicYear, data.academicYear),
-          eq(reports.semester, data.semester)
+          eq(reports.semester, data.semester),
         ),
       });
 
@@ -1524,10 +1700,10 @@ academicRoute.post(
       console.error("Generate report error:", error);
       return c.json(
         { success: false, message: "Failed to generate report" },
-        500
+        500,
       );
     }
-  }
+  },
 );
 
 // Update report
@@ -1568,10 +1744,10 @@ academicRoute.put(
       console.error("Update report error:", error);
       return c.json(
         { success: false, message: "Failed to update report" },
-        500
+        500,
       );
     }
-  }
+  },
 );
 
 // Helper to get setting
@@ -1602,7 +1778,7 @@ const getArabicGrade = (letter: string) => {
 // Helper: Calculate Grade based on Predicates
 async function calculateGrade(
   score: number,
-  subjectId: number
+  subjectId: number,
 ): Promise<{ letterGrade: string; predicate: string; letterGradeAr: string }> {
   // 1. Try to get grading_rules setting (Legacy KKM-based / JSON)
   // This supports "Per KKM" (Specific) or "Global" mode from the old UI
@@ -1642,7 +1818,7 @@ async function calculateGrade(
 
       // Find matching rule in the applied set
       const match = rulesToApply.find(
-        (r: any) => score >= r.min && score <= r.max
+        (r: any) => score >= r.min && score <= r.max,
       );
 
       if (match) {
@@ -1667,7 +1843,7 @@ async function calculateGrade(
   if (predicates.length > 0) {
     // Find the matching range
     const match = predicates.find(
-      (p) => score >= Number(p.minScore) && score <= Number(p.maxScore)
+      (p) => score >= Number(p.minScore) && score <= Number(p.maxScore),
     );
 
     if (match) {
@@ -1722,43 +1898,47 @@ academicRoute.get(
     } catch (e: any) {
       return c.json({ success: false, message: e.message }, 500);
     }
-  }
+  },
 );
 
 // Create predicate
-academicRoute.post("/settings/predicates", requirePermission("/apps/academic/classes"), async (c) => {
-  try {
-    const body = await c.req.json();
-    // Basic validation
-    if (
-      !body.grade ||
-      body.minScore === undefined ||
-      body.maxScore === undefined
-    ) {
-      return c.json(
-        { success: false, message: "Missing required fields" },
-        400
-      );
+academicRoute.post(
+  "/settings/predicates",
+  requirePermission("/apps/academic/classes"),
+  async (c) => {
+    try {
+      const body = await c.req.json();
+      // Basic validation
+      if (
+        !body.grade ||
+        body.minScore === undefined ||
+        body.maxScore === undefined
+      ) {
+        return c.json(
+          { success: false, message: "Missing required fields" },
+          400,
+        );
+      }
+
+      const res = await db.insert(reportCardPredicates).values({
+        grade: body.grade,
+        minScore: String(body.minScore),
+        maxScore: String(body.maxScore),
+        description: body.description,
+        descriptionAr: body.descriptionAr,
+        sortOrder: body.sortOrder || 0,
+      });
+
+      return c.json({
+        success: true,
+        message: "Predikat berhasil ditambahkan",
+        id: res[0].insertId,
+      });
+    } catch (e: any) {
+      return c.json({ success: false, message: e.message }, 500);
     }
-
-    const res = await db.insert(reportCardPredicates).values({
-      grade: body.grade,
-      minScore: String(body.minScore),
-      maxScore: String(body.maxScore),
-      description: body.description,
-      descriptionAr: body.descriptionAr,
-      sortOrder: body.sortOrder || 0,
-    });
-
-    return c.json({
-      success: true,
-      message: "Predikat berhasil ditambahkan",
-      id: res[0].insertId,
-    });
-  } catch (e: any) {
-    return c.json({ success: false, message: e.message }, 500);
-  }
-});
+  },
+);
 
 // Update predicate
 academicRoute.put(
@@ -1785,7 +1965,7 @@ academicRoute.put(
     } catch (e: any) {
       return c.json({ success: false, message: e.message }, 500);
     }
-  }
+  },
 );
 
 // Delete predicate
@@ -1802,7 +1982,7 @@ academicRoute.delete(
     } catch (e: any) {
       return c.json({ success: false, message: e.message }, 500);
     }
-  }
+  },
 );
 
 // ============ IMPORT SUBJECTS ============
@@ -1838,7 +2018,7 @@ academicRoute.post(
             message:
               "Invalid file type. Please upload an Excel file (.xlsx or .xls)",
           },
-          400
+          400,
         );
       }
 
@@ -1856,7 +2036,7 @@ academicRoute.post(
             success: false,
             message: "Excel file is empty or has no data rows",
           },
-          400
+          400,
         );
       }
 
@@ -1910,7 +2090,7 @@ academicRoute.post(
           for (const [key, field] of Object.entries(columnMapping)) {
             // Case insensitive match
             const foundKey = Object.keys(row).find(
-              (k) => k.toLowerCase() === key.toLowerCase()
+              (k) => k.toLowerCase() === key.toLowerCase(),
             );
             if (foundKey) {
               rawData[field] = row[foundKey];
@@ -1974,7 +2154,7 @@ academicRoute.post(
       console.error("Preview grade import error:", error);
       return c.json({ success: false, message: error.message }, 500);
     }
-  }
+  },
 );
 
 // Import grades from Excel
@@ -2003,7 +2183,7 @@ academicRoute.post(
             success: false,
             message: "Missing context (class/subject/year/semester)",
           },
-          400
+          400,
         );
       }
 
@@ -2012,7 +2192,7 @@ academicRoute.post(
       const workbook = XLSX.read(buffer, { type: "array" });
       const sheetName = workbook.SheetNames[0]!;
       const data = XLSX.utils.sheet_to_json(
-        workbook.Sheets[sheetName]!
+        workbook.Sheets[sheetName]!,
       ) as any[];
 
       const results = { success: 0, failed: 0, errors: [] as any[] };
@@ -2055,7 +2235,7 @@ academicRoute.post(
           const rawData: any = {};
           for (const [key, field] of Object.entries(columnMapping)) {
             const foundKey = Object.keys(row).find(
-              (k) => k.toLowerCase() === key.toLowerCase()
+              (k) => k.toLowerCase() === key.toLowerCase(),
             );
             if (foundKey) rawData[field] = row[foundKey];
           }
@@ -2064,7 +2244,7 @@ academicRoute.post(
           const student = studentMap.get(String(rawData.nis));
           if (!student)
             throw new Error(
-              `Student with NIS ${rawData.nis} not found in this class`
+              `Student with NIS ${rawData.nis} not found in this class`,
             );
 
           // Calculate Meta
@@ -2087,7 +2267,7 @@ academicRoute.post(
           if (averageScore !== undefined) {
             const result = await calculateGrade(
               averageScore,
-              Number(subjectId)
+              Number(subjectId),
             );
             letterGrade = result.letterGrade;
             predicate = result.predicate;
@@ -2100,7 +2280,7 @@ academicRoute.post(
               eq(grades.studentId, student.id),
               eq(grades.subjectId, Number(subjectId)),
               eq(grades.academicYear, String(academicYear)),
-              eq(grades.semester, Number(semester))
+              eq(grades.semester, Number(semester)),
             ),
           });
 
@@ -2152,7 +2332,7 @@ academicRoute.post(
       console.error("Import grades error:", error);
       return c.json({ success: false, message: error.message }, 500);
     }
-  }
+  },
 );
 
 // Preview import subjects from Excel
@@ -2184,7 +2364,7 @@ academicRoute.post(
             message:
               "Invalid file type. Please upload an Excel file (.xlsx or .xls)",
           },
-          400
+          400,
         );
       }
 
@@ -2202,7 +2382,7 @@ academicRoute.post(
             success: false,
             message: "Excel file is empty or has no data rows",
           },
-          400
+          400,
         );
       }
 
@@ -2302,7 +2482,7 @@ academicRoute.post(
           // CHECK DUPLICATE BY NAME & GRADE OVERLAP (DB)
           const dupDB = await checkDuplicateSubject(
             subjectData.name,
-            subjectData.grades
+            subjectData.grades,
           );
           if (dupDB.isDuplicate) {
             preview.duplicateName++;
@@ -2323,7 +2503,7 @@ academicRoute.post(
               if (isOverlap) {
                 preview.duplicateName++;
                 throw new Error(
-                  `Duplikat dengan baris ${entry.row} (Nama & Kelas bertabrakan)`
+                  `Duplikat dengan baris ${entry.row} (Nama & Kelas bertabrakan)`,
                 );
               }
             }
@@ -2357,7 +2537,7 @@ academicRoute.post(
       console.error("Preview import error:", error);
       return c.json({ success: false, message: error?.message }, 500);
     }
-  }
+  },
 );
 
 // Import subjects from Excel
@@ -2376,7 +2556,7 @@ academicRoute.post(
       const workbook = XLSX.read(buffer, { type: "array" });
       const sheetName = workbook.SheetNames[0]!;
       const data = XLSX.utils.sheet_to_json(
-        workbook.Sheets[sheetName]!
+        workbook.Sheets[sheetName]!,
       ) as any[];
 
       const columnMapping: { [key: string]: string } = {
@@ -2457,7 +2637,7 @@ academicRoute.post(
           // CHECK DUPLICATE BY NAME & GRADE OVERLAP (DB)
           const dupDB = await checkDuplicateSubject(
             rawData.name,
-            rawData.grades
+            rawData.grades,
           );
           if (dupDB.isDuplicate) {
             throw new Error(dupDB.message!);
@@ -2476,7 +2656,7 @@ academicRoute.post(
                 g1.some((x) => g2.includes(x));
               if (isOverlap) {
                 throw new Error(
-                  `Duplikat dengan baris ${entry.row} (Nama & Kelas bertabrakan)`
+                  `Duplikat dengan baris ${entry.row} (Nama & Kelas bertabrakan)`,
                 );
               }
             }
@@ -2510,7 +2690,7 @@ academicRoute.post(
       console.error("Import error:", error);
       return c.json({ success: false, message: error.message }, 500);
     }
-  }
+  },
 );
 
 export default academicRoute;
