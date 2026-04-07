@@ -1154,19 +1154,25 @@ async function openInputModal() {
     currentUser.value = userRes.data;
   }
 
-  // Fetch a default teacher ID if user doesn't have a linked teacher profile (e.g., Admin)
+  // Resolve actual teacher ID for the current logged-in user
   if (
     currentUser.value &&
     !currentUser.value.teacher?.id &&
     !defaultTeacherId.value
   ) {
     try {
-      const teachersRes = await teachersApi.getAll({ limit: 1 });
-      if (teachersRes.data && teachersRes.data.length > 0) {
-        defaultTeacherId.value = teachersRes.data[0].id;
+      const userId = currentUser.value.id;
+      const teachersRes = await teachersApi.getAll();
+      if (teachersRes.data && Array.isArray(teachersRes.data)) {
+        const teacher = teachersRes.data.find(t => t.userId === userId);
+        if (teacher) {
+           defaultTeacherId.value = teacher.id;
+        } else if (teachersRes.data.length > 0) {
+           defaultTeacherId.value = teachersRes.data[0].id; // Fallback for Admin
+        }
       }
     } catch (e) {
-      console.error("Failed to fetch default teacher:", e);
+      console.error("Failed to fetch teacher profile:", e);
     }
   }
 

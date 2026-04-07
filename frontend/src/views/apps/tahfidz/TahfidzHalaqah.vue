@@ -777,7 +777,7 @@ import { ref, reactive, computed, onMounted, watch } from "vue";
 import { Icon } from "@iconify/vue";
 import ConfirmModal from "@/components/ui/ConfirmModal.vue";
 import StatusModal from "@/components/ui/StatusModal.vue";
-import { tahfidzApi, halaqahApi, authApi, quranApi } from "@/services/api";
+import { tahfidzApi, halaqahApi, authApi, quranApi, teachersApi } from "@/services/api";
 
 const loading = ref(false);
 const saving = ref(false);
@@ -1061,12 +1061,48 @@ async function loadInitial() {
       myHalaqahs.value = res.data;
 
       if (myHalaqahs.value.length > 0) {
-        // Keeps selection if valid, else selects first
+        // Keeps selection if valid, else selects the user's halaqah or first
         if (
           !selectedHalaqahId.value ||
           !myHalaqahs.value.find((h) => h.id === selectedHalaqahId.value)
         ) {
-          selectedHalaqahId.value = myHalaqahs.value[0].id;
+          let matchedHalaqah = null;
+          try {
+            const userStr = localStorage.getItem("user");
+            if (userStr) {
+              const user = JSON.parse(userStr);
+              let userTeacherId = user?.teacher?.id;
+              const userId = user?.id;
+
+              // If teacherId is missing but we have userId, cross-reference with teachersApi
+              if (!userTeacherId && userId) {
+                 try {
+                     const teacherRes = await teachersApi.getAll();
+                     if (teacherRes && Array.isArray(teacherRes.data)) {
+                         const teacher = teacherRes.data.find(t => t.userId === userId);
+                         if (teacher) {
+                             userTeacherId = teacher.id;
+                         }
+                     }
+                 } catch(err) {
+                    console.warn("Could not fetch teacher relation for auto-select", err);
+                 }
+              }
+
+              matchedHalaqah = myHalaqahs.value.find((h) => {
+                if (!h.mentors || !Array.isArray(h.mentors)) return false;
+                return h.mentors.some(
+                  (m) =>
+                    (userTeacherId && m.teacherId === userTeacherId) ||
+                    (!userTeacherId && userId && m.teacherId === userId) // emergency fallback
+                );
+              });
+            }
+          } catch (e) {
+            console.warn("Auto-select halaqah user parsing error", e);
+          }
+
+          selectedHalaqahId.value = matchedHalaqah ? matchedHalaqah.id : myHalaqahs.value[0].id;
         }
         loadDateData();
         loadMonthlyStats();
@@ -1408,14 +1444,28 @@ async function processDepositSubmission() {
 
   try {
     const userRes = await authApi.getCurrentUser();
-    let teacherId = userRes.data?.teacher?.id;
+    let teacherId = null;
+    const userId = userRes.data?.id;
+
+    if (userId) {
+       try {
+           const teacherRes = await teachersApi.getAll();
+           if (teacherRes && Array.isArray(teacherRes.data)) {
+               const teacher = teacherRes.data.find(t => t.userId === userId);
+               if (teacher) teacherId = teacher.id;
+           }
+       } catch (err) {
+           console.warn("Failed to fetch teacher relation for submission", err);
+       }
+    }
+
     if (!teacherId && selectedHalaqah.value?.mentors?.length > 0) {
       teacherId =
         selectedHalaqah.value.mentors[0].teacherId ||
         selectedHalaqah.value.mentors[0].id;
     }
     if (!teacherId) {
-      teacherId = userRes.data?.id || 1;
+      teacherId = userId || 1;
     }
 
     const studentsToProcess = [];
