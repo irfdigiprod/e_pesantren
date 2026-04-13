@@ -1175,8 +1175,9 @@ async function fetchSettings() {
 }
 
 // Geolocation
-let geoId;
+let geoTimeoutId = null;
 const currentPos = ref({ lat: null, lng: null });
+const isUpdatingLocation = ref(false); // Lock to prevent concurrent requests
 
 // Smart tolerance: Consider GPS accuracy when determining if user is within radius
 // Uses "minimum possible distance" = calculated distance - accuracy (benefit of the doubt)
@@ -1464,13 +1465,42 @@ function getCurrentPosition() {
         navigator.geolocation.getCurrentPosition(
           (pos) => resolve(pos),
           (err2) => reject(err2),
-          { enableHighAccuracy: false, timeout: 15000, maximumAge: 120000 }
+          { enableHighAccuracy: false, timeout: 10000, maximumAge: 120000 }
         );
       },
-
-      { enableHighAccuracy: true, timeout: 30000, maximumAge: 10000 }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 10000 }
     );
   });
+}
+
+// Helper to translate GeolocationPositionError to user-friendly messages
+async function getGeoErrorMessage(err) {
+  if (err.code === 1) {
+    // PERMISSION_DENIED: Check if it's really a user denial or an OS/browser issue
+    // Some Android browsers report code=1 even when location services are off at OS level
+    if (navigator.permissions) {
+      try {
+        const result = await navigator.permissions.query({ name: "geolocation" });
+        if (result.state === "granted") {
+          // Browser has permission, but OS denied → location services off
+          return "Layanan lokasi HP dimatikan. Aktifkan GPS di Pengaturan HP Anda.";
+        } else if (result.state === "prompt") {
+          // Permission not yet decided, browser might be blocking silently
+          return "Izin lokasi belum diberikan. Izinkan akses lokasi saat diminta browser.";
+        }
+      } catch (e) {
+        // Permissions API not fully supported
+      }
+    }
+    return "Izin lokasi ditolak. Aktifkan izin lokasi di pengaturan browser Anda.";
+  }
+  if (err.code === 2) {
+    return "Lokasi tidak tersedia. Pastikan GPS aktif dan Anda berada di area terbuka.";
+  }
+  if (err.code === 3) {
+    return "Waktu pencarian lokasi habis. Pastikan GPS aktif dan coba lagi.";
+  }
+  return err.message || "Gagal mendapatkan lokasi.";
 }
 
 async function handleCheckIn() {
@@ -1639,12 +1669,16 @@ async function startNewSession() {
   await handleCheckIn();
 }
 
-// Helper to update location (used by interval)
+// Helper to update location (used by polling)
 async function updateLocation() {
   if (!isComponentMounted.value || !navigator.geolocation) return;
 
+  // Prevent concurrent geolocation requests
+  if (isUpdatingLocation.value) return;
+  isUpdatingLocation.value = true;
+
   try {
-    const pos = await getCurrentPosition(); // Use our robust helper
+    const pos = await getCurrentPosition();
 
     currentPos.value = {
       lat: pos.coords.latitude,
@@ -1669,22 +1703,33 @@ async function updateLocation() {
 
       if (calculatedDistance !== null) {
         distance.value = calculatedDistance;
-        locationError.value = ""; // Clear error only on success
+        locationError.value = ""; // Clear error on success
       } else {
-        // Settings coordinates might be invalid
         locationError.value = "Koordinat pusat absensi belum dikonfigurasi.";
       }
     } else {
-      // Settings not configured
       locationError.value =
         "Pengaturan lokasi absensi belum dikonfigurasi. Hubungi admin.";
     }
   } catch (err) {
     console.debug("Location poll error:", err.message);
+    // Only show error if we haven't gotten any position yet
     if (currentPos.value.lat == null) {
-      locationError.value = "Sedang mencari lokasi... (" + err.message + ")";
+      const friendlyMsg = await getGeoErrorMessage(err);
+      locationError.value = "Sedang mencari lokasi... " + friendlyMsg;
     }
+    // If we already have a position, keep using the last known one silently
+  } finally {
+    isUpdatingLocation.value = false;
   }
+}
+
+function scheduleNextPoll() {
+  if (!isComponentMounted.value) return;
+  geoTimeoutId = setTimeout(async () => {
+    await updateLocation();
+    scheduleNextPoll(); // Schedule next after current one completes
+  }, 5000);
 }
 
 function startGeolocation() {
@@ -1693,17 +1738,10 @@ function startGeolocation() {
     return;
   }
 
-  // Initial update
-  updateLocation();
-
-  // Set interval for polling (every 5 seconds)
-  geoId = setInterval(() => {
-    if (!isComponentMounted.value) {
-      clearInterval(geoId);
-      return;
-    }
-    updateLocation();
-  }, 5000);
+  // Initial update, then start polling chain
+  updateLocation().then(() => {
+    scheduleNextPoll();
+  });
 }
 
 onMounted(async () => {
@@ -1716,6 +1754,6 @@ onMounted(async () => {
 
 onUnmounted(() => {
   isComponentMounted.value = false;
-  if (geoId) clearInterval(geoId); // Clear interval instead of clearWatch
+  if (geoTimeoutId) clearTimeout(geoTimeoutId);
 });
 </script>
