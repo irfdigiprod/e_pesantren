@@ -132,13 +132,20 @@ export async function request(endpoint, options = {}) {
     const data = await parseResponse(res);
 
     if (!res.ok) {
-      // Handle Unauthorized (Token Expired)
+      // Handle Unauthorized
       if (res.status === 401) {
-        removeToken();
-        if (window.location.pathname !== "/login") {
-          window.location.href = "/login";
+        if (includeAuth) {
+          // Token expired/invalid on a protected endpoint → clear session & redirect
+          removeToken();
+          if (window.location.pathname !== "/login") {
+            window.location.href = "/login";
+          }
+          throw new Error("Sesi Anda telah berakhir. Silakan login kembali.");
         }
-        throw new Error("Sesi Anda telah berakhir. Silakan login kembali.");
+        // Login/register failure → pass through server's error message
+        const loginErrorMsg =
+          data?.message || data?.errors || "Email atau password salah";
+        throw new Error(loginErrorMsg);
       }
 
       let errorMsg =
