@@ -15,25 +15,60 @@ import {
   updatePermissionStatusSchema,
 } from "../validators/permissions";
 import { createNotification, notifyAdmins } from "../utils/notifications";
+import { rolePermissions, userPermissions } from "../db/schema/permissions";
 
 const permissionsRoute = new Hono();
 
 permissionsRoute.use("*", authMiddleware);
 
-// Get My Permissions (or All if Admin)
+// Helper function to check if user has permission to view all permissions
+async function hasPermissionToViewAll(user: any): Promise<boolean> {
+  try {
+    // Check user-specific permissions first
+    const userPerm = await db.query.userPermissions.findFirst({
+      where: and(
+        eq(userPermissions.userId, user.userId),
+        eq(userPermissions.routePath, "/apps/attendance/approvals"),
+      ),
+    });
+
+    if (userPerm) {
+      return userPerm.isAllowed;
+    }
+
+    // Check role-based permissions
+    const rolePerm = await db.query.rolePermissions.findFirst({
+      where: and(
+        eq(rolePermissions.role, user.role),
+        eq(rolePermissions.routePath, "/apps/attendance/approvals"),
+      ),
+    });
+
+    return rolePerm?.isAllowed ?? false;
+  } catch (error) {
+    console.error("Error checking view all permissions:", error);
+    return false;
+  }
+}
+
+// Get My Permissions (or All if Admin/Has Permission)
 permissionsRoute.get("/", async (c) => {
   try {
     const user = c.get("user");
     let results;
 
-    if (user.role === "admin") {
-      // Admin sees specific teacher or all
+    // Check if user has admin role OR has explicit permission to manage permissions
+    const hasFullAccess =
+      user.role === "admin" || (await hasPermissionToViewAll(user));
+
+    if (hasFullAccess) {
+      // Admin or authorized user sees all permissions
       const teacherId = c.req.query("teacherId");
       if (teacherId) {
         results = await db.query.permissionRequests.findMany({
           where: eq(permissionRequests.teacherId, parseInt(teacherId)),
           orderBy: [desc(permissionRequests.createdAt)],
-          with: { teacher: true }, // Assuming relation exists or we just fetch manually
+          with: { teacher: true },
         });
       } else {
         // Fetch all permissions
@@ -42,16 +77,11 @@ permissionsRoute.get("/", async (c) => {
           .from(permissionRequests)
           .orderBy(desc(permissionRequests.createdAt));
 
-        // Fetch teachers manually to avoid join issues (lateral join or otherwise)
+        // Fetch teachers manually to avoid join issues
         const teacherIds = [...new Set(allPermissions.map((p) => p.teacherId))];
 
         let teachersMap = new Map();
         if (teacherIds.length > 0) {
-          // Import inArray dynamically if needed or assume existing import (will check imports)
-          // For now, let's just use Promise.all if ID list is small, or use inArray if available.
-          // Better: Check imports at top of file, but I am in a replace block.
-          // I'll assume I need to add inArray to imports.
-          // Let's use a clear findMany for teachers.
           const teachersList = await db.query.teachers.findMany({
             where: (t, { inArray }) => inArray(t.id, teacherIds),
           });
@@ -78,7 +108,7 @@ permissionsRoute.get("/", async (c) => {
             success: false,
             message: "Teacher profile not found. Your role is: " + user.role,
           },
-          404
+          404,
         );
 
       results = await db.query.permissionRequests.findMany({
@@ -97,7 +127,7 @@ permissionsRoute.get("/", async (c) => {
           "Failed to fetch permissions: " +
           (e instanceof Error ? e.message : String(e)),
       },
-      500
+      500,
     );
   }
 });
@@ -135,7 +165,7 @@ permissionsRoute.get("/mine", async (c) => {
           "Failed to fetch permissions: " +
           (e instanceof Error ? e.message : String(e)),
       },
-      500
+      500,
     );
   }
 });
@@ -160,7 +190,7 @@ permissionsRoute.post(
       } else {
         return c.json(
           { success: false, message: "Only teachers can submit currently." },
-          403
+          403,
         );
       }
 
@@ -187,7 +217,7 @@ permissionsRoute.post(
           permissionId: null, // Insert ID not easily available with simple insert if not returned, but insert returns result object in mysql usually
           teacherId,
           type: payload.type,
-        }
+        },
       );
 
       return c.json({
@@ -198,10 +228,10 @@ permissionsRoute.post(
       console.error("Submit permission error", e);
       return c.json(
         { success: false, message: "Failed to submit permission" },
-        500
+        500,
       );
     }
-  }
+  },
 );
 
 // Approve/Reject (Admin)
@@ -272,7 +302,7 @@ permissionsRoute.post(
           const existing = await db.query.teacherAttendances.findFirst({
             where: and(
               eq(teacherAttendances.teacherId, req.teacherId),
-              eq(teacherAttendances.date, isoDate as any)
+              eq(teacherAttendances.date, isoDate as any),
             ),
           });
 
@@ -331,7 +361,7 @@ permissionsRoute.post(
           "permission_status",
           title,
           message,
-          { permissionId: id, status }
+          { permissionId: id, status },
         );
       }
 
@@ -340,10 +370,10 @@ permissionsRoute.post(
       console.error("Update status error", e);
       return c.json(
         { success: false, message: "Failed to update status" },
-        500
+        500,
       );
     }
-  }
+  },
 );
 
 // Manage Permission by Date (Toggle/Delete)
@@ -356,7 +386,7 @@ permissionsRoute.post(
       action: z.enum(["toggle", "delete"]),
       teacherId: z.number(),
       date: z.string(), // YYYY-MM-DD
-    })
+    }),
   ),
   async (c) => {
     const { action, teacherId, date } = c.req.valid("json");
@@ -366,7 +396,7 @@ permissionsRoute.post(
       const requests = await db.query.permissionRequests.findMany({
         where: and(
           eq(permissionRequests.teacherId, teacherId),
-          eq(permissionRequests.status, "approved")
+          eq(permissionRequests.status, "approved"),
         ),
       });
 
@@ -383,7 +413,7 @@ permissionsRoute.post(
             success: false,
             message: "No active permission found for this date.",
           },
-          404
+          404,
         );
       }
 
@@ -397,7 +427,7 @@ permissionsRoute.post(
           where: and(
             eq(teacherAttendances.teacherId, teacherId),
             sql`${teacherAttendances.date} >= ${start}`,
-            sql`${teacherAttendances.date} <= ${end}`
+            sql`${teacherAttendances.date} <= ${end}`,
           ),
         });
 
@@ -464,7 +494,7 @@ permissionsRoute.post(
               success: false,
               message: "Current status cannot be toggled.",
             },
-            400
+            400,
           );
         }
       } else if (action === "delete") {
@@ -479,8 +509,8 @@ permissionsRoute.post(
             and(
               eq(teacherAttendances.teacherId, teacherId),
               sql`${teacherAttendances.date} >= ${start}`,
-              sql`${teacherAttendances.date} <= ${end}`
-            )
+              sql`${teacherAttendances.date} <= ${end}`,
+            ),
           );
 
         // 2. Delete Request
@@ -499,10 +529,10 @@ permissionsRoute.post(
       console.error("Manage permission error", e);
       return c.json(
         { success: false, message: "Failed to manage permission." },
-        500
+        500,
       );
     }
-  }
+  },
 );
 
 export default permissionsRoute;
