@@ -1,0 +1,2 @@
+ALTER TABLE `teacher_attendances` MODIFY COLUMN `status` enum('present','absent','sick','permitted','late','sick_deduct','sick_no_deduct','permit_deduct','permit_no_deduct','leave_deduct','leave_no_deduct') NOT NULL;--> statement-breakpoint
+ALTER TABLE `permission_requests` MODIFY COLUMN `type` enum('sick','permit','leave') NOT NULL;
