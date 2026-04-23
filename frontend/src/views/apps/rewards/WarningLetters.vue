@@ -525,7 +525,7 @@ async function fetchWarnings() {
 
 async function fetchStudents() {
   try {
-    const res = await studentsApi.getAll();
+    const res = await studentsApi.getAll({ limit: 0 });
     if (res.data) {
       if (Array.isArray(res.data)) students.value = res.data;
       else if (res.data.data) students.value = res.data.data;
@@ -588,8 +588,7 @@ function onSearchStudent() {
     .filter(
       (s) =>
         s.fullName.toLowerCase().includes(q) || s.nis?.toLowerCase().includes(q)
-    )
-    .slice(0, 5);
+    );
   showStudentDropdown.value = true;
 }
 function selectStudent(s) {

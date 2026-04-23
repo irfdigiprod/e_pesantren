@@ -50,8 +50,8 @@ const statusModal = reactive({
 async function fetchInitialData() {
   try {
     const [studentRes, ruleRes] = await Promise.all([
-      studentsApi.getAll(),
-      rulesApi.getAll(),
+      studentsApi.getAll({ limit: 0 }),
+      rulesApi.getAll({ limit: 0 }),
     ]);
 
     if (studentRes.data) {

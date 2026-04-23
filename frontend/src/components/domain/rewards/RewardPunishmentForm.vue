@@ -417,8 +417,7 @@ function onSearchStudent() {
     .filter(
       (s) =>
         s.fullName.toLowerCase().includes(q) || s.nis?.toLowerCase().includes(q)
-    )
-    .slice(0, 10);
+    );
   showStudentDropdown.value = true;
 }
 
@@ -466,8 +465,7 @@ function onSearchRule() {
     .filter(
       (r) =>
         r.name.toLowerCase().includes(q) || r.category.toLowerCase().includes(q)
-    )
-    .slice(0, 10);
+    );
   showRuleDropdown.value = true;
 }
 
