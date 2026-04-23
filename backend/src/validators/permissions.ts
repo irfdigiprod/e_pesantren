@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const createPermissionSchema = z.object({
-  type: z.enum(["sick", "permit"]),
+  type: z.enum(["sick", "permit", "leave"]),
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format"),
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format"),
   reason: z.string().min(3, "Reason must be at least 3 characters"),

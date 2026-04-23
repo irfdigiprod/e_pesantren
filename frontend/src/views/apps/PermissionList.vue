@@ -74,10 +74,12 @@
           :class="
             item.type === 'sick'
               ? 'bg-rose-100 text-rose-800'
+              : item.type === 'leave'
+              ? 'bg-purple-100 text-purple-800'
               : 'bg-blue-100 text-blue-800'
           "
         >
-          {{ item.type === "sick" ? "Sakit" : "Izin" }}
+          {{ item.type === "sick" ? "Sakit" : item.type === "leave" ? "Cuti" : "Izin" }}
         </span>
       </template>
 
@@ -165,10 +167,12 @@
                 :class="
                   item.type === 'sick'
                     ? 'bg-rose-100 text-rose-800'
+                    : item.type === 'leave'
+                    ? 'bg-purple-100 text-purple-800'
                     : 'bg-blue-100 text-blue-800'
                 "
               >
-                {{ item.type === "sick" ? "Sakit" : "Izin" }}
+                {{ item.type === "sick" ? "Sakit" : item.type === "leave" ? "Cuti" : "Izin" }}
               </span>
               <span
                 class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium"
@@ -258,7 +262,7 @@
 
           <div class="p-6 overflow-y-auto space-y-4 flex-1 min-h-0">
             <!-- Type -->
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-3 gap-4">
               <button
                 type="button"
                 class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all"
@@ -287,6 +291,22 @@
                   class="w-8 h-8"
                 />
                 <span class="font-medium">Izin</span>
+              </button>
+              <button
+                type="button"
+                class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all"
+                :class="
+                  form.type === 'leave'
+                    ? 'border-purple-500 bg-purple-50 text-purple-700'
+                    : 'border-slate-200 hover:border-slate-300 text-slate-600'
+                "
+                @click="form.type = 'leave'"
+              >
+                <Icon
+                  icon="solar:calendar-date-bold-duotone"
+                  class="w-8 h-8"
+                />
+                <span class="font-medium">Cuti</span>
               </button>
             </div>
 

@@ -17,7 +17,7 @@ export const permissionRequests = mysqlTable("permission_requests", {
   teacherId: int("teacher_id")
     .references(() => teachers.id)
     .notNull(),
-  type: mysqlEnum("type", ["sick", "permit"]).notNull(),
+  type: mysqlEnum("type", ["sick", "permit", "leave"]).notNull(),
   startDate: date("start_date").notNull(),
   endDate: date("end_date").notNull(),
   reason: text("reason").notNull(),

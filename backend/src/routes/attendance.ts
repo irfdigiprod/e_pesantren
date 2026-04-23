@@ -845,6 +845,8 @@ attendanceRoute.get("/teachers/recap", requirePermission("/apps/attendance"), as
       let totalSickNoDeduct = 0;
       let totalPermitDeduct = 0;
       let totalPermitNoDeduct = 0;
+      let totalLeaveDeduct = 0;
+      let totalLeaveNoDeduct = 0;
 
       Object.values(dailyMap).forEach((day: any) => {
         if (day.status === "present") totalPresence++;
@@ -857,6 +859,8 @@ attendanceRoute.get("/teachers/recap", requirePermission("/apps/attendance"), as
         if (day.status === "sick_deduct") totalPermitDeduct++;
         if (day.status === "permit_no_deduct") totalPermitNoDeduct++;
         if (day.status === "sick_no_deduct") totalPermitNoDeduct++;
+        if (day.status === "leave_deduct") totalLeaveDeduct++;
+        if (day.status === "leave_no_deduct") totalLeaveNoDeduct++;
         totalHours += day.totalMinutes / 60;
       });
 
@@ -872,6 +876,8 @@ attendanceRoute.get("/teachers/recap", requirePermission("/apps/attendance"), as
           hours: parseFloat(totalHours.toFixed(2)),
           permitDeduct: totalPermitDeduct,
           permitNoDeduct: totalPermitNoDeduct,
+          leaveDeduct: totalLeaveDeduct,
+          leaveNoDeduct: totalLeaveNoDeduct,
         },
       };
     });

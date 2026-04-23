@@ -258,7 +258,13 @@
                 Izin Potong
               </th>
               <th class="px-4 py-3 font-semibold text-center text-emerald-600">
-                Izin Tanpa Potong
+                Izin Tdk Potong
+              </th>
+              <th class="px-4 py-3 font-semibold text-center text-purple-600">
+                Cuti Potong
+              </th>
+              <th class="px-4 py-3 font-semibold text-center text-teal-600">
+                Cuti Tdk Potong
               </th>
               <th
                 class="px-4 py-3 font-semibold text-center bg-indigo-50 text-indigo-700"
@@ -384,6 +390,48 @@
                       >IT</span
                     >
                   </div>
+                  <!-- Leave (Potong) -->
+                  <div
+                    v-else-if="
+                      ['leave_deduct'].includes(
+                        teacher.daily[date.iso].status
+                      )
+                    "
+                  >
+                    <span
+                      class="px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-bold text-[10px] cursor-pointer hover:bg-purple-200 hover:scale-105 transition-all"
+                      title="Cuti Potong Gaji (Klik untuk ubah/hapus)"
+                      @click.stop="
+                        handlePermissionClick(
+                          teacher.daily[date.iso],
+                          teacher.id,
+                          date.iso
+                        )
+                      "
+                      >CP</span
+                    >
+                  </div>
+                  <!-- Leave (Tidak Potong) -->
+                  <div
+                    v-else-if="
+                      ['leave_no_deduct'].includes(
+                        teacher.daily[date.iso].status
+                      )
+                    "
+                  >
+                    <span
+                      class="px-1.5 py-0.5 rounded bg-teal-100 text-teal-700 font-bold text-[10px] cursor-pointer hover:bg-teal-200 hover:scale-105 transition-all"
+                      title="Cuti Tanpa Potong (Klik untuk ubah/hapus)"
+                      @click.stop="
+                        handlePermissionClick(
+                          teacher.daily[date.iso],
+                          teacher.id,
+                          date.iso
+                        )
+                      "
+                      >CT</span
+                    >
+                  </div>
                   <!-- Sick (legacy/simple) -->
                   <div v-else-if="teacher.daily[date.iso].status === 'sick'">
                     <span
@@ -425,11 +473,17 @@
               <td class="px-4 py-3 text-center font-medium text-emerald-600">
                 {{ teacher.stats.permitNoDeduct || 0 }}
               </td>
+              <td class="px-4 py-3 text-center font-medium text-purple-600">
+                {{ teacher.stats.leaveDeduct || 0 }}
+              </td>
+              <td class="px-4 py-3 text-center font-medium text-teal-600">
+                {{ teacher.stats.leaveNoDeduct || 0 }}
+              </td>
               <td
                 class="px-4 py-3 text-center font-bold text-indigo-700 bg-indigo-50/30"
               >
                 {{
-                  teacher.stats.presence + (teacher.stats.permitNoDeduct || 0)
+                  teacher.stats.presence + (teacher.stats.permitNoDeduct || 0) + (teacher.stats.leaveNoDeduct || 0)
                 }}
               </td>
             </tr>
@@ -503,13 +557,13 @@
             <div class="bg-indigo-50 rounded-lg p-2">
               <div class="text-lg font-bold text-indigo-700">
                 {{
-                  teacher.stats.presence + (teacher.stats.permitNoDeduct || 0)
+                  teacher.stats.presence + (teacher.stats.permitNoDeduct || 0) + (teacher.stats.leaveNoDeduct || 0)
                 }}
               </div>
               <div class="text-xs text-indigo-600">Hari Dibayar</div>
             </div>
           </div>
-          <div class="grid grid-cols-3 gap-3 text-center mt-2">
+          <div class="grid grid-cols-5 gap-3 text-center mt-2">
             <div class="bg-slate-50 rounded-lg p-2">
               <div class="text-sm font-semibold text-slate-600">
                 {{ teacher.stats.hours }}h
@@ -520,13 +574,25 @@
               <div class="text-sm font-semibold text-rose-600">
                 {{ teacher.stats.permitDeduct || 0 }}
               </div>
-              <div class="text-xs text-rose-500">Izin Potong</div>
+              <div class="text-[10px] text-rose-500">Izin Potong</div>
             </div>
             <div class="bg-emerald-50 rounded-lg p-2">
               <div class="text-sm font-semibold text-emerald-600">
                 {{ teacher.stats.permitNoDeduct || 0 }}
               </div>
-              <div class="text-xs text-emerald-500">Izin Tidak Potong</div>
+              <div class="text-[10px] text-emerald-500">Izin Tidak Potong</div>
+            </div>
+            <div class="bg-purple-50 rounded-lg p-2">
+              <div class="text-sm font-semibold text-purple-600">
+                {{ teacher.stats.leaveDeduct || 0 }}
+              </div>
+              <div class="text-[10px] text-purple-500">Cuti Potong</div>
+            </div>
+            <div class="bg-teal-50 rounded-lg p-2">
+              <div class="text-sm font-semibold text-teal-600">
+                {{ teacher.stats.leaveNoDeduct || 0 }}
+              </div>
+              <div class="text-[10px] text-teal-500">Cuti Tidak Potong</div>
             </div>
           </div>
         </div>
@@ -631,8 +697,8 @@
               <div class="text-[10px] opacity-80">
                 {{
                   isDeduct(permissionActionModal.status)
-                    ? "Ubah menjadi IT (Izin)"
-                    : "Ubah menjadi IP (Izin Potong)"
+                    ? (permissionActionModal.status.includes("leave") ? "Ubah menjadi CT (Cuti Tidak Potong)" : "Ubah menjadi IT (Izin Tidak Potong)")
+                    : (permissionActionModal.status.includes("leave") ? "Ubah menjadi CP (Cuti Potong)" : "Ubah menjadi IP (Izin Potong)")
                 }}
               </div>
             </div>
@@ -1026,7 +1092,7 @@ function handlePermissionClick(item, teacherId, dateIso) {
 }
 
 function isDeduct(status) {
-  return ["permit_deduct", "sick_deduct", "permitted", "sick"].includes(status);
+  return ["permit_deduct", "sick_deduct", "leave_deduct", "permitted", "sick", "leave"].includes(status);
 }
 
 function formatDate(iso) {

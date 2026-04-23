@@ -62,6 +62,8 @@ export const teacherAttendances = mysqlTable("teacher_attendances", {
     "sick_no_deduct", // Sakit - Tidak Potong Gaji
     "permit_deduct", // Izin - Potong Gaji
     "permit_no_deduct", // Izin - Tidak Potong Gaji
+    "leave_deduct", // Cuti - Potong Gaji
+    "leave_no_deduct", // Cuti - Tidak Potong Gaji
   ]).notNull(),
   activity: varchar("activity", { length: 100 }),
   notes: text("notes"),

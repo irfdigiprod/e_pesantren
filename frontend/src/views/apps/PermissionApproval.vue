@@ -86,10 +86,12 @@
           :class="
             item.type === 'sick'
               ? 'bg-rose-100 text-rose-800'
+              : item.type === 'leave'
+              ? 'bg-purple-100 text-purple-800'
               : 'bg-blue-100 text-blue-800'
           "
         >
-          {{ item.type === "sick" ? "Sakit" : "Izin" }}
+          {{ item.type === "sick" ? "Sakit" : item.type === "leave" ? "Cuti" : "Izin" }}
         </span>
       </template>
 
@@ -228,10 +230,12 @@
                 :class="
                   item.type === 'sick'
                     ? 'bg-rose-100 text-rose-800'
+                    : item.type === 'leave'
+                    ? 'bg-purple-100 text-purple-800'
                     : 'bg-blue-100 text-blue-800'
                 "
               >
-                {{ item.type === "sick" ? "Sakit" : "Izin" }}
+                {{ item.type === "sick" ? "Sakit" : item.type === "leave" ? "Cuti" : "Izin" }}
               </span>
               <span
                 class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium"

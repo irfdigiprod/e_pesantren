@@ -285,6 +285,8 @@ permissionsRoute.post(
         let attendStatus: string;
         if (req.type === "sick") {
           attendStatus = deductSalary ? "sick_deduct" : "sick_no_deduct";
+        } else if (req.type === "leave") {
+          attendStatus = deductSalary ? "leave_deduct" : "leave_no_deduct";
         } else {
           attendStatus = deductSalary ? "permit_deduct" : "permit_no_deduct";
         }
@@ -296,7 +298,7 @@ permissionsRoute.post(
             continue;
           }
 
-          const isoDate = d.toISOString().split("T")[0];
+          const isoDate = (d.toISOString().split("T")[0]) as string;
 
           // Check if attendance already exists
           const existing = await db.query.teacherAttendances.findFirst({
@@ -446,22 +448,28 @@ permissionsRoute.post(
 
         if (
           currentStatus === "permit_deduct" ||
-          currentStatus === "sick_deduct"
+          currentStatus === "sick_deduct" ||
+          currentStatus === "leave_deduct"
         ) {
           // Switch to No Deduct
           newStatus =
             currentStatus === "sick_deduct"
               ? "sick_no_deduct"
+              : currentStatus === "leave_deduct"
+              ? "leave_no_deduct"
               : "permit_no_deduct";
           newNoteSuffix = " (Tidak Potong Gaji)";
         } else if (
           currentStatus === "permit_no_deduct" ||
-          currentStatus === "sick_no_deduct"
+          currentStatus === "sick_no_deduct" ||
+          currentStatus === "leave_no_deduct"
         ) {
           // Switch to Deduct
           newStatus =
             currentStatus === "sick_no_deduct"
               ? "sick_deduct"
+              : currentStatus === "leave_no_deduct"
+              ? "leave_deduct"
               : "permit_deduct";
           newNoteSuffix = " (Potong Gaji)";
         } else {
@@ -470,6 +478,7 @@ permissionsRoute.post(
           // Fallback legacy "permitted" -> "permit_deduct"
           if (currentStatus === "permitted") newStatus = "permit_deduct";
           else if (currentStatus === "sick") newStatus = "sick_deduct";
+          else if ((currentStatus as any) === "leave") newStatus = "leave_deduct";
         }
 
         if (newStatus) {
