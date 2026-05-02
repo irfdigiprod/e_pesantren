@@ -186,6 +186,10 @@ function onChatMessagesRead() {
   loadUnreadMessages();
 }
 
+function onNotificationsRead() {
+  loadUnreadMessages();
+}
+
 function toggleNotificationPopup() {
   showNotificationPopup.value = !showNotificationPopup.value;
   if (showNotificationPopup.value) showMenu.value = false;
@@ -235,6 +239,7 @@ function goToNotificationDetail(notification) {
     router.push("/mobile-dashboard/notifications");
   }
   closeNotificationPopup();
+  window.dispatchEvent(new CustomEvent("notifications-read"));
 }
 
 function formatNotificationTime(dateStr) {
@@ -326,6 +331,7 @@ onMounted(() => {
   });
 
   window.addEventListener("chat-messages-read", onChatMessagesRead);
+  window.addEventListener("notifications-read", onNotificationsRead);
 
   const token = localStorage.getItem("token");
   if (token) {
@@ -337,6 +343,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener("chat-messages-read", onChatMessagesRead);
+  window.removeEventListener("notifications-read", onNotificationsRead);
   unsubscribeFunctions.forEach((unsub) => unsub());
 });
 </script>
@@ -404,7 +411,7 @@ onUnmounted(() => {
                       : goToNotificationDetail(item)
                   "
                 >
-                  <div class="flex gap-3">
+                  <div class="flex gap-3 overflow-hidden">
                     <div class="shrink-0 pt-1">
                       <div
                         v-if="item.itemType === 'chat'"
@@ -425,7 +432,7 @@ onUnmounted(() => {
                         />
                       </div>
                     </div>
-                    <div class="min-w-0 flex-1">
+                    <div class="min-w-0 flex-1 overflow-hidden">
                       <div class="flex justify-between items-baseline mb-0.5">
                         <p
                           class="text-sm font-semibold text-slate-800 truncate pr-2"
@@ -440,7 +447,7 @@ onUnmounted(() => {
                           formatNotificationTime(item.time || item.createdAt)
                         }}</span>
                       </div>
-                      <p class="text-xs text-slate-500 line-clamp-2">
+                      <p class="text-xs text-slate-500 line-clamp-2 break-words">
                         {{
                           item.itemType === "chat" ? item.preview : item.message
                         }}
@@ -456,6 +463,15 @@ onUnmounted(() => {
                 />
                 <p class="text-xs">Tidak ada notifikasi</p>
               </div>
+            </div>
+            <!-- Footer -->
+            <div class="px-4 py-3 border-t border-slate-100 bg-slate-50 shrink-0">
+              <button
+                @click="goToNotifications"
+                class="w-full text-center text-sm text-[#602515] hover:text-amber-700 font-medium"
+              >
+                Lihat Semua Notifikasi
+              </button>
             </div>
           </div>
         </transition>

@@ -1418,12 +1418,23 @@ export { getToken, setToken, removeToken, BASE_URL };
 // ============================================
 
 export const notificationsApi = {
-  async getAll() {
-    return request("/api/notifications");
+  async getAll(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    const endpoint = query
+      ? `/api/notifications?${query}`
+      : "/api/notifications";
+    return request(endpoint);
   },
 
   async markAsRead(id) {
     return request(`/api/notifications/${id}/read`, { method: "POST" });
+  },
+
+  async markSelectedRead(ids) {
+    return request("/api/notifications/read-selected", {
+      method: "POST",
+      body: { ids },
+    });
   },
 
   async respond(id, action) {

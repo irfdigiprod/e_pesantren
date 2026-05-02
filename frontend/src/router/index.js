@@ -408,6 +408,12 @@ const router = createRouter({
           component: () => import("@/views/apps/tahfidz/TahfidzSettings.vue"),
           meta: { title: "Pengaturan Tahfidz" },
         },
+        {
+          path: "notifications",
+          name: "MobileNotifications",
+          component: () => import("@/views/pages/Notifications.vue"),
+          meta: { title: "Notifikasi" },
+        },
       ],
     },
 

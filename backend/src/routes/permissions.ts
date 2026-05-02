@@ -94,6 +94,7 @@ permissionsRoute.get("/", async (c) => {
           teacherName: teachersMap.get(p.teacherId)?.fullName,
           teacherNip: teachersMap.get(p.teacherId)?.nip,
           teacherDivision: teachersMap.get(p.teacherId)?.department,
+          teacherGender: teachersMap.get(p.teacherId)?.gender,
         }));
       }
     } else {
@@ -442,7 +443,7 @@ permissionsRoute.post(
           });
         }
 
-        const currentStatus = attendances[0].status;
+        const currentStatus = attendances[0]?.status;
         let newStatus: string | null = null;
         let newNoteSuffix = "";
 

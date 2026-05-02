@@ -254,6 +254,11 @@ function onChatMessagesRead() {
   loadUnreadMessages();
 }
 
+// Listen for custom event when Notifications page marks notifications as read
+function onNotificationsRead() {
+  loadUnreadMessages();
+}
+
 function toggleNotificationPopup() {
   showNotificationPopup.value = !showNotificationPopup.value;
 }
@@ -320,6 +325,9 @@ function goToNotificationDetail(notification) {
   }
 
   closeNotificationPopup();
+
+  // Dispatch event so Notifications page can sync if open
+  window.dispatchEvent(new CustomEvent("notifications-read"));
 }
 
 function formatNotificationTime(dateStr) {
@@ -392,6 +400,7 @@ onMounted(() => {
   loadInstitutionName(); // Load institution name from settings
   window.addEventListener("user-updated", onUserUpdated);
   window.addEventListener("chat-messages-read", onChatMessagesRead);
+  window.addEventListener("notifications-read", onNotificationsRead);
 
   // Setup WebSocket for notifications
   const token = localStorage.getItem("token");
@@ -404,6 +413,7 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener("user-updated", onUserUpdated);
   window.removeEventListener("chat-messages-read", onChatMessagesRead);
+  window.removeEventListener("notifications-read", onNotificationsRead);
   // Clean up WebSocket listeners
   unsubscribeFunctions.forEach((unsub) => unsub());
   unsubscribeFunctions = [];
@@ -557,14 +567,14 @@ function goSettings() {
                     <template v-if="item.itemType === 'chat'">
                       <div
                         @click="goToConversation(item.conversationId)"
-                        class="cursor-pointer flex flex-1 gap-3"
+                        class="cursor-pointer flex flex-1 gap-3 overflow-hidden"
                       >
                         <div
                           class="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center text-sm font-semibold flex-shrink-0"
                         >
                           {{ item.senderInitial }}
                         </div>
-                        <div class="flex-1 min-w-0">
+                        <div class="flex-1 min-w-0 overflow-hidden">
                           <div class="flex items-center justify-between gap-2">
                             <span class="font-medium text-slate-800 truncate">{{
                               item.senderName
@@ -618,7 +628,7 @@ function goSettings() {
                                 }}</span
                               >
                             </div>
-                            <p class="text-sm text-slate-500 break-words mb-1">
+                            <p class="text-sm text-slate-500 break-words line-clamp-2 mb-1">
                               {{ item.message }}
                             </p>
 

@@ -1,6 +1,26 @@
 <template>
-  <div class="space-y-6 overflow-hidden max-w-full">
-    <DataTable
+  <div class="space-y-6 overflow-hidden max-w-full flex flex-col h-full">
+    <!-- Tabs -->
+    <div class="flex gap-4 border-b border-slate-200">
+      <button
+        @click="activeTab = 'approval'"
+        class="pb-2 text-sm font-medium transition-colors border-b-2"
+        :class="activeTab === 'approval' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700'"
+      >
+        Persetujuan
+      </button>
+      <button
+        @click="activeTab = 'recap'"
+        class="pb-2 text-sm font-medium transition-colors border-b-2"
+        :class="activeTab === 'recap' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700'"
+      >
+        Rekap
+      </button>
+    </div>
+
+    <!-- Tab Content: Approval -->
+    <div v-show="activeTab === 'approval'" class="space-y-6">
+      <DataTable
       :items="paginatedPermissions"
       :columns="columns"
       :loading="loading"
@@ -112,9 +132,22 @@
 
       <!-- Cell: Reason -->
       <template #cell-reason="{ item }">
-        <p class="line-clamp-2 text-slate-600 max-w-xs" :title="item.reason">
-          {{ item.reason }}
-        </p>
+        <div class="max-w-xs">
+          <p
+            class="text-slate-600"
+            :class="{ 'line-clamp-2': !expandedReasons.has(item.id) }"
+            :title="item.reason"
+          >
+            {{ item.reason }}
+          </p>
+          <button
+            v-if="item.reason && item.reason.length > 80"
+            @click.stop="toggleExpandReason(item.id)"
+            class="text-xs text-primary hover:text-amber-700 font-medium mt-0.5"
+          >
+            {{ expandedReasons.has(item.id) ? 'Sembunyikan' : 'Selengkapnya' }}
+          </button>
+        </div>
         <p class="text-xs text-slate-400 mt-1">
           {{ new Date(item.createdAt).toLocaleDateString("id-ID") }}
         </p>
@@ -256,9 +289,21 @@
               s.d {{ formatDate(item.endDate) }}
             </span>
           </div>
-          <p class="text-sm text-slate-600 mb-3 line-clamp-2 mt-auto">
-            {{ item.reason }}
-          </p>
+          <div class="mb-3 mt-auto">
+            <p
+              class="text-sm text-slate-600"
+              :class="{ 'line-clamp-2': !expandedReasons.has(item.id) }"
+            >
+              {{ item.reason }}
+            </p>
+            <button
+              v-if="item.reason && item.reason.length > 60"
+              @click.stop="toggleExpandReason(item.id)"
+              class="text-xs text-primary hover:text-amber-700 font-medium mt-1"
+            >
+              {{ expandedReasons.has(item.id) ? 'Sembunyikan' : 'Baca selengkapnya' }}
+            </button>
+          </div>
 
           <!-- Rejection Reason -->
           <div
@@ -331,6 +376,111 @@
         </div>
       </template>
     </DataTable>
+    </div>
+
+    <!-- Tab Content: Recap -->
+    <div v-show="activeTab === 'recap'" class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
+      <!-- Header & Filters -->
+      <div class="p-4 border-b border-slate-200 bg-slate-50 flex flex-col gap-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-lg font-bold text-slate-800">Rekap Perizinan</h2>
+            <p class="text-sm text-slate-500">Ringkasan pengajuan izin per guru/staff yang sudah disetujui</p>
+          </div>
+          <button
+            @click="exportRecap"
+            class="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium shadow-sm"
+          >
+            <Icon icon="file-icons:microsoft-excel" class="w-4 h-4" />
+            <span class="hidden sm:inline">Export Excel</span>
+          </button>
+        </div>
+
+        <!-- Filters Row -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <!-- Divisi -->
+          <div>
+            <label class="block text-xs font-medium text-slate-700 mb-1">Divisi</label>
+            <select
+              v-model="recapFilters.division"
+              class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+            >
+              <option value="">Semua Divisi</option>
+              <option v-for="div in uniqueDivisions" :key="div" :value="div">{{ div }}</option>
+            </select>
+          </div>
+          
+          <!-- Gender -->
+          <div>
+            <label class="block text-xs font-medium text-slate-700 mb-1">Jenis Kelamin</label>
+            <select
+              v-model="recapFilters.gender"
+              class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+            >
+              <option value="">Semua</option>
+              <option value="male">Laki-laki</option>
+              <option value="female">Perempuan</option>
+            </select>
+          </div>
+
+          <!-- Date Range -->
+          <div>
+            <label class="block text-xs font-medium text-slate-700 mb-1">Dari Tanggal</label>
+            <input
+              type="date"
+              v-model="recapFilters.startDate"
+              class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+            />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-700 mb-1">Sampai Tanggal</label>
+            <input
+              type="date"
+              v-model="recapFilters.endDate"
+              class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="flex-1 overflow-auto max-h-[600px]">
+        <table class="w-full text-left border-collapse min-w-max relative">
+          <thead class="bg-slate-50 sticky top-0 z-10 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+            <tr>
+              <th class="px-4 py-3 text-xs font-semibold text-slate-600 border-b border-slate-200 w-12 text-center bg-slate-50">No</th>
+              <th class="px-4 py-3 text-xs font-semibold text-slate-600 border-b border-slate-200 bg-slate-50">Nama Lengkap</th>
+              <th class="px-4 py-3 text-xs font-semibold text-slate-600 border-b border-slate-200 bg-slate-50">Divisi</th>
+              <th class="px-4 py-3 text-xs font-semibold text-slate-600 border-b border-slate-200 text-center bg-slate-50">L/P</th>
+              <th class="px-4 py-3 text-xs font-semibold text-slate-600 border-b border-slate-200 text-center bg-slate-50">Sakit</th>
+              <th class="px-4 py-3 text-xs font-semibold text-slate-600 border-b border-slate-200 text-center bg-slate-50">Cuti</th>
+              <th class="px-4 py-3 text-xs font-semibold text-slate-600 border-b border-slate-200 text-center bg-slate-50">Izin</th>
+              <th class="px-4 py-3 text-xs font-semibold text-slate-600 border-b border-slate-200 text-center bg-slate-50">Total</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr v-if="recapData.length === 0">
+              <td colspan="8" class="px-4 py-8 text-center text-slate-500 text-sm">
+                Tidak ada data rekap perizinan.
+              </td>
+            </tr>
+            <tr v-for="(item, idx) in recapData" :key="item.teacherId" class="hover:bg-slate-50 transition-colors">
+              <td class="px-4 py-3 text-sm text-slate-600 text-center">{{ idx + 1 }}</td>
+              <td class="px-4 py-3">
+                <div class="font-medium text-slate-800">{{ item.teacherName || '-' }}</div>
+                <div class="text-xs text-slate-400">{{ item.teacherNip || '-' }}</div>
+              </td>
+              <td class="px-4 py-3 text-sm text-slate-600">{{ item.teacherDivision || '-' }}</td>
+              <td class="px-4 py-3 text-sm text-slate-600 text-center">{{ item.teacherGender === 'male' ? 'L' : item.teacherGender === 'female' ? 'P' : '-' }}</td>
+              <td class="px-4 py-3 text-sm font-medium text-rose-600 text-center">{{ item.sickCount }}</td>
+              <td class="px-4 py-3 text-sm font-medium text-purple-600 text-center">{{ item.leaveCount }}</td>
+              <td class="px-4 py-3 text-sm font-medium text-blue-600 text-center">{{ item.permitCount }}</td>
+              <td class="px-4 py-3 text-sm font-bold text-slate-800 text-center bg-slate-50/50">{{ item.totalCount }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
 
     <!-- Approval Modal with Salary Toggle -->
     <Teleport to="body">
@@ -541,6 +691,10 @@ import { Icon } from "@iconify/vue";
 import { permissionsApi } from "@/services/api";
 import DataTable from "@/components/ui/DataTable.vue";
 import StatusModal from "@/components/ui/StatusModal.vue";
+import { exportPermissionRecapToExcel } from "@/services/exports/permissionRecapExporter";
+
+// Tabs State
+const activeTab = ref("approval");
 
 // Responsive default: card for mobile (<768px), table for desktop
 const isDesktop = window.matchMedia("(min-width: 768px)").matches;
@@ -551,6 +705,92 @@ const loading = ref(false);
 const processing = ref(null);
 const filterStatus = ref("all");
 const search = ref("");
+const expandedReasons = ref(new Set());
+
+// Recap State
+const recapFilters = reactive({
+  division: "",
+  gender: "",
+  startDate: "",
+  endDate: "",
+});
+
+const uniqueDivisions = computed(() => {
+  const divs = new Set();
+  permissions.value.forEach(p => {
+    if (p.teacherDivision) divs.add(p.teacherDivision);
+  });
+  return Array.from(divs).sort();
+});
+
+const recapData = computed(() => {
+  // 1. Filter permissions based on recapFilters
+  // Only count approved permissions for the recap
+  let filtered = permissions.value.filter(p => p.status === 'approved'); 
+
+  if (recapFilters.division) {
+    filtered = filtered.filter(p => p.teacherDivision === recapFilters.division);
+  }
+  if (recapFilters.gender) {
+    filtered = filtered.filter(p => p.teacherGender === recapFilters.gender);
+  }
+  if (recapFilters.startDate) {
+    const start = new Date(recapFilters.startDate);
+    filtered = filtered.filter(p => new Date(p.startDate) >= start);
+  }
+  if (recapFilters.endDate) {
+    const end = new Date(recapFilters.endDate);
+    filtered = filtered.filter(p => new Date(p.startDate) <= end);
+  }
+
+  // 2. Group by teacherId
+  const map = new Map();
+  filtered.forEach(p => {
+    if (!map.has(p.teacherId)) {
+      map.set(p.teacherId, {
+        teacherId: p.teacherId,
+        teacherName: p.teacherName,
+        teacherNip: p.teacherNip,
+        teacherDivision: p.teacherDivision,
+        teacherGender: p.teacherGender,
+        sickCount: 0,
+        leaveCount: 0,
+        permitCount: 0,
+        totalCount: 0
+      });
+    }
+    const t = map.get(p.teacherId);
+    if (p.type === 'sick') t.sickCount++;
+    else if (p.type === 'leave') t.leaveCount++;
+    else if (p.type === 'permit') t.permitCount++;
+    t.totalCount++;
+  });
+
+  // Convert to array and sort by name
+  return Array.from(map.values()).sort((a, b) => {
+    const nameA = a.teacherName || "";
+    const nameB = b.teacherName || "";
+    return nameA.localeCompare(nameB);
+  });
+});
+
+async function exportRecap() {
+  try {
+    await exportPermissionRecapToExcel(recapData.value, recapFilters);
+  } catch (error) {
+    console.error("Export error:", error);
+    showStatus("error", "Gagal Export", "Gagal mengekspor data ke Excel.");
+  }
+}
+
+function toggleExpandReason(id) {
+  if (expandedReasons.value.has(id)) {
+    expandedReasons.value.delete(id);
+  } else {
+    expandedReasons.value.add(id);
+  }
+  expandedReasons.value = new Set(expandedReasons.value);
+}
 
 // Pagination State
 const pagination = reactive({
