@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-6 max-w-full">
     <!-- Tabs -->
-    <div class="flex gap-4 border-b border-slate-200">
+    <div class="flex gap-4 border-b border-slate-200 px-4 md:px-0">
       <button
         @click="activeTab = 'approval'"
         class="pb-2 text-sm font-medium transition-colors border-b-2"
@@ -379,21 +379,51 @@
     </div>
 
     <!-- Tab Content: Recap -->
-    <div v-show="activeTab === 'recap'" class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
+    <div v-show="activeTab === 'recap'" class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col min-h-[500px] mx-4 md:mx-0">
       <!-- Header & Filters -->
       <div class="p-4 border-b border-slate-200 bg-slate-50 flex flex-col gap-4">
-        <div class="flex items-center justify-between">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h2 class="text-lg font-bold text-slate-800">Rekap Perizinan</h2>
             <p class="text-sm text-slate-500">Ringkasan pengajuan izin per guru/staff yang sudah disetujui</p>
           </div>
-          <button
-            @click="exportRecap"
-            class="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium shadow-sm"
-          >
-            <Icon icon="file-icons:microsoft-excel" class="w-4 h-4" />
-            <span class="hidden sm:inline">Export Excel</span>
-          </button>
+          <div class="flex items-center gap-2 self-end sm:self-auto">
+            <!-- View Toggle -->
+            <div class="flex items-center bg-slate-200/50 rounded-lg p-1 border border-slate-200">
+              <button
+                @click="recapViewMode = 'table'"
+                class="p-2 rounded-md transition-all flex items-center justify-center"
+                :class="
+                  recapViewMode === 'table'
+                    ? 'bg-white shadow text-emerald-700'
+                    : 'text-slate-500 hover:text-slate-700'
+                "
+                title="Tampilan Tabel"
+              >
+                <Icon icon="solar:list-bold-duotone" class="w-5 h-5" />
+              </button>
+              <button
+                @click="recapViewMode = 'card'"
+                class="p-2 rounded-md transition-all flex items-center justify-center"
+                :class="
+                  recapViewMode === 'card'
+                    ? 'bg-white shadow text-emerald-700'
+                    : 'text-slate-500 hover:text-slate-700'
+                "
+                title="Tampilan Kartu"
+              >
+                <Icon icon="solar:gallery-wide-bold-duotone" class="w-5 h-5" />
+              </button>
+            </div>
+
+            <button
+              @click="exportRecap"
+              class="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium shadow-sm"
+            >
+              <Icon icon="file-icons:microsoft-excel" class="w-4 h-4" />
+              <span class="hidden sm:inline">Export Excel</span>
+            </button>
+          </div>
         </div>
 
         <!-- Filters Row -->
@@ -443,8 +473,8 @@
         </div>
       </div>
 
-      <!-- Table -->
-      <div class="flex-1 overflow-auto max-h-[600px]">
+      <!-- Table View -->
+      <div v-if="recapViewMode === 'table'" class="flex-1 overflow-auto max-h-[600px]">
         <table class="w-full text-left border-collapse min-w-max relative">
           <thead class="bg-slate-50 sticky top-0 z-10 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
             <tr>
@@ -479,6 +509,45 @@
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <!-- Card View -->
+      <div v-else-if="recapViewMode === 'card'" class="flex-1 overflow-auto max-h-[600px] p-4 bg-slate-50/30">
+        <div v-if="recapData.length === 0" class="p-12 text-center text-slate-500 text-sm border-2 border-dashed border-slate-200 rounded-xl">
+          Tidak ada data rekap perizinan.
+        </div>
+        <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div v-for="(item, idx) in recapData" :key="item.teacherId" class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 hover:shadow-md transition-shadow">
+            <div class="flex items-start justify-between gap-3 mb-4">
+              <div>
+                <div class="font-bold text-slate-800 text-base">{{ item.teacherName || '-' }}</div>
+                <div class="text-xs text-slate-500 mt-0.5">{{ item.teacherNip || '-' }} <span v-if="item.teacherNip && item.teacherDivision">·</span> {{ item.teacherDivision || '-' }}</div>
+              </div>
+              <div class="flex items-center">
+                <span class="text-xs font-bold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-md">{{ item.teacherGender === 'male' ? 'L' : item.teacherGender === 'female' ? 'P' : '-' }}</span>
+              </div>
+            </div>
+            
+            <div class="grid grid-cols-4 gap-2 text-center">
+              <div class="bg-rose-50 rounded-lg p-2 border border-rose-100/50 flex flex-col justify-center">
+                <div class="text-xl font-bold text-rose-600">{{ item.sickCount }}</div>
+                <div class="text-[10px] text-rose-600/80 font-medium uppercase tracking-wider mt-1">Sakit</div>
+              </div>
+              <div class="bg-purple-50 rounded-lg p-2 border border-purple-100/50 flex flex-col justify-center">
+                <div class="text-xl font-bold text-purple-600">{{ item.leaveCount }}</div>
+                <div class="text-[10px] text-purple-600/80 font-medium uppercase tracking-wider mt-1">Cuti</div>
+              </div>
+              <div class="bg-blue-50 rounded-lg p-2 border border-blue-100/50 flex flex-col justify-center">
+                <div class="text-xl font-bold text-blue-600">{{ item.permitCount }}</div>
+                <div class="text-[10px] text-blue-600/80 font-medium uppercase tracking-wider mt-1">Izin</div>
+              </div>
+              <div class="bg-slate-100 rounded-lg p-2 border border-slate-200/50 flex flex-col justify-center">
+                <div class="text-xl font-bold text-slate-700">{{ item.totalCount }}</div>
+                <div class="text-[10px] text-slate-500 font-medium uppercase tracking-wider mt-1">Total</div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -699,6 +768,7 @@ const activeTab = ref("approval");
 // Responsive default: card for mobile (<768px), table for desktop
 const isDesktop = window.matchMedia("(min-width: 768px)").matches;
 const viewMode = ref(isDesktop ? "table" : "card");
+const recapViewMode = ref(isDesktop ? "table" : "card");
 
 const permissions = ref([]);
 const loading = ref(false);
