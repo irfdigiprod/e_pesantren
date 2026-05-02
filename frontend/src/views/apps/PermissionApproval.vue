@@ -1,5 +1,5 @@
 <template>
-  <div class="space-y-6 overflow-hidden max-w-full flex flex-col h-full">
+  <div class="space-y-6 max-w-full">
     <!-- Tabs -->
     <div class="flex gap-4 border-b border-slate-200">
       <button
