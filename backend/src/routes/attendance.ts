@@ -244,7 +244,7 @@ attendanceRoute.post(
 
       const result = await db.insert(studentAttendances).values({
         studentId: data.studentId,
-        date: data.date, // Use string directly
+        date: new Date(data.date), // Wrap in Date to match schema type
         status: data.status,
         notes: data.notes,
         createdBy: user.userId,
@@ -308,7 +308,7 @@ attendanceRoute.post(
           // Create new
           const result = await db.insert(studentAttendances).values({
             studentId: attendance.studentId,
-            date: date, // Use string directly
+            date: new Date(date), // Wrap in Date to match schema type
             status: attendance.status,
             notes: attendance.notes,
             createdBy: user.userId,
