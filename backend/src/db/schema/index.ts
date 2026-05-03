@@ -18,5 +18,6 @@ export * from "./settings";
 export * from "./permissions";
 export * from "./salary";
 export * from "./tahfidz";
+export * from "./student-leaves";
 export * from "./information-board";
 export * from "./push-subscriptions";

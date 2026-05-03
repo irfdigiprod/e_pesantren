@@ -83,6 +83,7 @@ const submenuByMain = {
         children: [
           { label: "Data Santri", route: "/apps/students" },
           { label: "Absensi Santri", route: "/apps/attendance" },
+          { label: "Izin Pulang", route: "/apps/students/leaves" },
           { label: "Kamar", route: "/apps/rooms" },
         ],
       },

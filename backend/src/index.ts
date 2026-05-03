@@ -39,6 +39,7 @@ import {
   parentDashboardRoute,
   pushRoute,
   analyticsRoute,
+  studentLeavesRoute,
 } from "./routes";
 
 import {
@@ -128,6 +129,7 @@ app.route("/api/warnings", warningsRoute);
 app.route("/api/roles", rolesRoute);
 app.route("/api/parent-dashboard", parentDashboardRoute);
 app.route("/api/analytics", analyticsRoute);
+app.route("/api/student-leaves", studentLeavesRoute);
 
 // 404 handler
 app.notFound((c) => {

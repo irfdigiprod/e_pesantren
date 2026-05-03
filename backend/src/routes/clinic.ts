@@ -13,7 +13,8 @@ import {
 import { students } from "../db/schema/students";
 import { teachers } from "../db/schema/teachers";
 import { studentAttendances } from "../db/schema/attendance";
-import { halaqahMembers, halaqahGroups } from "../db/schema/halaqah";
+import { halaqahMembers, halaqahGroups, halaqahMentors } from "../db/schema/halaqah";
+import { tahfidzDeposits } from "../db/schema/tahfidz";
 import { rooms } from "../db/schema/rooms";
 import { classes } from "../db/schema/academic";
 import { authMiddleware, requirePermission } from "../middleware/auth";
@@ -1230,16 +1231,30 @@ clinicRoute.post(
           .where(eq(healthExaminations.id, examId));
       }
 
-      // 5. Create sick leave in attendance if requested
+      // 5. Create sick leave in attendance & mutabaah if requested
       if (body.createSickLeave && body.patientType === "student" && body.refId) {
         const startDate = body.sickStartDate ? new Date(body.sickStartDate) : (body.date ? new Date(body.date) : new Date());
         const endDate = body.sickEndDate ? new Date(body.sickEndDate) : startDate;
         
+        // Find halaqah mentor for mutabaah sync
+        const mentorMember = await db.query.halaqahMembers.findFirst({
+          where: eq(halaqahMembers.studentId, body.refId),
+          with: {
+            halaqah: {
+              with: {
+                mentors: true
+              }
+            }
+          }
+        });
+        const teacherId = mentorMember?.halaqah?.mentors?.find((m: any) => m.role === 'lead')?.teacherId 
+          || mentorMember?.halaqah?.mentors?.[0]?.teacherId;
+
         // Loop through dates
         for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
           const dateString = d.toISOString().split("T")[0] as string; // YYYY-MM-DD
           
-          // Check if attendance exists
+          // --- 5.1 Attendance ---
           const existingAtt = await db.query.studentAttendances.findFirst({
             where: and(
               eq(studentAttendances.studentId, body.refId),
@@ -1248,12 +1263,10 @@ clinicRoute.post(
           });
 
           if (existingAtt) {
-            // Update to sick
             await db.update(studentAttendances)
               .set({ status: 'sick', notes: 'Sakit (Otomatis dari Klinik)' })
               .where(eq(studentAttendances.id, existingAtt.id));
           } else {
-            // Insert new
             await db.insert(studentAttendances).values({
               studentId: body.refId,
               date: new Date(dateString), 
@@ -1261,6 +1274,30 @@ clinicRoute.post(
               notes: 'Sakit (Otomatis dari Klinik)',
               createdBy: user.userId
             });
+          }
+
+          // --- 5.2 Mutabaah (Tahfidz Deposits) ---
+          if (teacherId) {
+            const existingDep = await db.query.tahfidzDeposits.findFirst({
+              where: and(
+                eq(tahfidzDeposits.studentId, body.refId),
+                sql`DATE(${tahfidzDeposits.depositDate}) = ${dateString}`
+              )
+            });
+
+            if (existingDep) {
+              await db.update(tahfidzDeposits)
+                .set({ type: 'sakit', notes: 'Sakit (Otomatis dari Klinik)', teacherId })
+                .where(eq(tahfidzDeposits.id, existingDep.id));
+            } else {
+              await db.insert(tahfidzDeposits).values({
+                studentId: body.refId,
+                teacherId,
+                depositDate: new Date(dateString),
+                type: 'sakit',
+                notes: 'Sakit (Otomatis dari Klinik)'
+              });
+            }
           }
         }
       }
@@ -1384,16 +1421,30 @@ clinicRoute.put(
           }
         }
 
-        // 4. Create sick leave in attendance if requested
+        // 4. Create sick leave in attendance & mutabaah if requested
         if (body.createSickLeave && body.patientType === "student" && body.refId) {
           const startDate = body.sickStartDate ? new Date(body.sickStartDate) : (body.date ? new Date(body.date) : new Date());
           const endDate = body.sickEndDate ? new Date(body.sickEndDate) : startDate;
           
+          // Find halaqah mentor for mutabaah sync
+          const mentorMember = await tx.query.halaqahMembers.findFirst({
+            where: eq(halaqahMembers.studentId, body.refId),
+            with: {
+              halaqah: {
+                with: {
+                  mentors: true
+                }
+              }
+            }
+          });
+          const teacherId = mentorMember?.halaqah?.mentors?.find((m: any) => m.role === 'lead')?.teacherId 
+            || mentorMember?.halaqah?.mentors?.[0]?.teacherId;
+
           // Loop through dates
           for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
             const dateString = d.toISOString().split("T")[0] as string; // YYYY-MM-DD
             
-            // Check if attendance exists
+            // --- 4.1 Attendance ---
             const existingAtt = await tx.query.studentAttendances.findFirst({
               where: and(
                 eq(studentAttendances.studentId, body.refId),
@@ -1402,12 +1453,10 @@ clinicRoute.put(
             });
 
             if (existingAtt) {
-              // Update to sick
               await tx.update(studentAttendances)
                 .set({ status: 'sick', notes: 'Sakit (Otomatis dari Klinik - Edit)' })
                 .where(eq(studentAttendances.id, existingAtt.id));
             } else {
-              // Insert new
               await tx.insert(studentAttendances).values({
                 studentId: body.refId,
                 date: new Date(dateString), 
@@ -1415,6 +1464,30 @@ clinicRoute.put(
                 notes: 'Sakit (Otomatis dari Klinik - Edit)',
                 createdBy: user.userId
               });
+            }
+
+            // --- 4.2 Mutabaah (Tahfidz Deposits) ---
+            if (teacherId) {
+              const existingDep = await tx.query.tahfidzDeposits.findFirst({
+                where: and(
+                  eq(tahfidzDeposits.studentId, body.refId),
+                  sql`DATE(${tahfidzDeposits.depositDate}) = ${dateString}`
+                )
+              });
+
+              if (existingDep) {
+                await tx.update(tahfidzDeposits)
+                  .set({ type: 'sakit', notes: 'Sakit (Otomatis dari Klinik - Edit)', teacherId })
+                  .where(eq(tahfidzDeposits.id, existingDep.id));
+              } else {
+                await tx.insert(tahfidzDeposits).values({
+                  studentId: body.refId,
+                  teacherId,
+                  depositDate: new Date(dateString),
+                  type: 'sakit',
+                  notes: 'Sakit (Otomatis dari Klinik - Edit)'
+                });
+              }
             }
           }
         }

@@ -212,6 +212,11 @@ const groupedMenuItems = [
         icon: "solar:user-check-line-duotone",
         route: "/mobile-dashboard/student-attendance",
       },
+      {
+        label: "Izin Pulang",
+        icon: "solar:home-smile-line-duotone",
+        route: "/mobile-dashboard/student-leaves",
+      },
     ],
   },
   {
@@ -475,6 +480,7 @@ function isRouteAllowed(route) {
     // Attendance-related
     "/mobile-dashboard/attendance": "/apps/teacher-attendance",
     "/mobile-dashboard/student-attendance": "/apps/attendance",
+    "/mobile-dashboard/student-leaves": "/apps/students/leaves",
     "/mobile-dashboard/attendance-recap": "/apps/attendance-recap",
     "/mobile-dashboard/permissions": "/apps/attendance/permissions",
     "/mobile-dashboard/approvals": "/apps/attendance/approvals",

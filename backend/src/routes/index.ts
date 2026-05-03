@@ -16,6 +16,7 @@ import utilsRoute from "./utils";
 import usersRoute from "./users";
 import notificationsRoute from "./notifications";
 import divisionsRoute from "./divisions";
+import studentLeavesRoute from "./student-leaves";
 
 import settingsRoute from "./settings";
 import permissionsRoute from "./permissions";
@@ -71,4 +72,5 @@ export {
   parentDashboardRoute,
   pushRoute,
   analyticsRoute,
+  studentLeavesRoute,
 };

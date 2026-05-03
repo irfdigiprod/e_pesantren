@@ -47,6 +47,7 @@ const availableRoutes = [
   // Santri
   { path: "/apps/students", label: "Data Santri", category: "Santri" },
   { path: "/apps/attendance", label: "Absensi Santri", category: "Santri" },
+  { path: "/apps/students/leaves", label: "Izin Pulang", category: "Santri" },
   { path: "/apps/rooms", label: "Kamar", category: "Santri" },
 
   // Kedisiplinan

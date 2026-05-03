@@ -397,6 +397,12 @@ const router = createRouter({
           meta: { title: "Absensi Santri" },
         },
         {
+          path: "student-leaves",
+          name: "MobileStudentLeaves",
+          component: () => import("@/views/apps/StudentLeaves.vue"),
+          meta: { title: "Izin Pulang" },
+        },
+        {
           path: "tahfidz-mading",
           name: "MobileTahfidzMading",
           component: () => import("@/views/apps/tahfidz/MadingHalaqah.vue"),
@@ -478,6 +484,12 @@ const router = createRouter({
           path: "apps/students",
           name: "Students",
           component: Students,
+        },
+        {
+          path: "apps/students/leaves",
+          name: "StudentLeaves",
+          component: () => import("@/views/apps/StudentLeaves.vue"),
+          meta: { title: "Izin Pulang Santri" },
         },
         {
           path: "apps/students/:id",

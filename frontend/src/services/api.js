@@ -2148,3 +2148,41 @@ export const analyticsApi = {
   },
 };
 
+export const studentLeavesApi = {
+  async getLeaves(params) {
+    const query = new URLSearchParams(params).toString();
+    return request(query ? `/api/student-leaves?${query}` : "/api/student-leaves");
+  },
+  async searchStudents(q) {
+    return request(
+      `/api/student-leaves/students/search?q=${encodeURIComponent(q)}`,
+    );
+  },
+  async getClinicData(studentIds, startDate, endDate) {
+    return request(
+      `/api/student-leaves/clinic-data?studentIds=${studentIds.join(
+        ",",
+      )}&startDate=${startDate}&endDate=${endDate}`,
+    );
+  },
+  async submitLeave(data) {
+    return request("/api/student-leaves", { method: "POST", body: data });
+  },
+  async updateLeave(id, data) {
+    return request(`/api/student-leaves/${id}`, { method: "PUT", body: data });
+  },
+  async uploadFile(file) {
+    const formData = new FormData();
+    formData.append("file", file);
+    return request("/api/uploads", {
+      method: "POST",
+      body: formData,
+      headers: {}, // Let browser set boundary
+    });
+  },
+  async deleteLeave(id) {
+    return request(`/api/student-leaves/${id}`, { method: "DELETE" });
+  },
+};
+
+
