@@ -200,6 +200,52 @@
                 />
               </div>
 
+              <!-- Attendance Sick Leave Toggle -->
+              <div
+                v-if="form.patientType === 'student'"
+                class="pt-3 border-t border-slate-100"
+              >
+                <div class="flex items-center gap-2 mb-3">
+                  <input
+                    type="checkbox"
+                    id="createSickLeave"
+                    v-model="form.createSickLeave"
+                    class="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-600/30 cursor-pointer"
+                  />
+                  <label
+                    for="createSickLeave"
+                    class="text-sm font-bold text-emerald-700 cursor-pointer"
+                    >Buat perizinan sakit di absensi santri?</label
+                  >
+                </div>
+
+                <div
+                  v-if="form.createSickLeave"
+                  class="grid grid-cols-2 gap-4 p-4 bg-emerald-50 rounded-lg animate-fade-in-up border border-emerald-100 mb-3"
+                >
+                  <div>
+                    <label class="block text-xs font-semibold text-emerald-900 mb-1"
+                      >Mulai Tanggal</label
+                    >
+                    <input
+                      v-model="form.sickStartDate"
+                      type="date"
+                      class="w-full border border-emerald-200 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-semibold text-emerald-900 mb-1"
+                      >Sampai Tanggal</label
+                    >
+                    <input
+                      v-model="form.sickEndDate"
+                      type="date"
+                      class="w-full border border-emerald-200 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
               <!-- Inpatient Toggle -->
               <div
                 v-if="modal.mode === 'create'"
@@ -853,6 +899,9 @@ const form = reactive({
   isInpatient: false,
   roomId: null,
   bedNumber: "",
+  createSickLeave: true,
+  sickStartDate: new Date().toISOString().split("T")[0],
+  sickEndDate: new Date().toISOString().split("T")[0],
 
   // New Fields
   historyPastDiseases: "",
@@ -1017,6 +1066,10 @@ async function submitForm() {
       isInpatient: form.isInpatient,
       roomId: form.roomId,
       bedNumber: form.bedNumber,
+
+      createSickLeave: form.createSickLeave,
+      sickStartDate: form.sickStartDate,
+      sickEndDate: form.sickEndDate,
     };
     if (modal.mode === "edit" && form.id) {
       await clinicApi.updateExamination(form.id, payload);
@@ -1125,6 +1178,12 @@ function openCreate() {
     prescribedMedicinesText: "",
     followUpInstructions: "",
     consumedMedicines: [],
+    isInpatient: false,
+    roomId: null,
+    bedNumber: "",
+    createSickLeave: true,
+    sickStartDate: new Date().toISOString().split("T")[0],
+    sickEndDate: new Date().toISOString().split("T")[0],
     clinicPatientId: null,
   });
 }
@@ -1170,6 +1229,9 @@ function openEdit(item) {
     complaint: item.symptoms || item.complaint,
 
     date: item.date ? new Date(item.date).toISOString().split("T")[0] : "",
+    createSickLeave: !!item.hasSickLeave,
+    sickStartDate: item.date ? new Date(item.date).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
+    sickEndDate: item.date ? new Date(item.date).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
     prescribedMedicinesText: item.prescribedMedicines || "", // Legacy
     consumedMedicines: [], // For edit we don't load structured yet to avoid stock issues
   });

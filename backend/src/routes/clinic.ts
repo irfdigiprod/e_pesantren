@@ -12,6 +12,7 @@ import {
 } from "../db/schema/clinic";
 import { students } from "../db/schema/students";
 import { teachers } from "../db/schema/teachers";
+import { studentAttendances } from "../db/schema/attendance";
 import { authMiddleware, requirePermission } from "../middleware/auth";
 import {
   createMedicineSchema,
@@ -554,7 +555,13 @@ clinicRoute.post(
       const buffer = await file.arrayBuffer();
       const workbook = XLSX.read(buffer, { type: "array" });
       const sheetName = workbook.SheetNames[0];
+      if (!sheetName) {
+        return c.json({ success: false, message: "File Excel kosong atau tidak ada data" }, 400);
+      }
       const worksheet = workbook.Sheets[sheetName];
+      if (!worksheet) {
+        return c.json({ success: false, message: "Worksheet tidak ditemukan" }, 400);
+      }
       const data = XLSX.utils.sheet_to_json(worksheet) as any[];
 
       if (!data || data.length === 0) {
@@ -661,8 +668,15 @@ clinicRoute.post(
       const buffer = await file.arrayBuffer();
       const workbook = XLSX.read(buffer, { type: "array" });
       const sheetName = workbook.SheetNames[0];
+      if (!sheetName) {
+        return c.json({ success: false, message: "File Excel kosong atau tidak ada data" }, 400);
+      }
+      const worksheet = workbook.Sheets[sheetName];
+      if (!worksheet) {
+        return c.json({ success: false, message: "Worksheet tidak ditemukan" }, 400);
+      }
       const data = XLSX.utils.sheet_to_json(
-        workbook.Sheets[sheetName],
+        worksheet,
       ) as any[];
 
       const map: { [key: string]: string } = {
@@ -901,7 +915,7 @@ clinicRoute.put(
               ),
             );
 
-          if (occupied[0].count >= room.capacity) {
+          if (occupied && occupied.length > 0 && occupied[0] !== undefined && occupied[0].count >= room.capacity) {
             return c.json(
               {
                 success: false,
@@ -989,6 +1003,12 @@ clinicRoute.get("/examinations", async (c) => {
       patientVillage: clinicPatients.village,
       patientAddressDetail: clinicPatients.addressDetail,
       patientPostalCode: clinicPatients.postalCode,
+      hasSickLeave: sql<boolean>`EXISTS (
+        SELECT 1 FROM student_attendances 
+        WHERE student_attendances.student_id = ${healthExaminations.patientId} 
+        AND DATE(student_attendances.date) = DATE(${healthExaminations.examinationDate})
+        AND student_attendances.status = 'sick'
+      )`,
       // patientRefId: clinicPatients.refId,
     })
     .from(healthExaminations)
@@ -1007,6 +1027,7 @@ clinicRoute.get("/examinations", async (c) => {
 
     date: l.examinationDate,
     complaint: l.symptoms,
+    hasSickLeave: Boolean(l.hasSickLeave),
   }));
 
   return c.json({ success: true, data: mapped });
@@ -1145,6 +1166,41 @@ clinicRoute.post(
           .where(eq(healthExaminations.id, examId));
       }
 
+      // 5. Create sick leave in attendance if requested
+      if (body.createSickLeave && body.patientType === "student" && body.refId) {
+        const startDate = body.sickStartDate ? new Date(body.sickStartDate) : (body.date ? new Date(body.date) : new Date());
+        const endDate = body.sickEndDate ? new Date(body.sickEndDate) : startDate;
+        
+        // Loop through dates
+        for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+          const dateString = d.toISOString().split("T")[0] as string; // YYYY-MM-DD
+          
+          // Check if attendance exists
+          const existingAtt = await db.query.studentAttendances.findFirst({
+            where: and(
+              eq(studentAttendances.studentId, body.refId),
+              sql`DATE(${studentAttendances.date}) = ${dateString}`
+            )
+          });
+
+          if (existingAtt) {
+            // Update to sick
+            await db.update(studentAttendances)
+              .set({ status: 'sick', notes: 'Sakit (Otomatis dari Klinik)' })
+              .where(eq(studentAttendances.id, existingAtt.id));
+          } else {
+            // Insert new
+            await db.insert(studentAttendances).values({
+              studentId: body.refId,
+              date: new Date(dateString), 
+              status: 'sick',
+              notes: 'Sakit (Otomatis dari Klinik)',
+              createdBy: user.userId
+            });
+          }
+        }
+      }
+
       return c.json({ success: true, message: "Saved" });
     } catch (e) {
       console.error(e);
@@ -1259,6 +1315,41 @@ clinicRoute.put(
                 quantity: med.quantity,
                 usedBy: user.userId,
                 notes: "Updated Examination",
+              });
+            }
+          }
+        }
+
+        // 4. Create sick leave in attendance if requested
+        if (body.createSickLeave && body.patientType === "student" && body.refId) {
+          const startDate = body.sickStartDate ? new Date(body.sickStartDate) : (body.date ? new Date(body.date) : new Date());
+          const endDate = body.sickEndDate ? new Date(body.sickEndDate) : startDate;
+          
+          // Loop through dates
+          for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+            const dateString = d.toISOString().split("T")[0] as string; // YYYY-MM-DD
+            
+            // Check if attendance exists
+            const existingAtt = await tx.query.studentAttendances.findFirst({
+              where: and(
+                eq(studentAttendances.studentId, body.refId),
+                sql`DATE(${studentAttendances.date}) = ${dateString}`
+              )
+            });
+
+            if (existingAtt) {
+              // Update to sick
+              await tx.update(studentAttendances)
+                .set({ status: 'sick', notes: 'Sakit (Otomatis dari Klinik - Edit)' })
+                .where(eq(studentAttendances.id, existingAtt.id));
+            } else {
+              // Insert new
+              await tx.insert(studentAttendances).values({
+                studentId: body.refId,
+                date: new Date(dateString), 
+                status: 'sick',
+                notes: 'Sakit (Otomatis dari Klinik - Edit)',
+                createdBy: user.userId
               });
             }
           }

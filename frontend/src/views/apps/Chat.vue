@@ -2626,7 +2626,15 @@ function formatTimeLocal(date, options = {}) {
 }
 
 function formatDateLocal(date, options = {}) {
-  const d = typeof date === "string" ? new Date(date) : date;
+  let d;
+  if (typeof date === "string") {
+    // Strip trailing 'Z' to prevent browser from adding timezone offset 
+    // since database already stores local time
+    const cleanDateStr = date.endsWith('Z') ? date.slice(0, -1) : date;
+    d = new Date(cleanDateStr);
+  } else {
+    d = date;
+  }
   if (!d || isNaN(d.getTime())) return "";
   return d.toLocaleDateString("id-ID", {
     ...options,
@@ -2640,7 +2648,13 @@ function formatTime(dateStr) {
 function formatMessageTime(dateStr) {
   if (!dateStr) return "";
 
-  const date = new Date(dateStr);
+  // Strip trailing 'Z' to prevent browser from adding timezone offset 
+  // since database already stores local time
+  const cleanDateStr = typeof dateStr === 'string' && dateStr.endsWith('Z') 
+    ? dateStr.slice(0, -1) 
+    : dateStr;
+
+  const date = new Date(cleanDateStr);
   const now = new Date();
 
   // Get dates without time for comparison
@@ -7525,6 +7539,7 @@ Image Grid (WhatsApp style) */
   .link-preview-desc {
     font-size: 0.7rem;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
   }
 
   .link-preview-close {
@@ -7552,6 +7567,7 @@ Image Grid (WhatsApp style) */
   .message-link-preview .link-preview-desc {
     font-size: 0.65rem;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
   }
 
   .message-link-preview .link-preview-domain {

@@ -249,6 +249,7 @@
             <input
               type="date"
               v-model="inputForm.date"
+              @change="fetchClassStudents"
               class="w-full border rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none"
             />
           </div>
@@ -696,44 +697,34 @@ async function fetchClasses() {
 
 // Input Mode Logic
 async function fetchClassStudents() {
-  if (!inputForm.classId) return;
+  if (!inputForm.classId || !inputForm.date) return;
   loadingStudents.value = true;
   try {
-    // We assume backend has an endpoint to get students OF A CLASS.
-    // academicApi.getClass(id) usually returns class info, maybe students?
-    // Let's check api.js or use academicApi.getStudents({ classId: ... }) if available?
-    // Looking at academicApi, there is assignStudent but no getStudents?
-    // Wait, roomsApi has getStudents.
-    // Ideally we need `attendanceApi.getStudentsCandidates` or similar.
-    // Or we use existing `academicApi.getClass(id)` if it includes students.
-    // Let's assume `academicApi.getClass(id)` returns students based on typical implementation.
-    // If not, we might need to add it.
-
-    // BACKUP PLAN: Use `academicApi.getClasses({ include: 'students' })`? No.
-    // Let's try `academicApi.getClass(inputForm.classId)` and see if it has students.
-    // Actually, looking at `attendance.ts` change, it uses `studentClasses` table.
-    // We probably need a dedicated endpoint to "Get Students in Class".
-    // For now, let's assume `academicApi.getClass(id)` returns valid data.
-
     const res = await academicApi.getClass(inputForm.classId);
-    // Assume res.data.students or similar exists.
-    // If backend doesn't return students, we need to fix backend.
-
-    // TEMPORARY FIX: If fetching specific class doesn't return students, we might be stuck.
-    // Let's checking `academic.ts` (not readable now).
-    // Let's assume it works or I'll fix it if it errors.
-
     const rawStudents = res.data?.students || [];
-    // Map to include attendance model
-    students.value = rawStudents.map((s) => ({
-      id: s.id || s.studentId, // Handle both structures
-      fullName: s.fullName || s.student?.fullName || "Santri",
-      nis: s.nis || s.student?.nis,
-      attendance: {
-        status: "present",
-        notes: "",
-      },
-    }));
+
+    // Fetch existing attendance for this class and date
+    const attendanceRes = await attendanceApi.getStudentAttendance({
+      classId: inputForm.classId,
+      date: inputForm.date,
+    });
+    const existingAttendances = Array.isArray(attendanceRes?.data) ? attendanceRes.data : [];
+
+    // Map to include attendance model, checking for existing data
+    students.value = rawStudents.map((s) => {
+      const studentId = s.id || s.studentId;
+      const existing = existingAttendances.find(a => a.studentId === studentId);
+      
+      return {
+        id: studentId,
+        fullName: s.fullName || s.student?.fullName || "Santri",
+        nis: s.nis || s.student?.nis,
+        attendance: {
+          status: existing ? existing.status : "present",
+          notes: existing ? (existing.notes || "") : "",
+        },
+      };
+    });
   } catch (e) {
     showStatus("error", "Gagal", "Gagal mengambil data santri");
   } finally {

@@ -2132,3 +2132,19 @@ export const pushApi = {
     });
   },
 };
+
+// ============================================
+// ANALYTICS API
+// ============================================
+
+export const analyticsApi = {
+  getFilters: async () => {
+    return request("/api/analytics/filters");
+  },
+  getRecap: async (params) => {
+    const query = new URLSearchParams(params).toString();
+    const endpoint = query ? `/api/analytics/recap?${query}` : "/api/analytics/recap";
+    return request(endpoint);
+  },
+};
+

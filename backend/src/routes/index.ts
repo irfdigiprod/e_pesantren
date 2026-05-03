@@ -33,6 +33,7 @@ import warningsRoute from "./warnings";
 import rolesRoute from "./roles";
 import parentDashboardRoute from "./parent-dashboard";
 import pushRoute from "./push";
+import analyticsRoute from "./analytics";
 
 export {
   authRoute,
@@ -69,4 +70,5 @@ export {
   rolesRoute,
   parentDashboardRoute,
   pushRoute,
+  analyticsRoute,
 };
