@@ -231,7 +231,13 @@ function goToNotificationDetail(notification) {
   }
 
   const type = notification.notifType || notification.type;
-  if (type === "permission_request" || type === "permission_approved") {
+  if (type === "permission_request") {
+    router.push("/mobile-dashboard/approvals");
+  } else if (
+    type === "permission_status" ||
+    type === "permission_approved" ||
+    type === "permission_rejected"
+  ) {
     router.push("/mobile-dashboard/permissions");
   } else if (type === "group_invite") {
     router.push("/mobile-dashboard/chat");

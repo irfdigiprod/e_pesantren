@@ -260,6 +260,11 @@ function getColor(item) {
   return "text-slate-600 bg-slate-100";
 }
 
+// Detect if we're currently in mobile-dashboard context
+const isMobileContext = computed(() => {
+  return router.currentRoute.value.path.startsWith("/mobile-dashboard");
+});
+
 function handleClick(item) {
   if (selectionMode.value) {
     // Only system notifications can be selected
@@ -269,6 +274,8 @@ function handleClick(item) {
     return;
   }
 
+  const mobile = isMobileContext.value;
+
   // Chat notification → navigate to chat
   if (item.itemType === "chat") {
     // Remove from local list
@@ -276,7 +283,10 @@ function handleClick(item) {
       (c) => c.conversationId !== item.conversationId
     );
     window.dispatchEvent(new CustomEvent("notifications-read"));
-    router.push(`/apps/chat?conv=${item.conversationId}&t=${Date.now()}`);
+    const chatPath = mobile
+      ? `/mobile-dashboard/chat?conv=${item.conversationId}&t=${Date.now()}`
+      : `/apps/chat?conv=${item.conversationId}&t=${Date.now()}`;
+    router.push(chatPath);
     return;
   }
 
@@ -284,16 +294,16 @@ function handleClick(item) {
   if (!item.isRead) markAsRead(item.id);
 
   if (item.type === "permission_request") {
-    router.push("/apps/attendance/approvals");
+    router.push(mobile ? "/mobile-dashboard/approvals" : "/apps/attendance/approvals");
   } else if (item.type === "permission_status") {
-    router.push("/apps/attendance/permissions");
+    router.push(mobile ? "/mobile-dashboard/permissions" : "/apps/attendance/permissions");
   } else if (
     item.type === "permission_approved" ||
     item.type === "permission_rejected"
   ) {
-    router.push("/apps/attendance/permissions");
+    router.push(mobile ? "/mobile-dashboard/permissions" : "/apps/attendance/permissions");
   } else if (item.type === "group_invite") {
-    router.push("/apps/chat");
+    router.push(mobile ? "/mobile-dashboard/chat" : "/apps/chat");
   }
 }
 
