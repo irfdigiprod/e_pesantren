@@ -36,6 +36,18 @@
         <div class="text-xs text-slate-400">ID: {{ item.studentId }}</div>
       </template>
 
+      <template #cell-class="{ item }">
+        <span class="text-slate-600 font-medium text-sm">{{ item.class ? item.class.name : "-" }}</span>
+      </template>
+
+      <template #cell-halaqah="{ item }">
+        <span class="text-slate-600 font-medium text-sm">{{ item.halaqah ? item.halaqah.name : "-" }}</span>
+      </template>
+
+      <template #cell-room="{ item }">
+        <span class="text-slate-600 font-medium text-sm">{{ item.room ? item.room.name : "-" }}</span>
+      </template>
+
       <template #cell-diagnosis="{ item }">
         <span
           class="px-2 py-1 rounded bg-slate-100 text-slate-700 text-xs border border-slate-200 block truncate max-w-[200px]"
@@ -82,6 +94,20 @@
               <div class="text-xs text-slate-400">
                 {{ formatDate(item.date) }}
               </div>
+            </div>
+          </div>
+          <div v-if="item.class || item.room || item.halaqah" class="grid grid-cols-2 gap-y-1 gap-x-2 text-[11px] text-slate-500 bg-slate-50 p-2 rounded-lg border border-slate-100 mb-2">
+            <div v-if="item.class" class="flex items-center gap-1.5">
+              <Icon icon="solar:book-bookmark-bold-duotone" class="text-slate-400" />
+              <span class="truncate">{{ item.class.name }}</span>
+            </div>
+            <div v-if="item.room" class="flex items-center gap-1.5">
+              <Icon icon="solar:bed-bold-duotone" class="text-slate-400" />
+              <span class="truncate">{{ item.room.name }}</span>
+            </div>
+            <div v-if="item.halaqah" class="col-span-2 flex items-center gap-1.5">
+              <Icon icon="solar:users-group-two-rounded-bold-duotone" class="text-slate-400" />
+              <span class="truncate">{{ item.halaqah.name }}</span>
             </div>
           </div>
           <div class="space-y-2 mt-4 text-xs text-slate-600">
@@ -937,6 +963,9 @@ function updatePrescriptionText(items) {
 const columns = [
   { label: "Waktu", field: "date", sortable: true },
   { label: "Santri", field: "student", sortable: true },
+  { label: "Kelas/Rombel", field: "class" },
+  { label: "Grup Halaqah", field: "halaqah" },
+  { label: "Kamar", field: "room" },
   { label: "Keluhan", field: "complaint" },
   { label: "Diagnosa", field: "diagnosis" },
   { label: "Penanganan", field: "treatment" },

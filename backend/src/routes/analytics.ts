@@ -238,10 +238,17 @@ analyticsRoute.get("/recap", async (c) => {
       .where(sql`DATE(${permissionRequests.startDate}) >= ${startDate || '1970-01-01'} AND DATE(${permissionRequests.startDate}) <= ${endDate || '2099-12-31'}`)
       .groupBy(permissionRequests.type, teachers.gender, divisions.name);
 
+    const typeMap: Record<string, string> = {
+      sick: 'sakit',
+      permit: 'izin',
+      leave: 'cuti'
+    };
+
     const perizinan = {
       byDivisionAndType: permissionsResult.reduce((acc, curr) => {
         const div = curr.divisionName || 'Tanpa Divisi';
-        const type = curr.type || 'unknown';
+        const rawType = curr.type || 'unknown';
+        const type = typeMap[rawType] || rawType;
         if (!acc[div]) acc[div] = { sakit: 0, cuti: 0, izin: 0, dinas: 0 };
         if (acc[div][type] !== undefined) acc[div][type] += Number(curr.count);
         else acc[div][type] = Number(curr.count); // Fallback if other types exist
@@ -249,7 +256,8 @@ analyticsRoute.get("/recap", async (c) => {
       }, {} as Record<string, Record<string, number>>),
       byGenderAndType: permissionsResult.reduce((acc, curr) => {
         const gen = curr.gender || 'unknown';
-        const type = curr.type || 'unknown';
+        const rawType = curr.type || 'unknown';
+        const type = typeMap[rawType] || rawType;
         if (!acc[gen]) acc[gen] = { sakit: 0, cuti: 0, izin: 0, dinas: 0 };
         if (acc[gen][type] !== undefined) acc[gen][type] += Number(curr.count);
         else acc[gen][type] = Number(curr.count);

@@ -254,6 +254,21 @@
         </div>
       </template>
 
+      <!-- Cell: Class -->
+      <template #cell-class="{ item }">
+        <span class="text-slate-600 font-medium">{{ item.class ? item.class.name : "-" }}</span>
+      </template>
+
+      <!-- Cell: Halaqah -->
+      <template #cell-halaqah="{ item }">
+        <span class="text-slate-600 font-medium">{{ item.halaqah ? item.halaqah.name : "-" }}</span>
+      </template>
+
+      <!-- Cell: Room -->
+      <template #cell-room="{ item }">
+        <span class="text-slate-600 font-medium">{{ item.room ? item.room.name : "-" }}</span>
+      </template>
+
       <!-- Cell: Status -->
       <template #cell-status="{ item }">
         <span
@@ -351,20 +366,24 @@
 
           <!-- Info Grid -->
           <div class="grid grid-cols-2 gap-y-2 gap-x-4 pl-2 text-sm mb-3">
+            <div class="flex items-center gap-2 text-slate-600">
+              <Icon icon="solar:book-bookmark-bold-duotone" class="text-slate-400" />
+              <span class="truncate">{{ item.class ? item.class.name : "-" }}</span>
+            </div>
+            <div class="flex items-center gap-2 text-slate-600">
+              <Icon icon="solar:bed-bold-duotone" class="text-slate-400" />
+              <span class="truncate">{{ item.room ? item.room.name : "-" }}</span>
+            </div>
+            <div class="col-span-2 flex items-center gap-2 text-slate-600">
+              <Icon icon="solar:users-group-two-rounded-bold-duotone" class="text-slate-400" />
+              <span class="truncate">{{ item.halaqah ? item.halaqah.name : "-" }}</span>
+            </div>
             <div class="col-span-2 flex items-center gap-2 text-slate-600">
               <Icon
                 icon="solar:phone-calling-line-duotone"
                 class="text-slate-400"
               />
               <span>{{ item.phone || "-" }}</span>
-            </div>
-            <div class="flex items-center gap-2 text-slate-600">
-              <Icon icon="solar:calendar-line-duotone" class="text-slate-400" />
-              <span class="truncate">{{
-                item.birthDate
-                  ? new Date(item.birthDate).toLocaleDateString("id-ID")
-                  : "-"
-              }}</span>
             </div>
           </div>
 
@@ -805,6 +824,27 @@ const columns = [
     field: "gender",
     label: "Gender",
     width: "min-w-[100px]",
+    headerClass: "p-3 md:p-4",
+    cellClass: "p-3 md:p-4",
+  },
+  {
+    field: "class",
+    label: "Kelas/Rombel",
+    width: "min-w-[120px]",
+    headerClass: "p-3 md:p-4",
+    cellClass: "p-3 md:p-4",
+  },
+  {
+    field: "halaqah",
+    label: "Grup Halaqah",
+    width: "min-w-[120px]",
+    headerClass: "p-3 md:p-4",
+    cellClass: "p-3 md:p-4",
+  },
+  {
+    field: "room",
+    label: "Kamar",
+    width: "min-w-[120px]",
     headerClass: "p-3 md:p-4",
     cellClass: "p-3 md:p-4",
   },

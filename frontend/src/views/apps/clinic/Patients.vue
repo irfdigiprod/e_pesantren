@@ -75,6 +75,18 @@
         </span>
       </template>
 
+      <template #cell-class="{ item }">
+        <span class="text-slate-600 font-medium text-sm">{{ item.class ? item.class.name : "-" }}</span>
+      </template>
+
+      <template #cell-halaqah="{ item }">
+        <span class="text-slate-600 font-medium text-sm">{{ item.halaqah ? item.halaqah.name : "-" }}</span>
+      </template>
+
+      <template #cell-room="{ item }">
+        <span class="text-slate-600 font-medium text-sm">{{ item.room ? item.room.name : "-" }}</span>
+      </template>
+
       <template #cell-actions="{ item }">
         <div class="flex justify-end gap-2">
           <!-- Only allow edit for External patients or adding clinical details to others -->
@@ -152,6 +164,24 @@
                 >Gol. Darah</span
               >
               <span class="font-semibold">{{ item.bloodType || "-" }}</span>
+            </div>
+          </div>
+
+          <div
+            v-if="item.class || item.room || item.halaqah"
+            class="grid grid-cols-2 gap-2 text-[11px] text-slate-500 bg-slate-50 p-3 rounded-lg border border-slate-100"
+          >
+            <div v-if="item.class" class="flex items-center gap-1.5">
+              <Icon icon="solar:book-bookmark-bold-duotone" class="text-slate-400 shrink-0 text-sm" />
+              <span class="truncate">{{ item.class.name }}</span>
+            </div>
+            <div v-if="item.room" class="flex items-center gap-1.5">
+              <Icon icon="solar:bed-bold-duotone" class="text-slate-400 shrink-0 text-sm" />
+              <span class="truncate">{{ item.room.name }}</span>
+            </div>
+            <div v-if="item.halaqah" class="col-span-2 flex items-center gap-1.5">
+              <Icon icon="solar:users-group-two-rounded-bold-duotone" class="text-slate-400 shrink-0 text-sm" />
+              <span class="truncate">{{ item.halaqah.name }}</span>
             </div>
           </div>
 
@@ -439,6 +469,9 @@ const confirm = reactive({ show: false, item: null });
 const columns = [
   { label: "Nama Pasien", field: "name", sortable: true },
   { label: "Tipe", field: "type", sortable: true },
+  { label: "Kelas/Rombel", field: "class" },
+  { label: "Grup Halaqah", field: "halaqah" },
+  { label: "Kamar", field: "room" },
   { label: "L/P", field: "gender" },
   { label: "No. HP", field: "phone" },
   { label: "Usia", field: "age" }, // Derived

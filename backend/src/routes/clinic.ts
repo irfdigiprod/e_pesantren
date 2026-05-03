@@ -13,6 +13,9 @@ import {
 import { students } from "../db/schema/students";
 import { teachers } from "../db/schema/teachers";
 import { studentAttendances } from "../db/schema/attendance";
+import { halaqahMembers, halaqahGroups } from "../db/schema/halaqah";
+import { rooms } from "../db/schema/rooms";
+import { classes } from "../db/schema/academic";
 import { authMiddleware, requirePermission } from "../middleware/auth";
 import {
   createMedicineSchema,
@@ -247,7 +250,41 @@ clinicRoute.get("/patients/all", async (c) => {
       orderBy: desc(clinicPatients.id),
       limit: 500, // Limit for performance
     });
-    return c.json({ success: true, data: all });
+
+    const enriched = await Promise.all(all.map(async (p) => {
+      let classInfo = null;
+      let halaqah = null;
+      let room = null;
+
+      if (p.type === 'student' && p.refId) {
+        // Find student
+        const student = await db.query.students.findFirst({
+          where: eq(students.id, p.refId)
+        });
+
+        if (student) {
+          if (student.classId) {
+            classInfo = await db.query.classes.findFirst({ where: eq(classes.id, student.classId) });
+          }
+          if (student.roomId) {
+            room = await db.query.rooms.findFirst({ where: eq(rooms.id, student.roomId) });
+          }
+          const halaqahMember = await db.query.halaqahMembers.findFirst({ where: eq(halaqahMembers.studentId, student.id) });
+          if (halaqahMember) {
+            halaqah = await db.query.halaqahGroups.findFirst({ where: eq(halaqahGroups.id, halaqahMember.halaqahId) });
+          }
+        }
+      }
+
+      return {
+        ...p,
+        class: classInfo ? { id: classInfo.id, name: classInfo.name } : null,
+        room: room ? { id: room.id, name: room.name } : null,
+        halaqah: halaqah ? { id: halaqah.id, name: halaqah.name } : null,
+      };
+    }));
+
+    return c.json({ success: true, data: enriched });
   } catch (e) {
     return c.json({ success: false, message: "Failed" }, 500);
   }
@@ -1019,15 +1056,42 @@ clinicRoute.get("/examinations", async (c) => {
     .orderBy(desc(healthExaminations.examinationDate))
     .limit(50);
 
-  const mapped = list.map((l) => ({
-    ...l,
-    student: { fullName: l.patientName }, // Compat
-    studentId: l.patientId || "-", // Reverting to safe default
-    refId: l.patientId, // Reverting
+  const mapped = await Promise.all(list.map(async (l) => {
+    let classInfo = null;
+    let halaqah = null;
+    let room = null;
 
-    date: l.examinationDate,
-    complaint: l.symptoms,
-    hasSickLeave: Boolean(l.hasSickLeave),
+    if (l.patientType === 'student' && l.patientId) {
+      const student = await db.query.students.findFirst({
+        where: eq(students.id, l.patientId)
+      });
+      if (student) {
+        if (student.classId) {
+          classInfo = await db.query.classes.findFirst({ where: eq(classes.id, student.classId) });
+        }
+        if (student.roomId) {
+          room = await db.query.rooms.findFirst({ where: eq(rooms.id, student.roomId) });
+        }
+        const halaqahMember = await db.query.halaqahMembers.findFirst({ where: eq(halaqahMembers.studentId, student.id) });
+        if (halaqahMember) {
+          halaqah = await db.query.halaqahGroups.findFirst({ where: eq(halaqahGroups.id, halaqahMember.halaqahId) });
+        }
+      }
+    }
+
+    return {
+      ...l,
+      student: { fullName: l.patientName }, // Compat
+      studentId: l.patientId || "-", // Reverting to safe default
+      refId: l.patientId, // Reverting
+
+      date: l.examinationDate,
+      complaint: l.symptoms,
+      hasSickLeave: Boolean(l.hasSickLeave),
+      class: classInfo ? { id: classInfo.id, name: classInfo.name } : null,
+      room: room ? { id: room.id, name: room.name } : null,
+      halaqah: halaqah ? { id: halaqah.id, name: halaqah.name } : null,
+    };
   }));
 
   return c.json({ success: true, data: mapped });
