@@ -426,6 +426,7 @@ const addStudent = (student) => {
     selectedStudents.value.push(student);
   }
   searchQuery.value = '';
+  searchResults.value = []; // Clear results
   showResults.value = false;
   searchInput.value?.focus();
 };
