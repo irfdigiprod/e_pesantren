@@ -14,87 +14,170 @@
         </div>
 
         <!-- Filters -->
-        <div class="flex flex-wrap items-center gap-3">
-          <!-- Filter Type -->
-          <div class="w-full md:w-48">
-            <select
-              v-model="filterType"
-              class="w-full border-slate-200 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500"
+        <!-- Filters Section -->
+        <div class="bg-slate-50/80 rounded-2xl p-4 border border-slate-100">
+          <div class="flex flex-wrap items-center gap-4">
+            <!-- Filter Type Group -->
+            <div class="flex items-center gap-2 group w-full md:w-auto">
+              <div
+                class="hidden md:flex p-2.5 bg-white rounded-xl shadow-sm border border-slate-200 text-slate-400 group-focus-within:text-[#602515] group-focus-within:border-[#602515]/20 transition-all duration-300"
+              >
+                <span
+                  class="iconify text-xl"
+                  data-icon="mdi:calendar-range"
+                ></span>
+              </div>
+              <div class="w-full md:w-48">
+                <select
+                  v-model="filterType"
+                  class="w-full border-slate-200 bg-white rounded-xl text-sm focus:ring-4 focus:ring-[#602515]/10 focus:border-[#602515] transition-all duration-300 cursor-pointer py-2.5"
+                >
+                  <option value="today">Hari Ini</option>
+                  <option value="this_week">Pekan Ini</option>
+                  <option value="this_month">Bulan Ini</option>
+                  <option value="semester">Semester</option>
+                  <option value="yearly">Tahun Ajaran</option>
+                  <option value="custom">Kustom Tanggal</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Dynamic Filters with Transition -->
+            <TransitionGroup
+              name="filter-list"
+              tag="div"
+              class="flex flex-wrap items-center gap-3 w-full md:w-auto"
             >
-              <option value="today">Hari Ini</option>
-              <option value="this_week">Pekan Ini</option>
-              <option value="this_month">Bulan Ini</option>
-              <option value="semester">Semester</option>
-              <option value="yearly">Tahun Ajaran</option>
-              <option value="custom">Kustom Tanggal</option>
-            </select>
+              <!-- Academic Year -->
+              <div
+                v-if="filterType === 'semester' || filterType === 'yearly'"
+                key="academic-year"
+                class="flex items-center gap-2 group w-full md:w-auto"
+              >
+                <div
+                  class="hidden md:flex p-2.5 bg-white rounded-xl shadow-sm border border-slate-200 text-slate-400 group-focus-within:text-[#602515] group-focus-within:border-[#602515]/20 transition-all duration-300"
+                >
+                  <span
+                    class="iconify text-xl"
+                    data-icon="mdi:school-outline"
+                  ></span>
+                </div>
+                <div class="w-full md:w-44">
+                  <select
+                    v-model="selectedAcademicYear"
+                    class="w-full border-slate-200 bg-white rounded-xl text-sm focus:ring-4 focus:ring-[#602515]/10 focus:border-[#602515] transition-all duration-300 cursor-pointer py-2.5"
+                  >
+                    <option value="">Pilih Tahun Ajaran</option>
+                    <option
+                      v-for="year in filterOptions.academicYears"
+                      :key="year"
+                      :value="year"
+                    >
+                      {{ year }}
+                    </option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Semester -->
+              <div
+                v-if="filterType === 'semester'"
+                key="semester"
+                class="flex items-center gap-2 group w-full md:w-auto"
+              >
+                <div
+                  class="hidden md:flex p-2.5 bg-white rounded-xl shadow-sm border border-slate-200 text-slate-400 group-focus-within:text-[#602515] group-focus-within:border-[#602515]/20 transition-all duration-300"
+                >
+                  <span
+                    class="iconify text-xl"
+                    data-icon="mdi:book-open-variant"
+                  ></span>
+                </div>
+                <div class="w-full md:w-36">
+                  <select
+                    v-model="selectedSemester"
+                    class="w-full border-slate-200 bg-white rounded-xl text-sm focus:ring-4 focus:ring-[#602515]/10 focus:border-[#602515] transition-all duration-300 cursor-pointer py-2.5"
+                  >
+                    <option value="">Pilih Semester</option>
+                    <option
+                      v-for="sem in filterOptions.semesters"
+                      :key="sem.value"
+                      :value="sem.value"
+                    >
+                      {{ sem.label }}
+                    </option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Custom Dates -->
+              <div
+                v-if="filterType === 'custom'"
+                key="custom-dates"
+                class="w-full md:w-auto"
+              >
+                <div
+                  class="flex flex-col md:flex-row items-stretch md:items-center gap-2 bg-white p-3 md:p-1 md:pr-4 rounded-xl border border-slate-200 shadow-sm focus-within:ring-4 focus-within:ring-[#602515]/10 focus-within:border-[#602515] transition-all duration-300"
+                >
+                  <div
+                    class="hidden md:flex p-2 text-slate-400 group-focus-within:text-[#602515]"
+                  >
+                    <span
+                      class="iconify text-xl"
+                      data-icon="mdi:calendar-edit"
+                    ></span>
+                  </div>
+
+                  <!-- Start Date -->
+                  <input
+                    type="date"
+                    v-model="customStartDate"
+                    class="border-0 bg-slate-50 md:bg-transparent rounded-lg md:rounded-none p-2.5 md:p-1 text-sm focus:ring-0 w-full md:w-32"
+                  />
+
+                  <!-- Divider -->
+                  <div class="flex justify-center md:block">
+                    <span
+                      class="text-[10px] text-slate-400 font-bold md:hidden uppercase tracking-widest"
+                      >Hingga</span
+                    >
+                    <span class="text-slate-300 font-bold hidden md:inline"
+                      >/</span
+                    >
+                  </div>
+
+                  <!-- End Date -->
+                  <input
+                    type="date"
+                    v-model="customEndDate"
+                    class="border-0 bg-slate-50 md:bg-transparent rounded-lg md:rounded-none p-2.5 md:p-1 text-sm focus:ring-0 w-full md:w-32"
+                  />
+                </div>
+              </div>
+            </TransitionGroup>
+
+            <!-- Apply Button -->
+            <button
+              @click="fetchData"
+              class="md:ml-auto w-full md:w-auto px-8 py-3 bg-[#602515] text-white rounded-xl text-sm font-bold hover:bg-[#4a1c10] active:scale-95 shadow-lg shadow-[#602515]/20 transition-all duration-300 flex items-center justify-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed group overflow-hidden relative"
+              :disabled="loading"
+            >
+              <div
+                class="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300"
+              ></div>
+              <span v-if="loading" class="animate-spin text-xl relative z-10">
+                <span class="iconify" data-icon="mdi:loading"></span>
+              </span>
+              <span
+                v-else
+                class="iconify text-xl group-hover:rotate-12 transition-transform duration-300 relative z-10"
+                data-icon="mdi:filter-variant"
+              ></span>
+              <span class="relative z-10">Terapkan Filter</span>
+            </button>
           </div>
-
-          <!-- Conditional Filters based on Type -->
-          <template v-if="filterType === 'semester' || filterType === 'yearly'">
-            <div class="w-full md:w-40">
-              <select
-                v-model="selectedAcademicYear"
-                class="w-full border-slate-200 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">Pilih Tahun Ajaran</option>
-                <option
-                  v-for="year in filterOptions.academicYears"
-                  :key="year"
-                  :value="year"
-                >
-                  {{ year }}
-                </option>
-              </select>
-            </div>
-          </template>
-
-          <template v-if="filterType === 'semester'">
-            <div class="w-full md:w-32">
-              <select
-                v-model="selectedSemester"
-                class="w-full border-slate-200 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">Pilih Semester</option>
-                <option
-                  v-for="sem in filterOptions.semesters"
-                  :key="sem.value"
-                  :value="sem.value"
-                >
-                  {{ sem.label }}
-                </option>
-              </select>
-            </div>
-          </template>
-
-          <template v-if="filterType === 'custom'">
-            <div class="flex items-center gap-2 w-full md:w-auto">
-              <input
-                type="date"
-                v-model="customStartDate"
-                class="border-slate-200 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500"
-              />
-              <span class="text-slate-500">-</span>
-              <input
-                type="date"
-                v-model="customEndDate"
-                class="border-slate-200 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-          </template>
-
-          <button
-            @click="fetchData"
-            class="px-4 py-2 bg-[#602515] text-white rounded-lg text-sm font-medium hover:bg-[#7a3320] transition-colors flex items-center justify-center gap-2"
-            :disabled="loading"
-          >
-            <span v-if="loading" class="animate-spin text-lg">
-              <span class="iconify" data-icon="mdi:loading"></span>
-            </span>
-            <span v-else class="iconify" data-icon="mdi:filter-outline"></span>
-            Terapkan
-          </button>
         </div>
+
       </div>
     </div>
 
@@ -109,60 +192,93 @@
     <div v-else-if="recapData" class="space-y-8">
       <!-- Top Metrics -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <!-- Total Siswa Card -->
         <div
-          class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4"
+          class="group bg-gradient-to-br from-white to-slate-50 p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex items-center gap-5"
         >
-          <div class="p-3 bg-blue-100 text-blue-600 rounded-lg">
-            <span class="iconify text-2xl" data-icon="mdi:account-group"></span>
+          <div
+            class="p-4 bg-blue-50 text-blue-600 rounded-2xl group-hover:bg-blue-600 group-hover:text-white transition-colors duration-300"
+          >
+            <span class="iconify text-3xl" data-icon="mdi:account-group"></span>
           </div>
           <div>
-            <p class="text-sm text-slate-500 font-medium">Total Siswa Aktif</p>
-            <p class="text-2xl font-bold text-slate-800">
+            <p
+              class="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1"
+            >
+              Total Siswa Aktif
+            </p>
+            <p class="text-3xl font-black text-slate-800 tracking-tight">
               {{ recapData.siswa.totalActive }}
             </p>
           </div>
         </div>
+
+        <!-- Total Pegawai Card -->
         <div
-          class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4"
+          class="group bg-gradient-to-br from-white to-slate-50 p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex items-center gap-5"
         >
-          <div class="p-3 bg-emerald-100 text-emerald-600 rounded-lg">
-            <span class="iconify text-2xl" data-icon="mdi:account-tie"></span>
+          <div
+            class="p-4 bg-emerald-50 text-emerald-600 rounded-2xl group-hover:bg-emerald-600 group-hover:text-white transition-colors duration-300"
+          >
+            <span class="iconify text-3xl" data-icon="mdi:account-tie"></span>
           </div>
           <div>
-            <p class="text-sm text-slate-500 font-medium">Total Pegawai/Guru</p>
-            <p class="text-2xl font-bold text-slate-800">
+            <p
+              class="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1"
+            >
+              Total Pegawai
+            </p>
+            <p class="text-3xl font-black text-slate-800 tracking-tight">
               {{ recapData.sdm.teachers + recapData.sdm.staff }}
             </p>
           </div>
         </div>
+
+        <!-- Total Kamar Card -->
         <div
-          class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4"
+          class="group bg-gradient-to-br from-white to-slate-50 p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex items-center gap-5"
         >
-          <div class="p-3 bg-orange-100 text-orange-600 rounded-lg">
-            <span class="iconify text-2xl" data-icon="mdi:door-closed"></span>
+          <div
+            class="p-4 bg-orange-50 text-orange-600 rounded-2xl group-hover:bg-orange-600 group-hover:text-white transition-colors duration-300"
+          >
+            <span class="iconify text-3xl" data-icon="mdi:door-closed"></span>
           </div>
           <div>
-            <p class="text-sm text-slate-500 font-medium">Total Kamar</p>
-            <p class="text-2xl font-bold text-slate-800">
-              {{ recapData.kamar.totalRooms }}
-              <span class="text-sm text-slate-500 font-normal"
+            <p
+              class="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1"
+            >
+              Total Kamar
+            </p>
+            <div class="flex items-baseline gap-2">
+              <p class="text-3xl font-black text-slate-800 tracking-tight">
+                {{ recapData.kamar.totalRooms }}
+              </p>
+              <span class="text-xs text-slate-400 font-medium whitespace-nowrap"
                 >({{ recapData.kamar.totalCapacity }} Kapasitas)</span
               >
-            </p>
+            </div>
           </div>
         </div>
+
+        <!-- Total Kelas Card -->
         <div
-          class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4"
+          class="group bg-gradient-to-br from-white to-slate-50 p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex items-center gap-5"
         >
-          <div class="p-3 bg-purple-100 text-purple-600 rounded-lg">
+          <div
+            class="p-4 bg-purple-50 text-purple-600 rounded-2xl group-hover:bg-purple-600 group-hover:text-white transition-colors duration-300"
+          >
             <span
-              class="iconify text-2xl"
+              class="iconify text-3xl"
               data-icon="mdi:google-classroom"
             ></span>
           </div>
           <div>
-            <p class="text-sm text-slate-500 font-medium">Total Kelas</p>
-            <p class="text-2xl font-bold text-slate-800">
+            <p
+              class="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1"
+            >
+              Total Kelas
+            </p>
+            <p class="text-3xl font-black text-slate-800 tracking-tight">
               {{ recapData.kelas.totalClasses }}
             </p>
           </div>
@@ -648,3 +764,19 @@ onMounted(async () => {
   await fetchData();
 });
 </script>
+
+<style scoped>
+.filter-list-enter-active,
+.filter-list-leave-active {
+  transition: all 0.3s ease;
+}
+.filter-list-enter-from,
+.filter-list-leave-to {
+  opacity: 0;
+  transform: translateX(-10px);
+}
+.filter-list-move {
+  transition: transform 0.3s ease;
+}
+</style>
+
