@@ -1080,6 +1080,26 @@ clinicRoute.get("/examinations", async (c) => {
       }
     }
 
+    let inpatientData = null;
+    if (l.isInpatient && l.inpatientId) {
+      const inpatientInfo = await db.query.inpatients.findFirst({
+        where: eq(inpatients.id, l.inpatientId)
+      });
+      if (inpatientInfo) {
+        let clinicRoomName = "-";
+        if (inpatientInfo.roomId) {
+          const r = await db.query.clinicRooms.findFirst({ where: eq(clinicRooms.id, inpatientInfo.roomId) });
+          if (r) clinicRoomName = r.name;
+        }
+        inpatientData = {
+          roomName: clinicRoomName,
+          bedNumber: inpatientInfo.bedNumber,
+          admissionDate: inpatientInfo.admissionDate,
+          dischargeDate: inpatientInfo.dischargeDate,
+        };
+      }
+    }
+
     return {
       ...l,
       student: { fullName: l.patientName }, // Compat
@@ -1092,6 +1112,7 @@ clinicRoute.get("/examinations", async (c) => {
       class: classInfo ? { id: classInfo.id, name: classInfo.name } : null,
       room: room ? { id: room.id, name: room.name } : null,
       halaqah: halaqah ? { id: halaqah.id, name: halaqah.name } : null,
+      inpatient: inpatientData,
     };
   }));
 

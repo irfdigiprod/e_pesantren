@@ -177,7 +177,7 @@
                 </span>
               </div>
               <div class="text-xs text-slate-500">
-                {{ item.totalPages }} Hal, {{ item.totalLines }} Baris
+                {{ item.totalPages }} Hal
               </div>
             </div>
             <div v-else>
@@ -322,7 +322,7 @@
                     </span>
                   </div>
                   <div class="text-xs text-slate-500 mt-1">
-                    {{ item.totalPages }} Hal, {{ item.totalLines }} Baris
+                    {{ item.totalPages }} Hal
                   </div>
                 </div>
                 <div v-else>

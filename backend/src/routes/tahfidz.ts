@@ -212,6 +212,7 @@ app.get("/deposits", async (c) => {
         notes: tahfidzDeposits.notes,
         studentName: students.fullName,
         teacherName: teachers.fullName,
+        teacherNip: teachers.nip,
         className: classes.name,
         roomName: rooms.name,
         halaqahName: halaqahGroups.name,
