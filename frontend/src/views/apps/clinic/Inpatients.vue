@@ -1,5 +1,5 @@
 <template>
-  <div class="p-6 space-y-6">
+  <div>
     <DataTable
       title="Rawat Inap"
       description="Kelola pasien rawat inap dan ketersediaan bed."
@@ -73,8 +73,8 @@
             item.status === "admitted"
               ? "Dirawat"
               : item.status === "discharged"
-              ? "Pulang"
-              : item.status
+                ? "Pulang"
+                : item.status
           }}
         </span>
         <div v-if="item.dischargeDate" class="text-xs text-slate-400 mt-1">

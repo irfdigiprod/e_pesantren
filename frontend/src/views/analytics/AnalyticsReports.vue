@@ -177,7 +177,6 @@
             </button>
           </div>
         </div>
-
       </div>
     </div>
 
@@ -287,7 +286,7 @@
 
       <!-- SECTION: SDM -->
       <div>
-        <h2 class="text-xl font-bold text-slate-800 mb-4 pb-2 border-b">
+        <h2 class="text-xl font-bold text-slate-800 mb-4 pb-2 px-2 border-b">
           Data SDM & Kepegawaian
         </h2>
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -343,7 +342,7 @@
 
       <!-- SECTION: Siswa -->
       <div>
-        <h2 class="text-xl font-bold text-slate-800 mb-4 pb-2 border-b">
+        <h2 class="text-xl font-bold text-slate-800 mb-4 pb-2 px-2 border-b">
           Data Kesantrian / Siswa
         </h2>
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -400,7 +399,7 @@
 
       <!-- SECTION: Kedisiplinan -->
       <div>
-        <h2 class="text-xl font-bold text-slate-800 mb-4 pb-2 border-b">
+        <h2 class="text-xl font-bold text-slate-800 mb-4 pb-2 px-2 border-b">
           Data Kedisiplinan
         </h2>
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -493,7 +492,7 @@
 
       <!-- SECTION: Tahfidz -->
       <div>
-        <h2 class="text-xl font-bold text-slate-800 mb-4 pb-2 border-b">
+        <h2 class="text-xl font-bold text-slate-800 mb-4 pb-2 px-2 border-b">
           Data Tahfidz
         </h2>
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -540,7 +539,7 @@
 
       <!-- SECTION: Perizinan & Klinik -->
       <div>
-        <h2 class="text-xl font-bold text-slate-800 mb-4 pb-2 border-b">
+        <h2 class="text-xl font-bold text-slate-800 mb-4 pb-2 px-2 border-b">
           Data Perizinan Pegawai & Kesehatan
         </h2>
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -779,4 +778,3 @@ onMounted(async () => {
   transition: transform 0.3s ease;
 }
 </style>
-

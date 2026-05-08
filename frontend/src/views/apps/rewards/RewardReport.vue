@@ -1,5 +1,5 @@
 <template>
-  <div class="p-6 max-w-6xl mx-auto pb-12">
+  <div class="px-2">
     <!-- Header -->
     <div
       class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6"
@@ -409,7 +409,7 @@
             <Icon icon="solar:close-circle-bold" class="w-6 h-6" />
           </button>
         </div>
-        <div class="p-6">
+        <div>
           <RewardPunishmentForm
             :students="students"
             :rules="rules"
@@ -616,7 +616,7 @@ const baseFilteredData = computed(() => {
     res = res.filter(
       (r) =>
         r.student?.fullName?.toLowerCase().includes(q) ||
-        r.title?.toLowerCase().includes(q)
+        r.title?.toLowerCase().includes(q),
     );
   }
   // Filter Date
@@ -633,10 +633,10 @@ const uniqueStudents = computed(() => {
   return new Set(baseFilteredData.value.map((r) => r.studentId)).size;
 });
 const totalRewards = computed(
-  () => baseFilteredData.value.filter((r) => r.type === "reward").length
+  () => baseFilteredData.value.filter((r) => r.type === "reward").length,
 );
 const totalPunishments = computed(
-  () => baseFilteredData.value.filter((r) => r.type === "punishment").length
+  () => baseFilteredData.value.filter((r) => r.type === "punishment").length,
 );
 
 const totalSP = computed(() => {
@@ -652,7 +652,7 @@ const totalSP = computed(() => {
     res = res.filter(
       (w) =>
         w.student?.fullName?.toLowerCase().includes(q) ||
-        w.student?.nis?.toLowerCase().includes(q)
+        w.student?.nis?.toLowerCase().includes(q),
     );
   }
 
@@ -670,7 +670,7 @@ const totalSP = computed(() => {
 const filteredHistory = computed(() => {
   // Sort Date DESC
   return [...baseFilteredData.value].sort(
-    (a, b) => new Date(b.date) - new Date(a.date)
+    (a, b) => new Date(b.date) - new Date(a.date),
   );
 });
 

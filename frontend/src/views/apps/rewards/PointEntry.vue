@@ -1,5 +1,5 @@
 <template>
-  <div class="p-6 max-w-4xl mx-auto pb-12">
+  <div class="px-2">
     <!-- Header -->
     <div class="mb-6">
       <h1 class="text-2xl font-bold text-slate-800">Input Poin</h1>

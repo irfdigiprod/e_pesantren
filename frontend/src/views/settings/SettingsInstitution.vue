@@ -16,7 +16,7 @@
       <div class="p-6 border-b border-slate-100">
         <div class="h-6 bg-slate-200 rounded w-1/4"></div>
       </div>
-      <div class="p-6 space-y-6">
+      <div>
         <div>
           <div class="h-4 bg-slate-200 rounded w-32 mb-2"></div>
           <div class="flex items-center gap-6">
@@ -57,7 +57,7 @@
         <h2 class="font-semibold text-slate-800">Profil Lembaga</h2>
       </div>
 
-      <div class="p-6 space-y-6">
+      <div>
         <!-- ALERT ERROR -->
         <div
           v-if="error"
@@ -68,7 +68,7 @@
         </div>
 
         <!-- FORM -->
-        <form @submit.prevent="saveSettings" class="space-y-6">
+        <form @submit.prevent="saveSettings" class="space-y-6 px-2">
           <!-- LOGO UPLOAD -->
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-2"
@@ -358,7 +358,7 @@ async function handleFileChange(event) {
     openModal(
       "error",
       "Gagal Upload",
-      "Gagal mengupload logo. Silakan coba lagi."
+      "Gagal mengupload logo. Silakan coba lagi.",
     );
   } finally {
     uploading.value = false;
@@ -404,14 +404,14 @@ async function saveSettings() {
     openModal(
       "success",
       "Berhasil Simpan",
-      "Pengaturan identitas lembaga berhasil disimpan."
+      "Pengaturan identitas lembaga berhasil disimpan.",
     );
   } catch (err) {
     console.error(err);
     openModal(
       "error",
       "Gagal Simpan",
-      "Terjadi kesalahan saat menyimpan pengaturan."
+      "Terjadi kesalahan saat menyimpan pengaturan.",
     );
   } finally {
     saving.value = false;

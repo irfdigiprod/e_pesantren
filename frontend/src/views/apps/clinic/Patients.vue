@@ -1,5 +1,5 @@
 <template>
-  <div class="p-6 space-y-6">
+  <div>
     <DataTable
       title="Data Pasien Klinik"
       description="Database seluruh pasien yang pernah berobat."
@@ -76,15 +76,21 @@
       </template>
 
       <template #cell-class="{ item }">
-        <span class="text-slate-600 font-medium text-sm">{{ item.class ? item.class.name : "-" }}</span>
+        <span class="text-slate-600 font-medium text-sm">{{
+          item.class ? item.class.name : "-"
+        }}</span>
       </template>
 
       <template #cell-halaqah="{ item }">
-        <span class="text-slate-600 font-medium text-sm">{{ item.halaqah ? item.halaqah.name : "-" }}</span>
+        <span class="text-slate-600 font-medium text-sm">{{
+          item.halaqah ? item.halaqah.name : "-"
+        }}</span>
       </template>
 
       <template #cell-room="{ item }">
-        <span class="text-slate-600 font-medium text-sm">{{ item.room ? item.room.name : "-" }}</span>
+        <span class="text-slate-600 font-medium text-sm">{{
+          item.room ? item.room.name : "-"
+        }}</span>
       </template>
 
       <template #cell-actions="{ item }">
@@ -172,15 +178,27 @@
             class="grid grid-cols-2 gap-2 text-[11px] text-slate-500 bg-slate-50 p-3 rounded-lg border border-slate-100"
           >
             <div v-if="item.class" class="flex items-center gap-1.5">
-              <Icon icon="solar:book-bookmark-bold-duotone" class="text-slate-400 shrink-0 text-sm" />
+              <Icon
+                icon="solar:book-bookmark-bold-duotone"
+                class="text-slate-400 shrink-0 text-sm"
+              />
               <span class="truncate">{{ item.class.name }}</span>
             </div>
             <div v-if="item.room" class="flex items-center gap-1.5">
-              <Icon icon="solar:bed-bold-duotone" class="text-slate-400 shrink-0 text-sm" />
+              <Icon
+                icon="solar:bed-bold-duotone"
+                class="text-slate-400 shrink-0 text-sm"
+              />
               <span class="truncate">{{ item.room.name }}</span>
             </div>
-            <div v-if="item.halaqah" class="col-span-2 flex items-center gap-1.5">
-              <Icon icon="solar:users-group-two-rounded-bold-duotone" class="text-slate-400 shrink-0 text-sm" />
+            <div
+              v-if="item.halaqah"
+              class="col-span-2 flex items-center gap-1.5"
+            >
+              <Icon
+                icon="solar:users-group-two-rounded-bold-duotone"
+                class="text-slate-400 shrink-0 text-sm"
+              />
               <span class="truncate">{{ item.halaqah.name }}</span>
             </div>
           </div>
@@ -490,7 +508,7 @@ const filteredPatients = computed(() => {
       (r) =>
         r.name.toLowerCase().includes(q) ||
         r.address?.toLowerCase().includes(q) ||
-        r.phone?.toLowerCase().includes(q)
+        r.phone?.toLowerCase().includes(q),
     );
   }
 

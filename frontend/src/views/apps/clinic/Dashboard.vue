@@ -1,5 +1,5 @@
 <template>
-  <div class="p-6 space-y-6">
+  <div class="flex px-2 flex-col gap-2">
     <!-- Header -->
     <div
       class="flex flex-col md:flex-row md:items-center justify-between gap-4"
@@ -220,7 +220,7 @@
                     class="w-8 h-8 rounded flex items-center justify-center text-xs font-bold transition-all relative group"
                     :class="[
                       (room.occupiedBedNumbers || []).some(
-                        (b) => Number(b) === n
+                        (b) => Number(b) === n,
                       )
                         ? 'bg-red-100 text-red-700 border border-red-200 cursor-help'
                         : 'bg-emerald-100 text-emerald-700 border border-emerald-200',
@@ -231,7 +231,7 @@
                     <div
                       v-if="
                         (room.occupiedBedNumbers || []).some(
-                          (b) => Number(b) === n
+                          (b) => Number(b) === n,
                         )
                       "
                       class="hidden group-hover:block absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap z-10 shadow-lg"
@@ -321,7 +321,7 @@ async function loadData() {
     // Process Examinations (Today Only)
     const today = new Date().toISOString().split("T")[0];
     const todayExams = examinations.filter(
-      (e) => e.date === today || (e.createdAt && e.createdAt.startsWith(today))
+      (e) => e.date === today || (e.createdAt && e.createdAt.startsWith(today)),
     );
 
     stats.value.todayPatients = todayExams.length;
@@ -330,7 +330,7 @@ async function loadData() {
     recentExaminations.value = todayExams
       .sort(
         (a, b) =>
-          new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date)
+          new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date),
       )
       .slice(0, 5)
       .map((e) => ({

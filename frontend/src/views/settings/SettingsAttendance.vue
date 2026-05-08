@@ -7,7 +7,7 @@
         class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden"
       >
         <div class="h-16 bg-slate-100 border-b border-slate-200"></div>
-        <div class="p-6 space-y-6">
+        <div>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="h-16 bg-slate-200 rounded-lg"></div>
             <div class="h-16 bg-slate-200 rounded-lg"></div>
@@ -37,7 +37,7 @@
         class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden"
       >
         <div class="h-16 bg-slate-100 border-b border-slate-200"></div>
-        <div class="p-6">
+        <div>
           <div class="flex gap-4">
             <div
               v-for="i in 7"
@@ -587,11 +587,11 @@ async function fetchSettings() {
         res.data.attendance_accuracy_tolerance !== ""
       )
         settings.value.accuracyTolerance = parseInt(
-          res.data.attendance_accuracy_tolerance
+          res.data.attendance_accuracy_tolerance,
         );
       if (res.data.attendance_activities)
         settings.value.activityTypes = JSON.parse(
-          res.data.attendance_activities
+          res.data.attendance_activities,
         );
       if (
         res.data.attendance_period_start != null &&
@@ -636,17 +636,17 @@ function getCurrentPosition() {
       (err) => {
         console.debug(
           "High accuracy location failed in settings, retrying with low accuracy...",
-          err.message
+          err.message,
         );
         // Fallback: Low accuracy (Network/WiFi) - Faster, more reliable indoors
         // Allow cached positions up to 2 minutes old
         navigator.geolocation.getCurrentPosition(
           (pos) => resolve(pos),
           (err2) => reject(err2),
-          { enableHighAccuracy: false, timeout: 15000, maximumAge: 120000 }
+          { enableHighAccuracy: false, timeout: 15000, maximumAge: 120000 },
         );
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
     );
   });
 }
@@ -706,7 +706,7 @@ async function saveSettings(silent = false) {
       showStatus(
         "error",
         "Validasi Gagal",
-        "Latitude harus diisi dengan angka yang valid."
+        "Latitude harus diisi dengan angka yang valid.",
       );
       loading.value = false;
       return;
@@ -715,7 +715,7 @@ async function saveSettings(silent = false) {
       showStatus(
         "error",
         "Validasi Gagal",
-        "Latitude harus antara -90 dan 90."
+        "Latitude harus antara -90 dan 90.",
       );
       loading.value = false;
       return;
@@ -726,7 +726,7 @@ async function saveSettings(silent = false) {
       showStatus(
         "error",
         "Validasi Gagal",
-        "Longitude harus diisi dengan angka yang valid."
+        "Longitude harus diisi dengan angka yang valid.",
       );
       loading.value = false;
       return;
@@ -735,7 +735,7 @@ async function saveSettings(silent = false) {
       showStatus(
         "error",
         "Validasi Gagal",
-        "Longitude harus antara -180 dan 180."
+        "Longitude harus antara -180 dan 180.",
       );
       loading.value = false;
       return;

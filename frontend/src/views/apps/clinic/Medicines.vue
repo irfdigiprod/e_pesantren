@@ -1,5 +1,5 @@
 <template>
-  <div class="p-6 space-y-6">
+  <div>
     <DataTable
       title="Obat-obatan"
       description="Kelola inventaris dan stok obat klinik."
@@ -157,8 +157,8 @@
                 item.stock <= 0
                   ? 'bg-red-50 text-red-700 border-red-100'
                   : item.stock <= (item.minStock || 10)
-                  ? 'bg-amber-50 text-amber-700 border-amber-100'
-                  : 'bg-emerald-50 text-emerald-700 border-emerald-100',
+                    ? 'bg-amber-50 text-amber-700 border-amber-100'
+                    : 'bg-emerald-50 text-emerald-700 border-emerald-100',
               ]"
             >
               <span class="text-sm">{{ item.stock }}</span>
@@ -475,7 +475,7 @@ const filteredMedicines = computed(() => {
     result = result.filter(
       (m) =>
         m.name.toLowerCase().includes(q) ||
-        (m.category && m.category.toLowerCase().includes(q))
+        (m.category && m.category.toLowerCase().includes(q)),
     );
   }
 

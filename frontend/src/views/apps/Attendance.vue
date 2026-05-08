@@ -1,8 +1,8 @@
 <template>
-  <div class="p-6">
+  <div>
     <!-- Header -->
     <div
-      class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6"
+      class="flex px-2 flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6"
     >
       <div>
         <h1 class="text-xl font-semibold text-slate-800">Absensi Santri</h1>
@@ -611,7 +611,7 @@ watch(
   ],
   () => {
     currentPage.value = 1;
-  }
+  },
 );
 
 const columns = [
@@ -673,7 +673,7 @@ async function fetchData() {
       };
       // Clean params
       Object.keys(params).forEach(
-        (key) => params[key] === undefined && delete params[key]
+        (key) => params[key] === undefined && delete params[key],
       );
 
       const res = await attendanceApi.getStudentAttendance(params);
@@ -708,20 +708,24 @@ async function fetchClassStudents() {
       classId: inputForm.classId,
       date: inputForm.date,
     });
-    const existingAttendances = Array.isArray(attendanceRes?.data) ? attendanceRes.data : [];
+    const existingAttendances = Array.isArray(attendanceRes?.data)
+      ? attendanceRes.data
+      : [];
 
     // Map to include attendance model, checking for existing data
     students.value = rawStudents.map((s) => {
       const studentId = s.id || s.studentId;
-      const existing = existingAttendances.find(a => a.studentId === studentId);
-      
+      const existing = existingAttendances.find(
+        (a) => a.studentId === studentId,
+      );
+
       return {
         id: studentId,
         fullName: s.fullName || s.student?.fullName || "Santri",
         nis: s.nis || s.student?.nis,
         attendance: {
           status: existing ? existing.status : "present",
-          notes: existing ? (existing.notes || "") : "",
+          notes: existing ? existing.notes || "" : "",
         },
       };
     });

@@ -69,7 +69,7 @@ function handleFileSelect(e) {
     showStatus(
       "error",
       "File Terlalu Besar",
-      "Ukuran maksimal file adalah 10MB."
+      "Ukuran maksimal file adalah 10MB.",
     );
     e.target.value = "";
     return;
@@ -159,7 +159,7 @@ async function handleDelete() {
       {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
-      }
+      },
     );
     const json = await res.json();
 
@@ -190,7 +190,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="p-6">
+  <div>
     <div class="mb-6">
       <h1 class="text-2xl font-bold text-slate-800">Papan Informasi</h1>
       <p class="text-slate-500">

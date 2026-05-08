@@ -1,5 +1,5 @@
 <template>
-  <div class="p-6 space-y-6">
+  <div class="flex px-2 flex-col gap-2">
     <div
       class="flex flex-col md:flex-row md:items-center justify-between gap-4"
     >
@@ -12,7 +12,7 @@
 
       <!-- Date Filter -->
       <div
-        class="flex items-center gap-2 bg-white p-2 rounded-lg border border-slate-200 shadow-sm"
+        class="flex flex-wrap items-center gap-2 bg-white p-2 rounded-lg border border-slate-200 shadow-sm"
       >
         <input
           type="date"
@@ -225,18 +225,18 @@ const reports = reactive({
 });
 
 const totalVisits = computed(() =>
-  reports.visits.reduce((acc, curr) => acc + Number(curr.count), 0)
+  reports.visits.reduce((acc, curr) => acc + Number(curr.count), 0),
 );
 const maxDiseaseCount = computed(() =>
-  Math.max(...reports.diseases.map((d) => Number(d.count)), 1)
+  Math.max(...reports.diseases.map((d) => Number(d.count)), 1),
 );
 const topDisease = computed(() =>
-  reports.diseases.length > 0 ? reports.diseases[0].name : "-"
+  reports.diseases.length > 0 ? reports.diseases[0].name : "-",
 );
 const topPatientType = computed(() => {
   if (!reports.patientTypes.length) return "-";
   const sorted = [...reports.patientTypes].sort(
-    (a, b) => Number(b.count) - Number(a.count)
+    (a, b) => Number(b.count) - Number(a.count),
   );
   const map = { student: "Santri", teacher: "Guru", external: "Umum" };
   return map[sorted[0].type] || sorted[0].type;

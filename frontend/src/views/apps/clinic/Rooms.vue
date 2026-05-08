@@ -1,5 +1,5 @@
 <template>
-  <div class="p-6 space-y-6">
+  <div>
     <DataTable
       title="Manajemen Ruangan"
       description="Atur ketersediaan ruangan dan kapasitas bed klinik."
@@ -325,7 +325,7 @@ const filteredRooms = computed(() => {
     result = result.filter(
       (r) =>
         r.name.toLowerCase().includes(q) ||
-        r.description?.toLowerCase().includes(q)
+        r.description?.toLowerCase().includes(q),
     );
   }
   return result;

@@ -1,22 +1,5 @@
 <template>
-  <div class="p-6 max-w-6xl mx-auto pb-12">
-    <!-- Header -->
-    <div class="flex justify-between items-center mb-6">
-      <div>
-        <h1 class="text-2xl font-bold text-slate-800">Surat Peringatan (SP)</h1>
-        <p class="text-slate-500 text-sm mt-1">
-          Kelola penerbitan dan status surat peringatan santri.
-        </p>
-      </div>
-      <button
-        @click="openModal()"
-        class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2 font-medium"
-      >
-        <Icon icon="solar:danger-circle-bold" />
-        Terbitkan SP
-      </button>
-    </div>
-
+  <div class="px-2">
     <!-- Filter (Optional) -->
 
     <!-- List -->
@@ -42,6 +25,13 @@
     >
       <template #header-actions>
         <!-- Actions if needed -->
+        <button
+          @click="openModal()"
+          class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2 font-medium"
+        >
+          <Icon icon="solar:danger-circle-bold" />
+          Terbitkan SP
+        </button>
       </template>
 
       <!-- Filters Slot -->
@@ -483,7 +473,7 @@ const filteredInfo = computed(() => {
       (w) =>
         w.student?.fullName?.toLowerCase().includes(q) ||
         w.student?.nis?.toLowerCase().includes(q) ||
-        w.reason?.toLowerCase().includes(q)
+        w.reason?.toLowerCase().includes(q),
     );
   }
   return res;
@@ -584,11 +574,10 @@ function onSearchStudent() {
     return;
   }
   const q = studentSearch.value.toLowerCase();
-  filteredStudents.value = students.value
-    .filter(
-      (s) =>
-        s.fullName.toLowerCase().includes(q) || s.nis?.toLowerCase().includes(q)
-    );
+  filteredStudents.value = students.value.filter(
+    (s) =>
+      s.fullName.toLowerCase().includes(q) || s.nis?.toLowerCase().includes(q),
+  );
   showStudentDropdown.value = true;
 }
 function selectStudent(s) {
@@ -657,7 +646,7 @@ async function executeAction() {
       showStatus(
         "success",
         "Berhasil",
-        "Status SP diperbarui menjadi Selesai."
+        "Status SP diperbarui menjadi Selesai.",
       );
     } else if (confirmModal.action === "delete") {
       const id = confirmModal.data;

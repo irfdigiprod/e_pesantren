@@ -1,5 +1,5 @@
 <template>
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 font-sans">
+  <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 font-sans">
     <!-- Loading State -->
     <div v-if="loading" class="flex items-center justify-center min-h-[400px]">
       <div class="text-center">
@@ -53,20 +53,30 @@
         </div>
       </div>
 
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div
+        class="p-1 py-4 grid grid-cols-1 lg:grid-cols-12 gap-8 bg-white border border-gray-100 rounded-2xl shadow-sm"
+      >
         <!-- LEFT COL: IDENTITY CARD -->
         <!-- LEFT COL: KATEGORI DATA -->
         <aside class="lg:col-span-3 lg:space-y-2">
-          <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest px-2 lg:px-4 mb-2 lg:mb-4 hidden lg:block">
+          <h3
+            class="text-xs font-bold text-slate-400 uppercase tracking-widest px-2 lg:px-4 mb-2 lg:mb-4 hidden lg:block"
+          >
             Kategori Data
           </h3>
-          <div class="flex flex-row lg:flex-col gap-2 lg:gap-1 overflow-x-auto pb-2 lg:pb-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          <div
+            class="flex flex-row lg:flex-col gap-2 lg:gap-1 overflow-x-auto pb-2 lg:pb-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+          >
             <button
               v-for="tab in tabs"
               :key="tab.id"
               @click="activeTab = tab.id"
               class="shrink-0 lg:w-full px-4 py-2.5 lg:py-3 rounded-xl text-sm font-semibold flex items-center gap-2 lg:gap-3 transition-all text-left border lg:border-transparent"
-              :class="activeTab === tab.id ? 'bg-[#602515] text-white shadow-md border-[#602515]' : 'bg-white lg:bg-transparent text-slate-500 border-slate-200 hover:bg-slate-100 hover:text-slate-800'"
+              :class="
+                activeTab === tab.id
+                  ? 'bg-[#602515] text-white shadow-md border-[#602515]'
+                  : 'bg-white lg:bg-transparent text-slate-500 border-slate-200 hover:bg-slate-100 hover:text-slate-800'
+              "
             >
               <Icon :icon="tab.icon" class="text-lg lg:text-xl shrink-0" />
               <span class="whitespace-nowrap">{{ tab.label }}</span>
@@ -76,90 +86,188 @@
 
         <!-- RIGHT COL: DETAILS -->
         <main class="lg:col-span-9 space-y-6">
-          
           <!-- DATA PRIBADI -->
           <div v-if="activeTab === 'personal'" class="space-y-6">
             <div class="flex items-center gap-3 mb-2 px-2">
-              <Icon icon="solar:user-id-bold-duotone" class="text-2xl text-[#602515]" />
-              <h2 class="text-xl font-bold text-slate-800">Informasi Pribadi Utama</h2>
+              <Icon
+                icon="solar:user-id-bold-duotone"
+                class="text-2xl text-[#602515]"
+              />
+              <h2 class="text-xl font-bold text-slate-800">
+                Informasi Pribadi Utama
+              </h2>
             </div>
-            
+
             <!-- Photo Section -->
-            <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-8">
-              <div class="flex flex-col sm:flex-row gap-8 items-center sm:items-start">
+            <div
+              class="bg-white rounded-3xl shadow-sm border border-slate-100 p-8"
+            >
+              <div
+                class="flex flex-col sm:flex-row gap-8 items-center sm:items-start"
+              >
                 <!-- Avatar -->
-                <div class="relative inline-block mx-auto sm:mx-0 group cursor-pointer w-32 h-32 flex-shrink-0">
+                <div
+                  class="relative inline-block mx-auto sm:mx-0 group cursor-pointer w-32 h-32 flex-shrink-0"
+                >
                   <div
                     class="w-full h-full rounded-full border-4 border-slate-50 shadow-sm overflow-hidden flex items-center justify-center text-4xl font-bold relative bg-slate-100"
-                    :class="!photoUrl && (student.gender === 'female' ? 'text-pink-600' : 'text-blue-600')"
+                    :class="
+                      !photoUrl &&
+                      (student.gender === 'female'
+                        ? 'text-pink-600'
+                        : 'text-blue-600')
+                    "
                   >
-                    <img v-if="photoUrl" :src="photoUrl" alt="Profile" class="w-full h-full object-cover" />
-                    <Icon v-else :icon="student.gender === 'female' ? 'solar:women-bold-duotone' : 'solar:men-bold-duotone'" class="text-6xl" />
-                    
+                    <img
+                      v-if="photoUrl"
+                      :src="photoUrl"
+                      alt="Profile"
+                      class="w-full h-full object-cover"
+                    />
+                    <Icon
+                      v-else
+                      :icon="
+                        student.gender === 'female'
+                          ? 'solar:women-bold-duotone'
+                          : 'solar:men-bold-duotone'
+                      "
+                      class="text-6xl"
+                    />
+
                     <div
                       class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-[1px]"
                       @click="triggerPhotoUpload"
                     >
-                      <Icon icon="solar:camera-add-bold" class="text-white text-3xl" />
+                      <Icon
+                        icon="solar:camera-add-bold"
+                        class="text-white text-3xl"
+                      />
                     </div>
-                    
-                    <div v-if="uploadingPhoto" class="absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-sm z-20">
-                      <Icon icon="line-md:loading-loop" class="text-white text-3xl" />
+
+                    <div
+                      v-if="uploadingPhoto"
+                      class="absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-sm z-20"
+                    >
+                      <Icon
+                        icon="line-md:loading-loop"
+                        class="text-white text-3xl"
+                      />
                     </div>
                   </div>
-                  
+
                   <div
                     class="absolute bottom-2 right-2 w-8 h-8 rounded-full border-2 border-white flex items-center justify-center z-10"
                     :class="statusColors[student.status]?.bg || 'bg-slate-400'"
                   >
-                    <Icon :icon="statusIcons[student.status] || 'solar:question-circle-bold'" class="text-white text-lg" />
+                    <Icon
+                      :icon="
+                        statusIcons[student.status] ||
+                        'solar:question-circle-bold'
+                      "
+                      class="text-white text-lg"
+                    />
                   </div>
-                  
-                  <input ref="photoInput" type="file" accept="image/*" class="hidden" @change="handlePhotoUpload" />
+
+                  <input
+                    ref="photoInput"
+                    type="file"
+                    accept="image/*"
+                    class="hidden"
+                    @change="handlePhotoUpload"
+                  />
                 </div>
-                
+
                 <div class="flex-1 text-center sm:text-left mt-2 sm:mt-4">
-                  <h4 class="font-bold text-slate-800 text-lg mb-2">Pass Foto Santri</h4>
-                  <p class="text-sm text-slate-500 mb-4">Gunakan foto formal latar belakang polos.<br>Format JPG, PNG max 2MB.</p>
-                  <button @click="triggerPhotoUpload" class="px-5 py-2.5 border border-slate-200 bg-white rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors shadow-sm">
+                  <h4 class="font-bold text-slate-800 text-lg mb-2">
+                    Pass Foto Santri
+                  </h4>
+                  <p class="text-sm text-slate-500 mb-4">
+                    Gunakan foto formal latar belakang polos.<br />Format JPG,
+                    PNG max 2MB.
+                  </p>
+                  <button
+                    @click="triggerPhotoUpload"
+                    class="px-5 py-2.5 border border-slate-200 bg-white rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors shadow-sm"
+                  >
                     Pilih Foto
                   </button>
                 </div>
               </div>
             </div>
-            
+
             <!-- Details Form-like display -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
               <div>
-                <p class="text-sm font-semibold text-slate-800 mb-2">Status Santri</p>
-                <div class="px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-slate-700 flex items-center gap-2 font-medium">
-                  <div class="w-2 h-2 rounded-full" :class="statusColors[student.status]?.dot || 'bg-slate-400'"></div>
+                <p class="text-sm font-semibold text-slate-800 mb-2">
+                  Status Santri
+                </p>
+                <div
+                  class="px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-slate-700 flex items-center gap-2 font-medium"
+                >
+                  <div
+                    class="w-2 h-2 rounded-full"
+                    :class="statusColors[student.status]?.dot || 'bg-slate-400'"
+                  ></div>
                   {{ statusLabels[student.status] || student.status }}
                 </div>
               </div>
               <div>
-                <p class="text-sm font-semibold text-slate-800 mb-2">NIS <span class="text-red-500">*</span></p>
-                <div class="px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-slate-700 font-medium">{{ student.nis }}</div>
+                <p class="text-sm font-semibold text-slate-800 mb-2">
+                  NIS <span class="text-red-500">*</span>
+                </p>
+                <div
+                  class="px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-slate-700 font-medium"
+                >
+                  {{ student.nis }}
+                </div>
               </div>
               <div>
-                <p class="text-sm font-semibold text-slate-800 mb-2">Terdaftar</p>
-                <div class="px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-slate-700">{{ formatDate(student.createdAt) }}</div>
+                <p class="text-sm font-semibold text-slate-800 mb-2">
+                  Terdaftar
+                </p>
+                <div
+                  class="px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-slate-700"
+                >
+                  {{ formatDate(student.createdAt) }}
+                </div>
               </div>
               <div>
-                <p class="text-sm font-semibold text-slate-800 mb-2">Nama Lengkap <span class="text-red-500">*</span></p>
-                <div class="px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-slate-700 font-medium">{{ student.fullName }}</div>
+                <p class="text-sm font-semibold text-slate-800 mb-2">
+                  Nama Lengkap <span class="text-red-500">*</span>
+                </p>
+                <div
+                  class="px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-slate-700 font-medium"
+                >
+                  {{ student.fullName }}
+                </div>
               </div>
               <div>
-                <p class="text-sm font-semibold text-slate-800 mb-2">Jenis Kelamin</p>
-                <div class="px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-slate-700 flex items-center gap-2">
-                  <Icon :icon="student.gender === 'female' ? 'solar:women-bold' : 'solar:men-bold'" class="text-slate-400" />
+                <p class="text-sm font-semibold text-slate-800 mb-2">
+                  Jenis Kelamin
+                </p>
+                <div
+                  class="px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-slate-700 flex items-center gap-2"
+                >
+                  <Icon
+                    :icon="
+                      student.gender === 'female'
+                        ? 'solar:women-bold'
+                        : 'solar:men-bold'
+                    "
+                    class="text-slate-400"
+                  />
                   {{ student.gender === "female" ? "Perempuan" : "Laki-laki" }}
                 </div>
               </div>
               <div>
-                <p class="text-sm font-semibold text-slate-800 mb-2">Tempat, Tanggal Lahir</p>
-                <div class="px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-slate-700">
-                  {{ student.birthPlace || "-" }}, {{ formatDate(student.birthDate) }}
+                <p class="text-sm font-semibold text-slate-800 mb-2">
+                  Tempat, Tanggal Lahir
+                </p>
+                <div
+                  class="px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-slate-700"
+                >
+                  {{ student.birthPlace || "-" }},
+                  {{ formatDate(student.birthDate) }}
                 </div>
               </div>
             </div>
@@ -168,27 +276,50 @@
           <!-- ALAMAT & KONTAK -->
           <div v-if="activeTab === 'address'" class="space-y-6">
             <div class="flex items-center gap-3 mb-2 px-2">
-              <Icon icon="solar:map-point-bold-duotone" class="text-2xl text-[#602515]" />
-              <h2 class="text-xl font-bold text-slate-800">Alamat & Kontak Utama</h2>
+              <Icon
+                icon="solar:map-point-bold-duotone"
+                class="text-2xl text-[#602515]"
+              />
+              <h2 class="text-xl font-bold text-slate-800">
+                Alamat & Kontak Utama
+              </h2>
             </div>
-            
-            <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-8 relative overflow-hidden">
-              <div class="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
+
+            <div
+              class="bg-white rounded-3xl shadow-sm border border-slate-100 p-8 relative overflow-hidden"
+            >
+              <div
+                class="absolute top-0 right-0 p-8 opacity-5 pointer-events-none"
+              >
                 <Icon icon="solar:map-bold" width="120" />
               </div>
               <div class="grid grid-cols-1 gap-6 relative z-10">
                 <div>
-                  <p class="text-sm font-semibold text-slate-800 mb-2">Nomor Telepon / WhatsApp</p>
-                  <div class="px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-slate-700 flex items-center gap-2">
-                    <Icon icon="solar:phone-bold-duotone" class="text-slate-400" />
+                  <p class="text-sm font-semibold text-slate-800 mb-2">
+                    Nomor Telepon / WhatsApp
+                  </p>
+                  <div
+                    class="px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-slate-700 flex items-center gap-2"
+                  >
+                    <Icon
+                      icon="solar:phone-bold-duotone"
+                      class="text-slate-400"
+                    />
                     {{ student.phone || "-" }}
                   </div>
                 </div>
                 <div>
-                  <p class="text-sm font-semibold text-slate-800 mb-2">Alamat Lengkap</p>
-                  <div class="px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-slate-700 leading-relaxed min-h-[100px]">
+                  <p class="text-sm font-semibold text-slate-800 mb-2">
+                    Alamat Lengkap
+                  </p>
+                  <div
+                    class="px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-slate-700 leading-relaxed min-h-[100px]"
+                  >
                     <div class="flex items-start gap-3">
-                      <Icon icon="solar:home-2-bold-duotone" class="text-slate-400 text-xl mt-1 flex-shrink-0" />
+                      <Icon
+                        icon="solar:home-2-bold-duotone"
+                        class="text-slate-400 text-xl mt-1 flex-shrink-0"
+                      />
                       <span>{{ student.address || "Alamat belum diisi" }}</span>
                     </div>
                   </div>
@@ -210,7 +341,10 @@
             </div>
 
             <div class="flex items-center gap-3 mb-6">
-              <Icon icon="solar:users-group-rounded-bold-duotone" class="text-2xl text-[#602515]" />
+              <Icon
+                icon="solar:users-group-rounded-bold-duotone"
+                class="text-2xl text-[#602515]"
+              />
               <h3 class="text-xl font-bold text-slate-800">
                 Data Orang Tua / Wali
               </h3>
@@ -381,61 +515,128 @@
           <!-- KEDISIPLINAN -->
           <div v-if="activeTab === 'discipline'" class="space-y-6">
             <div class="flex items-center gap-3 mb-2 px-2">
-              <Icon icon="solar:shield-warning-bold-duotone" class="text-2xl text-[#602515]" />
+              <Icon
+                icon="solar:shield-warning-bold-duotone"
+                class="text-2xl text-[#602515]"
+              />
               <h2 class="text-xl font-bold text-slate-800">Kedisiplinan</h2>
             </div>
-            
+
             <div v-if="disciplineData.loading" class="flex justify-center p-8">
-              <Icon icon="line-md:loading-loop" class="text-4xl text-[#602515]" />
+              <Icon
+                icon="line-md:loading-loop"
+                class="text-4xl text-[#602515]"
+              />
             </div>
             <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <!-- Penghargaan -->
-              <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-6">
-                <h3 class="text-lg font-bold text-emerald-700 mb-4 flex items-center gap-2">
+              <div
+                class="bg-white rounded-3xl shadow-sm border border-slate-100 p-6"
+              >
+                <h3
+                  class="text-lg font-bold text-emerald-700 mb-4 flex items-center gap-2"
+                >
                   <Icon icon="solar:star-fall-bold-duotone" /> Penghargaan
                 </h3>
-                <div v-if="disciplineData.rewards.length === 0" class="text-slate-400 text-sm italic">Belum ada data penghargaan.</div>
+                <div
+                  v-if="disciplineData.rewards.length === 0"
+                  class="text-slate-400 text-sm italic"
+                >
+                  Belum ada data penghargaan.
+                </div>
                 <div v-else class="space-y-3">
-                  <div v-for="(item, i) in disciplineData.rewards" :key="i" class="p-3 bg-slate-50 rounded-xl border border-slate-100 flex justify-between items-start">
+                  <div
+                    v-for="(item, i) in disciplineData.rewards"
+                    :key="i"
+                    class="p-3 bg-slate-50 rounded-xl border border-slate-100 flex justify-between items-start"
+                  >
                     <div>
-                      <p class="font-semibold text-slate-800 text-sm">{{ item.title || item.name }}</p>
-                      <p class="text-xs text-slate-500">{{ item.description }}</p>
+                      <p class="font-semibold text-slate-800 text-sm">
+                        {{ item.title || item.name }}
+                      </p>
+                      <p class="text-xs text-slate-500">
+                        {{ item.description }}
+                      </p>
                     </div>
-                    <span class="text-xs font-bold text-emerald-600 bg-emerald-100 px-2 py-1 rounded-md">+{{ item.points }}</span>
+                    <span
+                      class="text-xs font-bold text-emerald-600 bg-emerald-100 px-2 py-1 rounded-md"
+                      >+{{ item.points }}</span
+                    >
                   </div>
                 </div>
               </div>
 
               <!-- Pelanggaran -->
-              <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-6">
-                <h3 class="text-lg font-bold text-rose-700 mb-4 flex items-center gap-2">
+              <div
+                class="bg-white rounded-3xl shadow-sm border border-slate-100 p-6"
+              >
+                <h3
+                  class="text-lg font-bold text-rose-700 mb-4 flex items-center gap-2"
+                >
                   <Icon icon="solar:danger-triangle-bold-duotone" /> Pelanggaran
                 </h3>
-                <div v-if="disciplineData.punishments.length === 0" class="text-slate-400 text-sm italic">Belum ada data pelanggaran.</div>
+                <div
+                  v-if="disciplineData.punishments.length === 0"
+                  class="text-slate-400 text-sm italic"
+                >
+                  Belum ada data pelanggaran.
+                </div>
                 <div v-else class="space-y-3">
-                  <div v-for="(item, i) in disciplineData.punishments" :key="i" class="p-3 bg-slate-50 rounded-xl border border-slate-100 flex justify-between items-start">
+                  <div
+                    v-for="(item, i) in disciplineData.punishments"
+                    :key="i"
+                    class="p-3 bg-slate-50 rounded-xl border border-slate-100 flex justify-between items-start"
+                  >
                     <div>
-                      <p class="font-semibold text-slate-800 text-sm">{{ item.title || item.name }}</p>
-                      <p class="text-xs text-slate-500">{{ item.description }}</p>
+                      <p class="font-semibold text-slate-800 text-sm">
+                        {{ item.title || item.name }}
+                      </p>
+                      <p class="text-xs text-slate-500">
+                        {{ item.description }}
+                      </p>
                     </div>
-                    <span class="text-xs font-bold text-rose-600 bg-rose-100 px-2 py-1 rounded-md">{{ item.points }}</span>
+                    <span
+                      class="text-xs font-bold text-rose-600 bg-rose-100 px-2 py-1 rounded-md"
+                      >{{ item.points }}</span
+                    >
                   </div>
                 </div>
               </div>
-              
+
               <!-- SP -->
-              <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-6 md:col-span-2">
-                <h3 class="text-lg font-bold text-orange-700 mb-4 flex items-center gap-2">
-                  <Icon icon="solar:letter-bold-duotone" /> Surat Peringatan (SP)
+              <div
+                class="bg-white rounded-3xl shadow-sm border border-slate-100 p-6 md:col-span-2"
+              >
+                <h3
+                  class="text-lg font-bold text-orange-700 mb-4 flex items-center gap-2"
+                >
+                  <Icon icon="solar:letter-bold-duotone" /> Surat Peringatan
+                  (SP)
                 </h3>
-                <div v-if="disciplineData.warnings.length === 0" class="text-slate-400 text-sm italic">Belum ada data SP.</div>
+                <div
+                  v-if="disciplineData.warnings.length === 0"
+                  class="text-slate-400 text-sm italic"
+                >
+                  Belum ada data SP.
+                </div>
                 <div v-else class="space-y-3">
-                  <div v-for="(item, i) in disciplineData.warnings" :key="i" class="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                    <p class="font-semibold text-slate-800 text-sm flex items-center gap-2">
-                      <span class="bg-orange-100 text-orange-700 px-2 py-0.5 rounded text-xs">SP {{ item.spLevel }}</span>
+                  <div
+                    v-for="(item, i) in disciplineData.warnings"
+                    :key="i"
+                    class="p-3 bg-slate-50 rounded-xl border border-slate-100"
+                  >
+                    <p
+                      class="font-semibold text-slate-800 text-sm flex items-center gap-2"
+                    >
+                      <span
+                        class="bg-orange-100 text-orange-700 px-2 py-0.5 rounded text-xs"
+                        >SP {{ item.spLevel }}</span
+                      >
                       {{ item.reason }}
                     </p>
-                    <p class="text-xs text-slate-500 mt-1">Berlaku sampai: {{ formatDate(item.validUntil) }}</p>
+                    <p class="text-xs text-slate-500 mt-1">
+                      Berlaku sampai: {{ formatDate(item.validUntil) }}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -445,75 +646,158 @@
           <!-- TAHFIDZ -->
           <div v-if="activeTab === 'tahfidz'" class="space-y-6">
             <div class="flex items-center gap-3 mb-2 px-2">
-              <Icon icon="solar:book-bookmark-bold-duotone" class="text-2xl text-[#602515]" />
+              <Icon
+                icon="solar:book-bookmark-bold-duotone"
+                class="text-2xl text-[#602515]"
+              />
               <h2 class="text-xl font-bold text-slate-800">Data Tahfidz</h2>
             </div>
-            
+
             <div v-if="tahfidzData.loading" class="flex justify-center p-8">
-              <Icon icon="line-md:loading-loop" class="text-4xl text-[#602515]" />
+              <Icon
+                icon="line-md:loading-loop"
+                class="text-4xl text-[#602515]"
+              />
             </div>
-            <div v-else class="bg-white rounded-3xl shadow-sm border border-slate-100 p-8">
-              <div v-if="tahfidzData.deposits.length === 0" class="text-center text-slate-500 py-10">
-                <Icon icon="solar:folder-with-files-bold-duotone" class="text-6xl text-slate-200 mb-4 mx-auto" />
+            <div
+              v-else
+              class="bg-white rounded-3xl shadow-sm border border-slate-100 p-8"
+            >
+              <div
+                v-if="tahfidzData.deposits.length === 0"
+                class="text-center text-slate-500 py-10"
+              >
+                <Icon
+                  icon="solar:folder-with-files-bold-duotone"
+                  class="text-6xl text-slate-200 mb-4 mx-auto"
+                />
                 <p>Belum ada riwayat setoran tahfidz.</p>
               </div>
               <div v-else class="space-y-3">
-                <div v-for="(item, i) in tahfidzData.deposits" :key="i" class="p-4 bg-slate-50 rounded-xl border border-slate-100 flex flex-col md:flex-row justify-between md:items-center gap-4">
+                <div
+                  v-for="(item, i) in tahfidzData.deposits"
+                  :key="i"
+                  class="p-4 bg-slate-50 rounded-xl border border-slate-100 flex flex-col md:flex-row justify-between md:items-center gap-4"
+                >
                   <div>
                     <div class="flex items-center gap-2 mb-1 flex-wrap">
-                      <span class="text-xs font-bold px-2 py-0.5 rounded uppercase" 
-                            :class="{'bg-blue-100 text-blue-700': item.type === 'ziyadah', 'bg-purple-100 text-purple-700': item.type === 'murajaah', 'bg-gray-200 text-gray-700': ['izin','sakit','alpha'].includes(item.type)}">
-                        {{ item.type || 'Mutabaah' }}
+                      <span
+                        class="text-xs font-bold px-2 py-0.5 rounded uppercase"
+                        :class="{
+                          'bg-blue-100 text-blue-700': item.type === 'ziyadah',
+                          'bg-purple-100 text-purple-700':
+                            item.type === 'murajaah',
+                          'bg-gray-200 text-gray-700': [
+                            'izin',
+                            'sakit',
+                            'alpha',
+                          ].includes(item.type),
+                        }"
+                      >
+                        {{ item.type || "Mutabaah" }}
                       </span>
-                      <span v-if="item.juz" class="bg-indigo-50 text-indigo-700 border border-indigo-100 text-[10px] font-bold px-2 py-0.5 rounded">
+                      <span
+                        v-if="item.juz"
+                        class="bg-indigo-50 text-indigo-700 border border-indigo-100 text-[10px] font-bold px-2 py-0.5 rounded"
+                      >
                         Juz {{ item.juz }}
                       </span>
                     </div>
                     <div class="text-sm text-slate-500 flex flex-col gap-0.5">
                       <div class="font-bold text-slate-800 text-sm">
-                        <span v-if="item.startSurah && item.startSurah === item.endSurah">
-                          QS. {{ getSurahName(item.startSurah) }}: {{ item.startAyat }} - {{ item.endAyat }}
+                        <span
+                          v-if="
+                            item.startSurah && item.startSurah === item.endSurah
+                          "
+                        >
+                          QS. {{ getSurahName(item.startSurah) }}:
+                          {{ item.startAyat }} - {{ item.endAyat }}
                         </span>
                         <span v-else-if="item.startSurah">
-                          QS. {{ getSurahName(item.startSurah) }}: {{ item.startAyat }} - QS. {{ getSurahName(item.endSurah) }}: {{ item.endAyat }}
+                          QS. {{ getSurahName(item.startSurah) }}:
+                          {{ item.startAyat }} - QS.
+                          {{ getSurahName(item.endSurah) }}: {{ item.endAyat }}
                         </span>
                         <span v-else-if="item.surah">
-                          QS. {{ item.surah }} <span v-if="item.ayatStart">: {{ item.ayatStart }} - {{ item.ayatEnd }}</span>
+                          QS. {{ item.surah }}
+                          <span v-if="item.ayatStart"
+                            >: {{ item.ayatStart }} - {{ item.ayatEnd }}</span
+                          >
                         </span>
-                        <span v-else-if="!['izin','sakit','alpha'].includes(item.type)">
+                        <span
+                          v-else-if="
+                            !['izin', 'sakit', 'alpha'].includes(item.type)
+                          "
+                        >
                           -
                         </span>
                       </div>
-                      <div v-if="item.totalPages" class="text-xs text-slate-500">
+                      <div
+                        v-if="item.totalPages"
+                        class="text-xs text-slate-500"
+                      >
                         {{ item.totalPages }} Hal
                       </div>
-                      <div v-else-if="item.startPage || item.pageNumber" class="text-xs text-slate-500">
-                        Hal. {{ item.startPage || item.pageNumber }}<span v-if="item.endPage && item.endPage !== item.startPage"> - {{ item.endPage }}</span>
+                      <div
+                        v-else-if="item.startPage || item.pageNumber"
+                        class="text-xs text-slate-500"
+                      >
+                        Hal. {{ item.startPage || item.pageNumber
+                        }}<span
+                          v-if="item.endPage && item.endPage !== item.startPage"
+                        >
+                          - {{ item.endPage }}</span
+                        >
                       </div>
-                      <span v-if="['izin','sakit','alpha'].includes(item.type)" class="text-xs">
-                        Keterangan: {{ item.notes || '-' }}
+                      <span
+                        v-if="['izin', 'sakit', 'alpha'].includes(item.type)"
+                        class="text-xs"
+                      >
+                        Keterangan: {{ item.notes || "-" }}
                       </span>
                     </div>
                   </div>
                   <div class="flex gap-4">
-                    <div class="text-center" v-if="!['izin','sakit','alpha'].includes(item.type)">
+                    <div
+                      class="text-center"
+                      v-if="!['izin', 'sakit', 'alpha'].includes(item.type)"
+                    >
                       <p class="text-xs text-slate-400 mb-1">Kelancaran</p>
-                      <span class="font-bold px-3 py-1 rounded-lg text-xs uppercase"
-                            :class="{
-                              'bg-emerald-100 text-emerald-600': item.fluency === 'lancar',
-                              'bg-orange-100 text-orange-600': item.fluency === 'kurang_lancar',
-                              'bg-rose-100 text-rose-600': item.fluency === 'mengulang',
-                              'bg-slate-100 text-slate-500': !item.fluency
-                            }">
-                        {{ item.fluency ? item.fluency.replace('_', ' ') : '-' }}
+                      <span
+                        class="font-bold px-3 py-1 rounded-lg text-xs uppercase"
+                        :class="{
+                          'bg-emerald-100 text-emerald-600':
+                            item.fluency === 'lancar',
+                          'bg-orange-100 text-orange-600':
+                            item.fluency === 'kurang_lancar',
+                          'bg-rose-100 text-rose-600':
+                            item.fluency === 'mengulang',
+                          'bg-slate-100 text-slate-500': !item.fluency,
+                        }"
+                      >
+                        {{
+                          item.fluency ? item.fluency.replace("_", " ") : "-"
+                        }}
                       </span>
                     </div>
                     <div class="text-right">
                       <p class="text-xs text-slate-400 mb-1">Tanggal</p>
-                      <span class="font-semibold text-slate-700 text-sm block mb-1">{{ formatDate(item.depositDate || item.date || item.createdAt) }}</span>
-                      <p class="text-[10px] text-slate-500 whitespace-nowrap flex items-center justify-end gap-1">
+                      <span
+                        class="font-semibold text-slate-700 text-sm block mb-1"
+                        >{{
+                          formatDate(
+                            item.depositDate || item.date || item.createdAt,
+                          )
+                        }}</span
+                      >
+                      <p
+                        class="text-[10px] text-slate-500 whitespace-nowrap flex items-center justify-end gap-1"
+                      >
                         <Icon icon="solar:user-id-bold-duotone" />
-                        {{ item.teacherName || 'Unknown' }} <span v-if="item.teacherNip" class="opacity-70">({{ item.teacherNip }})</span>
+                        {{ item.teacherName || "Unknown" }}
+                        <span v-if="item.teacherNip" class="opacity-70"
+                          >({{ item.teacherNip }})</span
+                        >
                       </p>
                     </div>
                   </div>
@@ -525,130 +809,287 @@
           <!-- AKADEMIK -->
           <div v-if="activeTab === 'academic'" class="space-y-6">
             <div class="flex items-center gap-3 mb-2 px-2">
-              <Icon icon="solar:diploma-bold-duotone" class="text-2xl text-[#602515]" />
+              <Icon
+                icon="solar:diploma-bold-duotone"
+                class="text-2xl text-[#602515]"
+              />
               <h2 class="text-xl font-bold text-slate-800">Data Akademik</h2>
             </div>
-            <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-8">
-               <div class="grid grid-cols-1 gap-4">
-                  <div class="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-between">
-                     <span class="text-slate-500 text-sm font-semibold">Kelas / Rombel</span>
-                     <span class="text-slate-800 font-bold">{{ student.class?.name || '-' }}</span>
-                  </div>
-                  <div class="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-between">
-                     <span class="text-slate-500 text-sm font-semibold">Halaqah</span>
-                     <span class="text-slate-800 font-bold">{{ student.halaqah?.name || '-' }}</span>
-                  </div>
-               </div>
+            <div
+              class="bg-white rounded-3xl shadow-sm border border-slate-100 p-8"
+            >
+              <div class="grid grid-cols-1 gap-4">
+                <div
+                  class="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-between"
+                >
+                  <span class="text-slate-500 text-sm font-semibold"
+                    >Kelas / Rombel</span
+                  >
+                  <span class="text-slate-800 font-bold">{{
+                    student.class?.name || "-"
+                  }}</span>
+                </div>
+                <div
+                  class="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-between"
+                >
+                  <span class="text-slate-500 text-sm font-semibold"
+                    >Halaqah</span
+                  >
+                  <span class="text-slate-800 font-bold">{{
+                    student.halaqah?.name || "-"
+                  }}</span>
+                </div>
+              </div>
             </div>
           </div>
 
           <!-- ASRAMA -->
           <div v-if="activeTab === 'dormitory'" class="space-y-6">
             <div class="flex items-center gap-3 mb-2 px-2">
-              <Icon icon="solar:home-smile-bold-duotone" class="text-2xl text-[#602515]" />
+              <Icon
+                icon="solar:home-smile-bold-duotone"
+                class="text-2xl text-[#602515]"
+              />
               <h2 class="text-xl font-bold text-slate-800">Data Asrama</h2>
             </div>
-            <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-8">
-               <div class="grid grid-cols-1 gap-4">
-                  <div class="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-between">
-                     <span class="text-slate-500 text-sm font-semibold">Kamar / Asrama</span>
-                     <span class="text-slate-800 font-bold">{{ student.room?.name || 'Belum Ditempatkan' }}</span>
-                  </div>
-               </div>
+            <div
+              class="bg-white rounded-3xl shadow-sm border border-slate-100 p-8"
+            >
+              <div class="grid grid-cols-1 gap-4">
+                <div
+                  class="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-between"
+                >
+                  <span class="text-slate-500 text-sm font-semibold"
+                    >Kamar / Asrama</span
+                  >
+                  <span class="text-slate-800 font-bold">{{
+                    student.room?.name || "Belum Ditempatkan"
+                  }}</span>
+                </div>
+              </div>
             </div>
           </div>
 
           <!-- KESEHATAN -->
           <div v-if="activeTab === 'health'" class="space-y-6">
             <div class="flex items-center gap-3 mb-2 px-2">
-              <Icon icon="solar:heart-pulse-bold-duotone" class="text-2xl text-[#602515]" />
-              <h2 class="text-xl font-bold text-slate-800">Riwayat Kesehatan (Klinik)</h2>
+              <Icon
+                icon="solar:heart-pulse-bold-duotone"
+                class="text-2xl text-[#602515]"
+              />
+              <h2 class="text-xl font-bold text-slate-800">
+                Riwayat Kesehatan (Klinik)
+              </h2>
             </div>
-            
-            <div v-if="healthData.loading" class="flex justify-center p-8">
-              <Icon icon="line-md:loading-loop" class="text-4xl text-[#602515]" />
+
+            <div v-if="healthData.loading" class="flex justify-center">
+              <Icon
+                icon="line-md:loading-loop"
+                class="text-4xl text-[#602515]"
+              />
             </div>
-            <div v-else class="bg-white rounded-3xl shadow-sm border border-slate-100 p-8">
-              <div v-if="healthData.examinations.length === 0" class="text-center text-slate-500 py-10">
-                <Icon icon="solar:folder-with-files-bold-duotone" class="text-6xl text-slate-200 mb-4 mx-auto" />
+            <div
+              v-else
+              class="bg-white rounded-3xl shadow-sm border border-slate-100"
+            >
+              <div
+                v-if="healthData.examinations.length === 0"
+                class="text-center text-slate-500 py-10"
+              >
+                <Icon
+                  icon="solar:folder-with-files-bold-duotone"
+                  class="text-6xl text-slate-200 mb-4 mx-auto"
+                />
                 <p>Belum ada riwayat pemeriksaan.</p>
               </div>
               <div v-else class="space-y-4">
-                <div v-for="(exam, i) in healthData.examinations" :key="i" class="p-5 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col gap-4">
-                  <div class="flex justify-between items-start border-b border-slate-200 pb-3">
+                <div
+                  v-for="(exam, i) in healthData.examinations"
+                  :key="i"
+                  class="p-5 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col gap-4"
+                >
+                  <div
+                    class="flex justify-between items-start border-b border-slate-200 pb-3"
+                  >
                     <div>
-                      <p class="font-bold text-slate-800 text-lg">{{ exam.diagnosis || 'Pemeriksaan Umum' }}</p>
-                      <p class="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                      <p class="font-bold text-slate-800 text-lg">
+                        {{ exam.diagnosis || "Pemeriksaan Umum" }}
+                      </p>
+                      <p
+                        class="text-xs text-slate-500 mt-1 flex items-center gap-1"
+                      >
                         <Icon icon="solar:calendar-date-bold-duotone" />
                         {{ formatDate(exam.date || exam.createdAt) }}
                       </p>
                     </div>
-                    <span v-if="exam.hasSickLeave" class="bg-rose-100 text-rose-700 text-[10px] font-bold px-2 py-1 rounded uppercase">
+                    <span
+                      v-if="exam.hasSickLeave"
+                      class="bg-rose-100 text-rose-700 text-[10px] font-bold px-2 py-1 rounded uppercase"
+                    >
                       Izin Sakit
                     </span>
                   </div>
-                  
-                  <div v-if="exam.inpatient" class="bg-indigo-50/50 p-3 rounded-xl border border-indigo-100 flex items-center gap-3 mt-1">
-                    <div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
-                      <Icon icon="solar:hospital-bold-duotone" class="text-lg" />
+
+                  <div
+                    v-if="exam.inpatient"
+                    class="bg-indigo-50/50 p-3 rounded-xl border border-indigo-100 flex items-center gap-3 mt-1"
+                  >
+                    <div
+                      class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0"
+                    >
+                      <Icon
+                        icon="solar:hospital-bold-duotone"
+                        class="text-lg"
+                      />
                     </div>
                     <div>
-                      <p class="text-sm font-bold text-indigo-900">Rawat Inap</p>
+                      <p class="text-sm font-bold text-indigo-900">
+                        Rawat Inap
+                      </p>
                       <p class="text-xs text-indigo-700 mt-0.5">
-                        Kamar: <span class="font-semibold">{{ exam.inpatient.roomName }}</span> (Bed: {{ exam.inpatient.bedNumber || '-' }})
+                        Kamar:
+                        <span class="font-semibold">{{
+                          exam.inpatient.roomName
+                        }}</span>
+                        (Bed: {{ exam.inpatient.bedNumber || "-" }})
                         <span class="mx-1 text-indigo-300">•</span>
-                        {{ formatDate(exam.inpatient.admissionDate) }} - {{ exam.inpatient.dischargeDate ? formatDate(exam.inpatient.dischargeDate) : 'Sekarang' }}
+                        {{ formatDate(exam.inpatient.admissionDate) }} -
+                        {{
+                          exam.inpatient.dischargeDate
+                            ? formatDate(exam.inpatient.dischargeDate)
+                            : "Sekarang"
+                        }}
                       </p>
                     </div>
                   </div>
 
                   <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-1">
                     <div class="space-y-3">
-                      <div v-if="exam.complaint || exam.symptoms" class="text-sm">
-                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Keluhan / Gejala</p>
-                        <p class="text-slate-700 leading-relaxed">{{ exam.complaint || exam.symptoms }}</p>
+                      <div
+                        v-if="exam.complaint || exam.symptoms"
+                        class="text-sm"
+                      >
+                        <p
+                          class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1"
+                        >
+                          Keluhan / Gejala
+                        </p>
+                        <p class="text-slate-700 leading-relaxed">
+                          {{ exam.complaint || exam.symptoms }}
+                        </p>
                       </div>
                       <div v-if="exam.treatment" class="text-sm">
-                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Tindakan Medis</p>
-                        <p class="text-slate-700 leading-relaxed">{{ exam.treatment }}</p>
+                        <p
+                          class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1"
+                        >
+                          Tindakan Medis
+                        </p>
+                        <p class="text-slate-700 leading-relaxed">
+                          {{ exam.treatment }}
+                        </p>
                       </div>
                       <div v-if="exam.prescribedMedicines" class="text-sm">
-                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Resep Obat</p>
-                        <p class="text-slate-700 leading-relaxed">{{ exam.prescribedMedicines }}</p>
+                        <p
+                          class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1"
+                        >
+                          Resep Obat
+                        </p>
+                        <p class="text-slate-700 leading-relaxed">
+                          {{ exam.prescribedMedicines }}
+                        </p>
                       </div>
                       <div v-if="exam.notes || exam.anamnesis" class="text-sm">
-                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Catatan Tambahan</p>
-                        <p class="text-slate-700 leading-relaxed">{{ exam.notes || exam.anamnesis }}</p>
+                        <p
+                          class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1"
+                        >
+                          Catatan Tambahan
+                        </p>
+                        <p class="text-slate-700 leading-relaxed">
+                          {{ exam.notes || exam.anamnesis }}
+                        </p>
                       </div>
                     </div>
 
                     <!-- Tanda Vital -->
-                    <div v-if="exam.temperature || exam.bloodPressure || exam.weight || exam.height || exam.heartRate || exam.respiratoryRate" class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm lg:self-start">
-                      <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">Tanda Vital & Fisik</p>
+                    <div
+                      v-if="
+                        exam.temperature ||
+                        exam.bloodPressure ||
+                        exam.weight ||
+                        exam.height ||
+                        exam.heartRate ||
+                        exam.respiratoryRate
+                      "
+                      class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm lg:self-start"
+                    >
+                      <p
+                        class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3"
+                      >
+                        Tanda Vital & Fisik
+                      </p>
                       <div class="grid grid-cols-2 gap-y-4 gap-x-2">
                         <div v-if="exam.temperature" class="text-xs">
-                          <span class="text-slate-400 block mb-0.5">Suhu Tubuh</span>
-                          <span class="font-bold text-slate-700 text-base">{{ exam.temperature }} <span class="font-normal text-slate-400 text-xs">°C</span></span>
+                          <span class="text-slate-400 block mb-0.5"
+                            >Suhu Tubuh</span
+                          >
+                          <span class="font-bold text-slate-700 text-base"
+                            >{{ exam.temperature }}
+                            <span class="font-normal text-slate-400 text-xs"
+                              >°C</span
+                            ></span
+                          >
                         </div>
                         <div v-if="exam.bloodPressure" class="text-xs">
-                          <span class="text-slate-400 block mb-0.5">Tekanan Darah</span>
-                          <span class="font-bold text-slate-700 text-base">{{ exam.bloodPressure }}</span>
+                          <span class="text-slate-400 block mb-0.5"
+                            >Tekanan Darah</span
+                          >
+                          <span class="font-bold text-slate-700 text-base">{{
+                            exam.bloodPressure
+                          }}</span>
                         </div>
                         <div v-if="exam.heartRate" class="text-xs">
-                          <span class="text-slate-400 block mb-0.5">Denyut Nadi</span>
-                          <span class="font-bold text-slate-700 text-base">{{ exam.heartRate }} <span class="font-normal text-slate-400 text-xs">bpm</span></span>
+                          <span class="text-slate-400 block mb-0.5"
+                            >Denyut Nadi</span
+                          >
+                          <span class="font-bold text-slate-700 text-base"
+                            >{{ exam.heartRate }}
+                            <span class="font-normal text-slate-400 text-xs"
+                              >bpm</span
+                            ></span
+                          >
                         </div>
                         <div v-if="exam.respiratoryRate" class="text-xs">
-                          <span class="text-slate-400 block mb-0.5">Pernapasan</span>
-                          <span class="font-bold text-slate-700 text-base">{{ exam.respiratoryRate }} <span class="font-normal text-slate-400 text-xs">rpm</span></span>
+                          <span class="text-slate-400 block mb-0.5"
+                            >Pernapasan</span
+                          >
+                          <span class="font-bold text-slate-700 text-base"
+                            >{{ exam.respiratoryRate }}
+                            <span class="font-normal text-slate-400 text-xs"
+                              >rpm</span
+                            ></span
+                          >
                         </div>
                         <div v-if="exam.weight" class="text-xs">
-                          <span class="text-slate-400 block mb-0.5">Berat Badan</span>
-                          <span class="font-bold text-slate-700 text-base">{{ exam.weight }} <span class="font-normal text-slate-400 text-xs">kg</span></span>
+                          <span class="text-slate-400 block mb-0.5"
+                            >Berat Badan</span
+                          >
+                          <span class="font-bold text-slate-700 text-base"
+                            >{{ exam.weight }}
+                            <span class="font-normal text-slate-400 text-xs"
+                              >kg</span
+                            ></span
+                          >
                         </div>
                         <div v-if="exam.height" class="text-xs">
-                          <span class="text-slate-400 block mb-0.5">Tinggi Badan</span>
-                          <span class="font-bold text-slate-700 text-base">{{ exam.height }} <span class="font-normal text-slate-400 text-xs">cm</span></span>
+                          <span class="text-slate-400 block mb-0.5"
+                            >Tinggi Badan</span
+                          >
+                          <span class="font-bold text-slate-700 text-base"
+                            >{{ exam.height }}
+                            <span class="font-normal text-slate-400 text-xs"
+                              >cm</span
+                            ></span
+                          >
                         </div>
                       </div>
                     </div>
@@ -1088,7 +1529,15 @@
 import { ref, reactive, onMounted, computed, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { Icon } from "@iconify/vue";
-import { studentsApi, parentsApi, rewardsApi, warningsApi, tahfidzApi, clinicApi, quranApi } from "@/services/api";
+import {
+  studentsApi,
+  parentsApi,
+  rewardsApi,
+  warningsApi,
+  tahfidzApi,
+  clinicApi,
+  quranApi,
+} from "@/services/api";
 import StatusModal from "@/components/ui/StatusModal.vue";
 import AddressSelector from "@/components/ui/AddressSelector.vue";
 import ImageCropperModal from "@/components/ui/ImageCropperModal.vue";
@@ -1101,30 +1550,53 @@ const updating = ref(false);
 const activeTab = ref("personal");
 const tabs = [
   { id: "personal", label: "Data Pribadi", icon: "solar:user-id-bold-duotone" },
-  { id: "address", label: "Alamat & Kontak", icon: "solar:map-point-bold-duotone" },
-  { id: "parents", label: "Orang Tua & Wali", icon: "solar:users-group-rounded-bold-duotone" },
-  { id: "discipline", label: "Kedisiplinan", icon: "solar:shield-warning-bold-duotone" },
+  {
+    id: "address",
+    label: "Alamat & Kontak",
+    icon: "solar:map-point-bold-duotone",
+  },
+  {
+    id: "parents",
+    label: "Orang Tua & Wali",
+    icon: "solar:users-group-rounded-bold-duotone",
+  },
+  {
+    id: "discipline",
+    label: "Kedisiplinan",
+    icon: "solar:shield-warning-bold-duotone",
+  },
   { id: "tahfidz", label: "Tahfidz", icon: "solar:book-bookmark-bold-duotone" },
   { id: "academic", label: "Akademik", icon: "solar:diploma-bold-duotone" },
   { id: "dormitory", label: "Asrama", icon: "solar:home-smile-bold-duotone" },
   { id: "health", label: "Kesehatan", icon: "solar:heart-pulse-bold-duotone" },
-  { id: "actions", label: "Pengaturan & Aksi", icon: "solar:settings-bold-duotone" },
+  {
+    id: "actions",
+    label: "Pengaturan & Aksi",
+    icon: "solar:settings-bold-duotone",
+  },
 ];
 
 // Data States for New Tabs
-const disciplineData = ref({ rewards: [], punishments: [], warnings: [], loaded: false, loading: false });
+const disciplineData = ref({
+  rewards: [],
+  punishments: [],
+  warnings: [],
+  loaded: false,
+  loading: false,
+});
 const tahfidzData = ref({ deposits: [], loaded: false, loading: false });
 const healthData = ref({ examinations: [], loaded: false, loading: false });
 const surahList = ref([]);
 
 watch(activeTab, (newTab) => {
-  if (newTab === 'discipline' && !disciplineData.value.loaded) fetchDiscipline();
-  if (newTab === 'tahfidz' && !tahfidzData.value.loaded) fetchTahfidz();
-  if (newTab === 'health' && !healthData.value.loaded) fetchHealth();
+  if (newTab === "discipline" && !disciplineData.value.loaded)
+    fetchDiscipline();
+  if (newTab === "tahfidz" && !tahfidzData.value.loaded) fetchTahfidz();
+  if (newTab === "health" && !healthData.value.loaded) fetchHealth();
 });
 
 function getSurahName(number) {
-  if (!number) return '';
+  if (!number) return "";
   const surah = surahList.value.find((s) => s.sora === Number(number));
   return surah ? surah.sora_name_en : `Surah ${number}`;
 }
@@ -1132,12 +1604,20 @@ function getSurahName(number) {
 async function fetchDiscipline() {
   disciplineData.value.loading = true;
   try {
-    const resRewards = await rewardsApi.getAll({ studentId: student.value?.id });
+    const resRewards = await rewardsApi.getAll({
+      studentId: student.value?.id,
+    });
     if (resRewards?.data) {
-      disciplineData.value.rewards = resRewards.data.filter(item => item.type === 'reward' || item.type === 'Penghargaan');
-      disciplineData.value.punishments = resRewards.data.filter(item => item.type === 'punishment' || item.type === 'Pelanggaran');
+      disciplineData.value.rewards = resRewards.data.filter(
+        (item) => item.type === "reward" || item.type === "Penghargaan",
+      );
+      disciplineData.value.punishments = resRewards.data.filter(
+        (item) => item.type === "punishment" || item.type === "Pelanggaran",
+      );
     }
-    const resWarnings = await warningsApi.getAll({ studentId: student.value?.id });
+    const resWarnings = await warningsApi.getAll({
+      studentId: student.value?.id,
+    });
     if (resWarnings?.data) {
       disciplineData.value.warnings = resWarnings.data;
     }
@@ -1154,9 +1634,11 @@ async function fetchTahfidz() {
   try {
     const [resDeposits, resSurahs] = await Promise.all([
       tahfidzApi.getDeposits({ studentId: student.value?.id }),
-      surahList.value.length === 0 ? quranApi.getSurahs() : Promise.resolve({ data: surahList.value })
+      surahList.value.length === 0
+        ? quranApi.getSurahs()
+        : Promise.resolve({ data: surahList.value }),
     ]);
-    
+
     if (resSurahs?.data && surahList.value.length === 0) {
       surahList.value = resSurahs.data;
     }
@@ -1175,7 +1657,10 @@ async function fetchTahfidz() {
 async function fetchHealth() {
   healthData.value.loading = true;
   try {
-    const res = await clinicApi.getExaminations({ patientId: student.value?.id, patientType: 'student' });
+    const res = await clinicApi.getExaminations({
+      patientId: student.value?.id,
+      patientType: "student",
+    });
     if (res?.data) {
       healthData.value.examinations = res.data;
     }
@@ -1224,7 +1709,7 @@ const handlePhotoUpload = (e) => {
   };
   reader.readAsDataURL(file);
   event.target.value = "";
-}
+};
 
 async function handleCrop(blob) {
   showCropper.value = false;
@@ -1264,7 +1749,7 @@ async function uploadPhoto(fileOrBlob) {
       openStatusModal("success", "Berhasil", "Foto profil berhasil diperbarui");
     } else {
       throw new Error(
-        updateRes.message || "Gagal menyimpan foto ke data santri"
+        updateRes.message || "Gagal menyimpan foto ke data santri",
       );
     }
   } catch (err) {
@@ -1630,13 +2115,13 @@ async function saveParent() {
 
     const response = await parentsApi.update(
       parentEditModal.parentId,
-      updateData
+      updateData,
     );
 
     if (response.success) {
       // Update local parents array
       const idx = parents.value.findIndex(
-        (p) => p.id === parentEditModal.parentId
+        (p) => p.id === parentEditModal.parentId,
       );
       if (idx !== -1) {
         parents.value[idx] = { ...parents.value[idx], ...response.data };

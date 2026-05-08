@@ -1,5 +1,5 @@
 <template>
-  <div class="p-6">
+  <div>
     <!-- Header -->
     <div
       class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4"
@@ -648,7 +648,7 @@ const filteredStudents = computed(() => {
 });
 
 const localLimitNumber = computed(() =>
-  localLimit.value === "All" ? 9999999 : parseInt(localLimit.value || "20", 10)
+  localLimit.value === "All" ? 9999999 : parseInt(localLimit.value || "20", 10),
 );
 
 const pagedStudents = computed(() => {

@@ -71,7 +71,7 @@
           </div>
         </div>
 
-        <div class="p-6">
+        <div>
           <h3 class="font-semibold text-slate-800 mb-3">Deskripsi</h3>
           <p class="text-slate-600 text-sm leading-relaxed mb-6">
             Sistem Manajemen Pesantren adalah aplikasi terintegrasi yang
@@ -179,7 +179,7 @@
             Teknologi yang Digunakan
           </h2>
         </div>
-        <div class="p-6">
+        <div>
           <!-- Frontend -->
           <div class="mb-6">
             <h3
@@ -303,7 +303,7 @@
             Pengembang
           </h2>
         </div>
-        <div class="p-6">
+        <div>
           <div class="flex items-center gap-4">
             <div
               class="w-16 h-16 rounded-full bg-gradient-to-br from-amber-900 to-amber-600 flex items-center justify-center text-white text-xl font-bold shadow-lg"

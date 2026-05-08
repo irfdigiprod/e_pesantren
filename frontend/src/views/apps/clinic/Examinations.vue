@@ -1,5 +1,5 @@
 <template>
-  <div class="p-6 space-y-6">
+  <div>
     <DataTable
       title="Pemeriksaan"
       description="Riwayat pemeriksaan dan cetak resep."
@@ -37,15 +37,21 @@
       </template>
 
       <template #cell-class="{ item }">
-        <span class="text-slate-600 font-medium text-sm">{{ item.class ? item.class.name : "-" }}</span>
+        <span class="text-slate-600 font-medium text-sm">{{
+          item.class ? item.class.name : "-"
+        }}</span>
       </template>
 
       <template #cell-halaqah="{ item }">
-        <span class="text-slate-600 font-medium text-sm">{{ item.halaqah ? item.halaqah.name : "-" }}</span>
+        <span class="text-slate-600 font-medium text-sm">{{
+          item.halaqah ? item.halaqah.name : "-"
+        }}</span>
       </template>
 
       <template #cell-room="{ item }">
-        <span class="text-slate-600 font-medium text-sm">{{ item.room ? item.room.name : "-" }}</span>
+        <span class="text-slate-600 font-medium text-sm">{{
+          item.room ? item.room.name : "-"
+        }}</span>
       </template>
 
       <template #cell-diagnosis="{ item }">
@@ -96,17 +102,29 @@
               </div>
             </div>
           </div>
-          <div v-if="item.class || item.room || item.halaqah" class="grid grid-cols-2 gap-y-1 gap-x-2 text-[11px] text-slate-500 bg-slate-50 p-2 rounded-lg border border-slate-100 mb-2">
+          <div
+            v-if="item.class || item.room || item.halaqah"
+            class="grid grid-cols-2 gap-y-1 gap-x-2 text-[11px] text-slate-500 bg-slate-50 p-2 rounded-lg border border-slate-100 mb-2"
+          >
             <div v-if="item.class" class="flex items-center gap-1.5">
-              <Icon icon="solar:book-bookmark-bold-duotone" class="text-slate-400" />
+              <Icon
+                icon="solar:book-bookmark-bold-duotone"
+                class="text-slate-400"
+              />
               <span class="truncate">{{ item.class.name }}</span>
             </div>
             <div v-if="item.room" class="flex items-center gap-1.5">
               <Icon icon="solar:bed-bold-duotone" class="text-slate-400" />
               <span class="truncate">{{ item.room.name }}</span>
             </div>
-            <div v-if="item.halaqah" class="col-span-2 flex items-center gap-1.5">
-              <Icon icon="solar:users-group-two-rounded-bold-duotone" class="text-slate-400" />
+            <div
+              v-if="item.halaqah"
+              class="col-span-2 flex items-center gap-1.5"
+            >
+              <Icon
+                icon="solar:users-group-two-rounded-bold-duotone"
+                class="text-slate-400"
+              />
               <span class="truncate">{{ item.halaqah.name }}</span>
             </div>
           </div>
@@ -250,7 +268,8 @@
                   class="grid grid-cols-2 gap-4 p-4 bg-emerald-50 rounded-lg animate-fade-in-up border border-emerald-100 mb-3"
                 >
                   <div>
-                    <label class="block text-xs font-semibold text-emerald-900 mb-1"
+                    <label
+                      class="block text-xs font-semibold text-emerald-900 mb-1"
                       >Mulai Tanggal</label
                     >
                     <input
@@ -260,7 +279,8 @@
                     />
                   </div>
                   <div>
-                    <label class="block text-xs font-semibold text-emerald-900 mb-1"
+                    <label
+                      class="block text-xs font-semibold text-emerald-900 mb-1"
                       >Sampai Tanggal</label
                     >
                     <input
@@ -979,7 +999,7 @@ const filteredExaminations = computed(() => {
     (e) =>
       e.student?.fullName?.toLowerCase().includes(q) ||
       String(e.studentId).includes(q) ||
-      (e.diagnosis || "").toLowerCase().includes(q)
+      (e.diagnosis || "").toLowerCase().includes(q),
   );
 });
 
@@ -1259,8 +1279,12 @@ function openEdit(item) {
 
     date: item.date ? new Date(item.date).toISOString().split("T")[0] : "",
     createSickLeave: !!item.hasSickLeave,
-    sickStartDate: item.date ? new Date(item.date).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
-    sickEndDate: item.date ? new Date(item.date).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
+    sickStartDate: item.date
+      ? new Date(item.date).toISOString().split("T")[0]
+      : new Date().toISOString().split("T")[0],
+    sickEndDate: item.date
+      ? new Date(item.date).toISOString().split("T")[0]
+      : new Date().toISOString().split("T")[0],
     prescribedMedicinesText: item.prescribedMedicines || "", // Legacy
     consumedMedicines: [], // For edit we don't load structured yet to avoid stock issues
   });

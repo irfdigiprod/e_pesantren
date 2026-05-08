@@ -1,13 +1,5 @@
 <template>
-  <div class="p-6 max-w-6xl mx-auto pb-12">
-    <!-- Header -->
-    <div class="mb-6">
-      <h1 class="text-2xl font-bold text-slate-800">Aturan Poin</h1>
-      <p class="text-slate-500 text-sm mt-1">
-        Kelola daftar aturan poin penghargaan dan pelanggaran standar.
-      </p>
-    </div>
-
+  <div class="px-2">
     <!-- Tabs -->
     <div class="flex gap-2 mb-6 border-b border-slate-200">
       <button
@@ -31,30 +23,6 @@
         "
       >
         Pelanggaran (Punishment)
-      </button>
-    </div>
-
-    <!-- Action Bar -->
-    <div class="flex justify-end mb-4">
-      <button
-        @click="openImport()"
-        class="px-4 py-2 rounded-lg text-green-700 bg-green-50 border border-green-200 text-sm font-medium flex items-center gap-2 hover:bg-green-100 mr-2"
-      >
-        <Icon icon="solar:file-send-bold-duotone" />
-        Import Excel
-      </button>
-      <button
-        @click="openModal()"
-        class="px-4 py-2 rounded-lg text-white text-sm font-medium flex items-center gap-2"
-        :class="
-          activeTab === 'reward'
-            ? 'bg-green-600 hover:bg-green-700'
-            : 'bg-red-600 hover:bg-red-700'
-        "
-      >
-        <Icon icon="solar:add-circle-bold" />
-        Tambah Aturan
-        {{ activeTab === "reward" ? "Penghargaan" : "Pelanggaran" }}
       </button>
     </div>
 
@@ -89,6 +57,28 @@
     >
       <template #header-actions>
         <!-- Main Actions kept outside -->
+        <div class="flex justify-end mb-4">
+          <button
+            @click="openImport()"
+            class="px-4 py-2 rounded-lg text-green-700 bg-green-50 border border-green-200 text-sm font-medium flex items-center gap-2 hover:bg-green-100 mr-2"
+          >
+            <Icon icon="solar:file-send-bold-duotone" />
+            Import Excel
+          </button>
+          <button
+            @click="openModal()"
+            class="px-4 py-2 rounded-lg text-white text-sm font-medium flex items-center gap-2"
+            :class="
+              activeTab === 'reward'
+                ? 'bg-green-600 hover:bg-green-700'
+                : 'bg-red-600 hover:bg-red-700'
+            "
+          >
+            <Icon icon="solar:add-circle-bold" />
+            Tambah Aturan
+            {{ activeTab === "reward" ? "Penghargaan" : "Pelanggaran" }}
+          </button>
+        </div>
       </template>
 
       <!-- Filters Slot -->
@@ -438,7 +428,7 @@ const filteredInfo = computed(() => {
       (r) =>
         r.name.toLowerCase().includes(q) ||
         r.category.toLowerCase().includes(q) ||
-        r.description?.toLowerCase().includes(q)
+        r.description?.toLowerCase().includes(q),
     );
   }
   return res;
@@ -452,7 +442,9 @@ const paginatedRules = computed(() => {
 
 const existingCategories = computed(() => {
   const cats = new Set(
-    rules.value.filter((r) => r.type === activeTab.value).map((r) => r.category)
+    rules.value
+      .filter((r) => r.type === activeTab.value)
+      .map((r) => r.category),
   );
   return Array.from(cats);
 });
