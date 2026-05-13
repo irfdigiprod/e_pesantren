@@ -8,23 +8,22 @@ async function seed() {
   const hashedPassword = await hashPassword("admin123");
 
   await db.insert(users).values({
-    email: "admin@pesantren.id",
+    email: "alamat@pemail.com",
     password: hashedPassword,
-    firstName: "Admin",
-    lastName: "Sedunia",
-    phone: "085609340567",
+    firstName: "Nama",
+    lastName: "Panjang",
+    phone: "0123456789",
     birthPlace: "Karwawang",
     birthDate: new Date("1996-09-25"),
     gender: "male",
-    address: "Dusun Bolang RT 004 RW 001 Desa Bolang",
+    address: "Alamat lengkap",
     role: "admin",
     isActive: true,
   });
 
   console.log("✅ Admin user created!");
-  console.log("Email: admin@pesantren.id");
+  console.log("Email: alamat@pemail.com");
   console.log("Password: admin123");
-
   process.exit(0);
 }
 
