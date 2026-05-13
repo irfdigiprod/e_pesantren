@@ -1,0 +1,9 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Alkhotiri"
+  given-names: "Irfan"
+title: "e-Pesantren: Sistem Informasi Manajemen Pesantren Modern"
+version: 1.0.0
+date-released: 2026-05-13
+url: "https://github.com/irfdigiprod/e_pesantren"
