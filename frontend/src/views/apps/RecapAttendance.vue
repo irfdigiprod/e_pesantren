@@ -101,6 +101,16 @@
             {{ d.name }}
           </option>
         </select>
+ 
+        <!-- Gender Filter -->
+        <select
+          v-model="filter.gender"
+          class="px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 min-w-[120px] w-full md:w-auto"
+        >
+          <option value="">Semua Gender</option>
+          <option value="male">Laki-laki</option>
+          <option value="female">Perempuan</option>
+        </select>
 
         <!-- Actions -->
         <div class="flex gap-2">
@@ -230,6 +240,11 @@
               >
                 Divisi
               </th>
+              <th
+                class="px-4 py-3 font-semibold border-r border-slate-100 w-24"
+              >
+                Gender
+              </th>
 
               <!-- Date Columns -->
               <th
@@ -296,6 +311,9 @@
               <td class="px-4 py-3 text-slate-500 border-r border-slate-100">
                 {{ teacher.division || "-" }}
               </td>
+              <td class="px-4 py-3 text-slate-500 border-r border-slate-100">
+                {{ teacher.gender === 'male' ? 'L' : (teacher.gender === 'female' ? 'P' : '-') }}
+              </td>
 
               <!-- Date Cells -->
               <td
@@ -316,7 +334,7 @@
                     <span
                       class="px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-bold text-[10px] cursor-pointer hover:bg-amber-200 hover:scale-105 transition-all"
                       title="Klaim Kehadiran (Klik untuk hapus)"
-                      @click.stop="handleKClick(teacher.daily[date.iso])"
+                      @click.stop="handleKClick(teacher.daily[date.iso], teacher, date.iso)"
                       >K</span
                     >
                     <span
@@ -336,7 +354,7 @@
                     <span
                       class="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 font-bold text-[10px] cursor-pointer hover:bg-emerald-200 hover:scale-105 transition-all"
                       title="Hadir (Klik untuk hapus)"
-                      @click.stop="handleHClick(teacher.daily[date.iso])"
+                      @click.stop="handleHClick(teacher.daily[date.iso], teacher, date.iso)"
                       >H</span
                     >
                     <span
@@ -536,7 +554,7 @@
             <div>
               <div class="font-medium text-slate-800">{{ teacher.name }}</div>
               <div class="text-xs text-slate-400">
-                {{ teacher.nip || "-" }} · {{ teacher.division || "-" }}
+                {{ teacher.nip || "-" }} · {{ teacher.division || "-" }} · {{ teacher.gender === 'male' ? 'L' : (teacher.gender === 'female' ? 'P' : '-') }}
               </div>
             </div>
             <span class="text-xs text-slate-400">#{{ idx + 1 }}</span>
@@ -619,20 +637,43 @@
       @confirm="confirmDeleteClaim"
       @cancel="confirmModal.isOpen = false"
     >
-      <div class="space-y-3">
-        <p>{{ confirmModal.message }}</p>
-        <div
-          v-if="confirmModal.note"
-          class="bg-amber-50 border border-amber-100 rounded-lg p-3 text-sm text-amber-900 text-left"
-        >
-          <div
-            class="font-bold text-xs mb-1 opacity-80 uppercase tracking-wider flex items-center gap-1"
-          >
-            <Icon icon="solar:notes-bold" />
-            Catatan Klaim:
+      <div class="space-y-4">
+        <!-- Details Section -->
+        <div v-if="confirmModal.details" class="bg-slate-50 rounded-xl p-4 text-left border border-slate-100 space-y-2">
+          <div class="flex justify-between items-start">
+            <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Detail Kehadiran</span>
+            <span class="text-[10px] font-medium px-2 py-0.5 rounded-full" :class="confirmModal.confirmAction === 'deleteClaim' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'">
+              {{ confirmModal.confirmAction === 'deleteClaim' ? 'Klaim' : 'Hadir' }}
+            </span>
           </div>
-          {{ confirmModal.note }}
+          
+          <div class="grid grid-cols-[80px_1fr] gap-x-2 gap-y-1 text-sm">
+            <div class="text-slate-400">Nama</div>
+            <div class="text-slate-700 font-medium">{{ confirmModal.details.name }}</div>
+            
+            <div class="text-slate-400">Tanggal</div>
+            <div class="text-slate-700">{{ confirmModal.details.date }}</div>
+            
+            <div class="text-slate-400" v-if="confirmModal.details.sessions?.length">Waktu & Kegiatan</div>
+            <div class="text-slate-700 space-y-1.5" v-if="confirmModal.details.sessions?.length">
+              <div v-for="(s, i) in confirmModal.details.sessions" :key="i" class="flex items-center gap-2">
+                <span v-if="s.time" class="px-1.5 py-0.5 bg-white border border-slate-200 rounded text-[11px] font-mono whitespace-nowrap">
+                  {{ s.time }}
+                </span>
+                <span v-if="s.activity" class="px-1.5 py-0.5 bg-indigo-50 border border-indigo-100 text-indigo-700 rounded text-[11px] font-medium truncate">
+                  {{ s.activity }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="confirmModal.details.notes" class="mt-2 pt-2 border-t border-slate-200/50">
+            <div class="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1">Catatan:</div>
+            <div class="text-xs text-slate-600 italic">"{{ confirmModal.details.notes }}"</div>
+          </div>
         </div>
+
+        <p class="text-sm text-slate-500 leading-relaxed">{{ confirmModal.message }}</p>
       </div>
     </ConfirmModal>
 
@@ -771,6 +812,7 @@ const filter = reactive({
   startDate: "",
   endDate: "",
   divisionId: "",
+  gender: "",
   useCustomRange: false,
 });
 const loading = ref(true);
@@ -788,6 +830,7 @@ const confirmModal = reactive({
   message: "",
   note: "",
   item: null,
+  details: null,
 });
 const statusModal = reactive({
   isOpen: false,
@@ -874,6 +917,10 @@ async function fetchRecap() {
       params.divisionId = filter.divisionId;
     }
 
+    if (filter.gender) {
+      params.gender = filter.gender;
+    }
+
     const res = await attendanceApi.getRecap(params);
 
     if (res.success) {
@@ -911,6 +958,7 @@ async function exportToExcel() {
       { header: "Nama Guru", key: "name", width: 30 },
       { header: "NIP", key: "nip", width: 15 },
       { header: "Divisi", key: "division", width: 15 },
+      { header: "Gender", key: "gender", width: 10 },
     ];
 
     // Add Date Columns
@@ -961,6 +1009,7 @@ async function exportToExcel() {
         name: t.name,
         nip: t.nip || "-",
         division: t.division || "-",
+        gender: t.gender === 'male' ? 'L' : (t.gender === 'female' ? 'P' : '-'),
         presence: t.stats.presence,
         hours: t.stats.hours,
         permitDeduct: t.stats.permitDeduct || 0,
@@ -1064,22 +1113,32 @@ async function exportToExcel() {
 
 // === Delete Claim Logic ===
 // Actions
-function handleKClick(item) {
+function handleKClick(item, teacher, date) {
   confirmModal.title = "Hapus Klaim Kehadiran";
   confirmModal.message =
     "Apakah Anda yakin ingin menghapus data klaim kehadiran ini? Tindakan ini tidak dapat dibatalkan.";
   confirmModal.item = item;
-  confirmModal.note = item.notes || ""; // Add note
+  confirmModal.details = {
+    name: teacher.name,
+    date: formatDate(date),
+    sessions: item.sessions || [],
+    notes: item.notes,
+  };
   confirmModal.confirmAction = "deleteClaim"; // Tag action
   confirmModal.isOpen = true;
 }
 
-function handleHClick(item) {
+function handleHClick(item, teacher, date) {
   confirmModal.title = "Hapus Kehadiran";
   confirmModal.message =
     "Apakah Anda yakin ingin menghapus data kehadiran (H) ini? Tindakan ini tidak dapat dibatalkan.";
   confirmModal.item = item;
-  confirmModal.note = ""; // Reset note
+  confirmModal.details = {
+    name: teacher.name,
+    date: formatDate(date),
+    sessions: item.sessions || [],
+    notes: item.notes,
+  };
   confirmModal.confirmAction = "deleteAttendance"; // Tag action
   confirmModal.isOpen = true;
 }

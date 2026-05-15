@@ -682,6 +682,7 @@ attendanceRoute.get("/teachers/recap", requirePermission("/apps/attendance"), as
       startDate: customStart,
       endDate: customEnd,
       divisionId,
+      gender,
     } = c.req.query();
     // FIX: Use Asia/Jakarta for default period
     const now = new Date();
@@ -747,6 +748,9 @@ attendanceRoute.get("/teachers/recap", requirePermission("/apps/attendance"), as
     if (divisionId) {
       teacherConditions.push(eq(teachers.divisionId, parseInt(divisionId)));
     }
+    if (gender) {
+      teacherConditions.push(eq(teachers.gender, gender as any));
+    }
 
     const allTeachers = await db.query.teachers.findMany({
       where: and(...teacherConditions),
@@ -755,6 +759,7 @@ attendanceRoute.get("/teachers/recap", requirePermission("/apps/attendance"), as
         nip: true,
         fullName: true,
         department: true,
+        gender: true,
       },
     });
 
@@ -791,7 +796,7 @@ attendanceRoute.get("/teachers/recap", requirePermission("/apps/attendance"), as
             status: att.status,
             isClaim: att.isClaim || false,
             attendanceId: att.id, // Include ID for deletion/editing
-            times: [],
+            sessions: [], // Change times/activities to sessions
             totalMinutes: 0,
             notes: att.notes || null,
           };
@@ -815,7 +820,8 @@ attendanceRoute.get("/teachers/recap", requirePermission("/apps/attendance"), as
           dailyMap[dStr].status = "present"; // Claim implies presence
         }
 
-        // Aggregate Time
+        // Aggregate Time & Activity into Sessions
+        let timeStr = "";
         if (att.checkIn && att.checkOut) {
           const [h1, m1] = att.checkIn.split(":").map(Number);
           const [h2, m2] = att.checkOut.split(":").map(Number);
@@ -829,9 +835,16 @@ attendanceRoute.get("/teachers/recap", requirePermission("/apps/attendance"), as
             const mins = h2 * 60 + m2 - (h1 * 60 + m1);
             if (mins > 0) dailyMap[dStr].totalMinutes += mins;
           }
-          dailyMap[dStr].times.push(`${att.checkIn}-${att.checkOut}`);
+          timeStr = `${att.checkIn}-${att.checkOut}`;
         } else if (att.checkIn) {
-          dailyMap[dStr].times.push(`${att.checkIn}-?`);
+          timeStr = `${att.checkIn}-?`;
+        }
+
+        if (timeStr || att.activity) {
+          dailyMap[dStr].sessions.push({
+            time: timeStr,
+            activity: att.activity || null,
+          });
         }
 
         // Status priority
@@ -869,6 +882,7 @@ attendanceRoute.get("/teachers/recap", requirePermission("/apps/attendance"), as
         nip: t.nip,
         name: t.fullName,
         division: t.department,
+        gender: t.gender,
         daily: dailyMap, // Frontend will iterate dates and lookup this map
         stats: {
           activeDays: 0,
