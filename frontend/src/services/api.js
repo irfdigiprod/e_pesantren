@@ -42,6 +42,7 @@ function setToken(token, remember = true) {
 function removeToken() {
   localStorage.removeItem("token");
   localStorage.removeItem("user");
+  localStorage.removeItem("permissions");
   sessionStorage.removeItem("token");
   sessionStorage.removeItem("user");
 }

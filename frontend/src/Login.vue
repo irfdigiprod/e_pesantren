@@ -249,6 +249,17 @@ async function handleLogin() {
         // Also store in localStorage for compatibility
         localStorage.setItem("user", JSON.stringify(userRes.data));
 
+        // Fetch user permissions
+        try {
+          const { rolesApi } = await import("@/services/api.js");
+          const permRes = await rolesApi.getMyPermissions();
+          if (permRes?.success) {
+            localStorage.setItem("permissions", JSON.stringify(permRes.data || []));
+          }
+        } catch (pe) {
+          console.warn("Failed to fetch permissions on login:", pe);
+        }
+
         // Dispatch event to notify TopBar and Sidebar
         window.dispatchEvent(
           new CustomEvent("user-updated", { detail: userRes.data })

@@ -1,6 +1,7 @@
 // src/router/index.js
 import { createRouter, createWebHistory } from "vue-router";
 import { useLocalStorage } from "@vueuse/core";
+import { rolesApi } from "@/services/api";
 
 // Layout utama untuk user yang sudah login
 import Layout from "@/components/Layout.vue";
@@ -856,7 +857,7 @@ const router = createRouter({
 // ROUTER GUARD
 // ======================
 //
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const token = useLocalStorage("token", null).value;
   const isAuthPage = to.path === "/login" || to.path === "/register";
 
@@ -892,37 +893,59 @@ router.beforeEach((to, from, next) => {
     return next(isMobileOrTablet ? "/mobile-dashboard/attendance" : "/apps/teacher-attendance");
   }
 
-  // Check requiresAdmin - redirect non-admin users
-  if (to.meta.requiresAdmin) {
-    const userStr = localStorage.getItem("user");
-    if (userStr) {
-      try {
-        const user = JSON.parse(userStr);
-        if (user.role !== "admin") {
-          const isMobile = to.path.startsWith("/mobile-dashboard");
-          return next(isMobile ? "/mobile-dashboard" : "/");
-        }
-      } catch (e) {
-        console.error("Failed to parse user from localStorage", e);
-      }
-    } else {
-      return next("/login");
+  // Get user details
+  let user = null;
+  const userStr = localStorage.getItem("user");
+  if (userStr) {
+    try {
+      user = JSON.parse(userStr);
+    } catch (e) {
+      console.error("Failed to parse user from localStorage", e);
     }
   }
 
-  // Check blockedRoles - redirect blocked users
-  if (to.meta.blockedRoles) {
-    const userStr = localStorage.getItem("user");
-    if (userStr) {
+  // Fetch permissions if not in localStorage but token is present
+  let permissions = [];
+  if (token) {
+    const permStr = localStorage.getItem("permissions");
+    if (permStr) {
       try {
-        const user = JSON.parse(userStr);
-        if (to.meta.blockedRoles.includes(user.role)) {
-          // Redirect based on current path context
-          const isMobile = to.path.startsWith("/mobile-dashboard");
-          return next(isMobile ? "/mobile-dashboard" : "/");
+        permissions = JSON.parse(permStr);
+      } catch (e) {
+        console.error("Failed to parse permissions", e);
+      }
+    } else {
+      try {
+        const res = await rolesApi.getMyPermissions();
+        if (res.success) {
+          permissions = res.data || [];
+          localStorage.setItem("permissions", JSON.stringify(permissions));
         }
       } catch (e) {
-        console.error("Failed to parse user from localStorage", e);
+        console.error("Failed to fetch permissions in router guard", e);
+      }
+    }
+  }
+
+  // Admin always has access to everything
+  const isAdmin = user && user.role === "admin";
+  const isAllowedByPermission = Array.isArray(permissions) && permissions.includes(to.path);
+
+  // Check requiresAdmin - redirect non-admin users unless they have explicit permission
+  if (to.meta.requiresAdmin) {
+    if (!isAdmin && !isAllowedByPermission) {
+      const isMobile = to.path.startsWith("/mobile-dashboard");
+      return next(isMobile ? "/mobile-dashboard" : "/");
+    }
+  }
+
+  // Check blockedRoles - redirect blocked users unless they have explicit permission
+  if (to.meta.blockedRoles) {
+    if (user && to.meta.blockedRoles.includes(user.role)) {
+      if (!isAllowedByPermission && !isAdmin) {
+        // Redirect based on current path context
+        const isMobile = to.path.startsWith("/mobile-dashboard");
+        return next(isMobile ? "/mobile-dashboard" : "/");
       }
     }
   }
