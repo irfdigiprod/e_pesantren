@@ -935,7 +935,7 @@
               <div v-if="form.type === 'deposit'" class="space-y-1.5">
                 <label class="block text-sm font-bold text-slate-700">Unggah Bukti Transfer (Lampiran)</label>
                 <div class="flex items-center justify-center w-full">
-                  <label v-if="!form.receiptPath" class="group flex flex-col items-center justify-center w-full h-36 border-2 border-slate-100 border-dashed rounded-xl cursor-pointer bg-slate-50/50 hover:bg-white transition-all hover:border-[#602515] hover:shadow-inner">
+                  <label v-if="!form.receiptPath && !uploading" class="group flex flex-col items-center justify-center w-full h-36 border-2 border-slate-100 border-dashed rounded-xl cursor-pointer bg-slate-50/50 hover:bg-white transition-all hover:border-[#602515] hover:shadow-inner">
                     <div class="flex flex-col items-center justify-center pt-4 pb-4">
                       <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md mb-2 group-hover:scale-110 transition-transform">
                         <Icon icon="solar:upload-bold-duotone" class="text-lg text-slate-400 group-hover:text-[#602515]" />
@@ -945,6 +945,26 @@
                     </div>
                     <input type="file" class="hidden" accept="image/png, image/jpeg, image/jpg" @change="handleFileUpload" />
                   </label>
+
+                  <!-- Upload Progress Container -->
+                  <div v-else-if="uploading" class="w-full h-36 border border-slate-200 rounded-xl bg-slate-50/30 p-4 flex flex-col items-center justify-center gap-3">
+                    <div class="w-10 h-10 bg-[#602515]/5 rounded-full flex items-center justify-center animate-pulse">
+                      <Icon icon="solar:cloud-upload-bold-duotone" class="text-xl text-[#602515]" />
+                    </div>
+                    <div class="w-full max-w-xs space-y-1.5 text-center">
+                      <div class="text-[10px] font-extrabold text-slate-500 flex justify-between px-0.5 uppercase tracking-wider">
+                        <span>Mengunggah Bukti...</span>
+                        <span>{{ uploadProgress }}%</span>
+                      </div>
+                      <!-- Progress Track -->
+                      <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden shadow-inner">
+                        <div 
+                          class="bg-[#602515] h-full rounded-full transition-all duration-150 ease-out" 
+                          :style="{ width: `${uploadProgress}%` }"
+                        ></div>
+                      </div>
+                    </div>
+                  </div>
 
                   <div v-else class="w-full bg-slate-50/80 rounded-xl p-4 border border-emerald-100/50 flex flex-col items-center gap-3">
                     <div class="flex items-center gap-3 w-full bg-white p-2.5 rounded-lg border border-slate-100">
@@ -1193,6 +1213,7 @@ const memberBalances = ref([]);
 const loading = ref(false);
 const saving = ref(false);
 const uploading = ref(false);
+const uploadProgress = ref(0);
 const viewMode = ref("table");
 const balanceViewMode = ref("table");
 const activeTab = ref("transactions");
@@ -1868,9 +1889,12 @@ async function handleFileUpload(e) {
   }
 
   uploading.value = true;
+  uploadProgress.value = 0;
   modal.error = "";
   try {
-    const res = await savingsApi.uploadReceipt(file);
+    const res = await savingsApi.uploadReceipt(file, (progress) => {
+      uploadProgress.value = progress;
+    });
     if (res.success && res.data?.url) {
       form.receiptPath = res.data.url;
     } else {
@@ -1880,6 +1904,7 @@ async function handleFileUpload(e) {
     modal.error = "Gagal mengunggah bukti transfer: " + (err.message || "Error");
   } finally {
     uploading.value = false;
+    uploadProgress.value = 0;
   }
 }
 

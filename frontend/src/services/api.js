@@ -186,36 +186,48 @@ export async function request(endpoint, options = {}) {
 /**
  * Upload file using FormData
  */
-async function uploadFile(file) {
-  const formData = new FormData();
-  formData.append("file", file);
+async function uploadFile(file, onProgress) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    const formData = new FormData();
+    formData.append("file", file);
 
-  const url = `${BASE_URL}/api/uploads`;
+    const url = `${BASE_URL}/api/uploads`;
 
-  try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${getToken()}`,
-      },
-      body: formData,
-    });
+    xhr.open("POST", url, true);
+    xhr.setRequestHeader("Authorization", `Bearer ${getToken()}`);
 
-    const data = await parseResponse(res);
-
-    if (!res.ok) {
-      const errorMsg =
-        data?.errors || data?.message || res.statusText || `HTTP ${res.status}`;
-      throw new Error(errorMsg);
+    if (onProgress) {
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const percentComplete = Math.round((e.loaded / e.total) * 100);
+          onProgress(percentComplete);
+        }
+      };
     }
 
-    return data;
-  } catch (err) {
-    if (err.message === "Failed to fetch") {
-      throw new Error("Tidak dapat terhubung ke server");
-    }
-    throw err;
-  }
+    xhr.onload = () => {
+      let responseData;
+      try {
+        responseData = JSON.parse(xhr.responseText);
+      } catch (err) {
+        responseData = { success: false, message: "Response parsing failed" };
+      }
+
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve(responseData);
+      } else {
+        const errorMsg = responseData?.errors || responseData?.message || `HTTP ${xhr.status}`;
+        reject(new Error(errorMsg));
+      }
+    };
+
+    xhr.onerror = () => {
+      reject(new Error("Tidak dapat terhubung ke server"));
+    };
+
+    xhr.send(formData);
+  });
 }
 
 // ============================================
@@ -2208,8 +2220,8 @@ export const savingsApi = {
   async getUsers() {
     return request("/api/savings/users");
   },
-  async uploadReceipt(file) {
-    return uploadFile(file);
+  async uploadReceipt(file, onProgress) {
+    return uploadFile(file, onProgress);
   },
   async getBalances(userId = "") {
     return request(`/api/savings/balance${userId ? `?userId=${userId}` : ""}`);
