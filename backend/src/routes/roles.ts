@@ -3,7 +3,8 @@ import { db } from "../db";
 import { rolePermissions, userPermissions } from "../db/schema/permissions";
 import { users } from "../db/schema/users";
 import { eq, and, inArray } from "drizzle-orm";
-import { authMiddleware, requireRole } from "../middleware/auth";
+import { authMiddleware, requireRole, requirePermission } from "../middleware/auth";
+import { getDefaultPermission } from "../utils/permissions";
 
 const rolesRoute = new Hono();
 
@@ -26,6 +27,8 @@ const availableRoutes = [
   // Apps - General
   { path: "/apps/chat", label: "Chats", category: "Apps" },
   { path: "/apps/user-profile", label: "User Profile", category: "Apps" },
+  { path: "/apps/savings", label: "Tabungan (Saya)", category: "Apps" },
+  { path: "/apps/savings/manage", label: "Kelola Tabungan (Semua User)", category: "Apps" },
 
   // Guru
   { path: "/apps/teacher-attendance", label: "Absensi Guru", category: "Guru" },
@@ -171,12 +174,12 @@ const availableRoutes = [
 ];
 
 // Get all available routes
-rolesRoute.get("/routes", authMiddleware, async (c) => {
+rolesRoute.get("/routes", authMiddleware, requirePermission("/security/roles"), async (c) => {
   return c.json({ success: true, data: availableRoutes });
 });
 
 // Get permissions for a specific role
-rolesRoute.get("/:role/permissions", authMiddleware, async (c) => {
+rolesRoute.get("/:role/permissions", authMiddleware, requirePermission("/security/roles"), async (c) => {
   try {
     const role = c.req.param("role") as any;
 
@@ -194,7 +197,7 @@ rolesRoute.get("/:role/permissions", authMiddleware, async (c) => {
       ...route,
       isAllowed: permissionsMap.has(route.path)
         ? permissionsMap.get(route.path)
-        : true, // Default to allowed if not set
+        : getDefaultPermission(role, route.path),
     }));
 
     return c.json({ success: true, data: result });
@@ -208,7 +211,7 @@ rolesRoute.get("/:role/permissions", authMiddleware, async (c) => {
 });
 
 // Update permissions for a role
-rolesRoute.put("/:role/permissions", authMiddleware, async (c) => {
+rolesRoute.put("/:role/permissions", authMiddleware, requirePermission("/security/roles"), async (c) => {
   try {
     const role = c.req.param("role") as ValidRole;
     const body = await c.req.json();
@@ -275,7 +278,7 @@ rolesRoute.put("/:role/permissions", authMiddleware, async (c) => {
 });
 
 // Get permissions for a specific user
-rolesRoute.get("/users/:id/permissions", authMiddleware, async (c) => {
+rolesRoute.get("/users/:id/permissions", authMiddleware, requirePermission("/security/roles"), async (c) => {
   try {
     const userId = parseInt(c.req.param("id"));
 
@@ -308,7 +311,7 @@ rolesRoute.get("/users/:id/permissions", authMiddleware, async (c) => {
 });
 
 // Update permissions for a user
-rolesRoute.put("/users/:id/permissions", authMiddleware, async (c) => {
+rolesRoute.put("/users/:id/permissions", authMiddleware, requirePermission("/security/roles"), async (c) => {
   try {
     const userId = parseInt(c.req.param("id"));
     const body = await c.req.json();
@@ -355,6 +358,7 @@ rolesRoute.put("/users/:id/permissions", authMiddleware, async (c) => {
 rolesRoute.get(
   "/users/:id/effective-permissions",
   authMiddleware,
+  requirePermission("/security/roles"),
   async (c) => {
     try {
       const userId = parseInt(c.req.param("id"));
@@ -397,7 +401,7 @@ rolesRoute.get(
         ...route,
         isAllowed: effectiveMap.has(route.path)
           ? effectiveMap.get(route.path)
-          : true, // Default to allowed if not set
+          : getDefaultPermission(user.role, route.path),
       }));
 
       return c.json({
@@ -452,8 +456,14 @@ rolesRoute.get("/my-permissions", authMiddleware, async (c) => {
         ) {
           return true;
         }
-        const allowed = effectiveMap.get(route.path);
-        return allowed === undefined || allowed === true;
+        
+        // If has override or role perm record, use it
+        if (effectiveMap.has(route.path)) {
+          return effectiveMap.get(route.path);
+        }
+        
+        // Fallback to default permission for this role
+        return getDefaultPermission(currentUser.role, route.path);
       })
       .map((route) => route.path);
 

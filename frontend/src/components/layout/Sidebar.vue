@@ -49,6 +49,11 @@ const submenuByMain = {
         route: "/apps/chat",
       },
       {
+        label: "Tabungan",
+        icon: "solar:wallet-line-duotone",
+        route: "/apps/savings",
+      },
+      {
         label: "User Profile",
         icon: "solar:user-circle-line-duotone",
         route: "/apps/user-profile",
@@ -240,7 +245,6 @@ async function fetchPermissions() {
 // Filter function to check if route is allowed
 function isRouteAllowed(route) {
   if (allowedRoutes.value === null) return true; // Not loaded yet, show all
-  if (allowedRoutes.value.length === 0) return true; // No restrictions set, show all
   return allowedRoutes.value.includes(route);
 }
 

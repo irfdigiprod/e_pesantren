@@ -190,6 +190,16 @@ const groupedMenuItems = [
     ],
   },
   {
+    title: "Apps - Keuangan",
+    items: [
+      {
+        label: "Tabungan",
+        icon: "solar:wallet-line-duotone",
+        route: "/mobile-dashboard/savings",
+      },
+    ],
+  },
+  {
     title: "Apps - Santri",
     items: [
       {
@@ -463,7 +473,6 @@ async function fetchPermissions() {
 
 function isRouteAllowed(route) {
   if (allowedRoutes.value === null) return true;
-  if (allowedRoutes.value.length === 0) return true;
 
   // Explicit mappings for routes that don't follow the simple pattern
   const explicitMappings = {
@@ -496,6 +505,8 @@ function isRouteAllowed(route) {
     "/mobile-dashboard/about": "/about",
     // Chat
     "/mobile-dashboard/chat": "/apps/chat",
+    // Savings
+    "/mobile-dashboard/savings": "/apps/savings",
     // Settings
     "/mobile-dashboard/settings": "/settings/institution",
     // Security
@@ -525,7 +536,7 @@ const filteredGroupedMenuItems = computed(() => {
   return groupedMenuItems
     .map((group) => {
       const filteredItems = group.items.filter((item) =>
-        isRouteAllowed(item.route)
+        isRouteAllowed(item.route),
       );
       if (filteredItems.length === 0) return null;
       return { ...group, items: filteredItems };

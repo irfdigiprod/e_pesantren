@@ -3,6 +3,7 @@ import { verifyToken, type JWTPayload } from "../utils/jwt";
 import { db } from "../db";
 import { rolePermissions, userPermissions } from "../db/schema/permissions";
 import { eq, and } from "drizzle-orm";
+import { getDefaultPermission } from "../utils/permissions";
 
 // Extend Hono's context to include user
 declare module "hono" {
@@ -134,17 +135,29 @@ export function requirePermission(routePath: string) {
         ),
       });
 
-      if (rolePerm && !rolePerm.isAllowed) {
-        return c.json(
-          {
-            success: false,
-            message: "Forbidden: Akses ditolak oleh pengaturan role",
-          },
-          403,
-        );
+      if (rolePerm) {
+        if (!rolePerm.isAllowed) {
+          return c.json(
+            {
+              success: false,
+              message: "Forbidden: Akses ditolak oleh pengaturan role",
+            },
+            403,
+          );
+        }
+      } else {
+        // Fallback to default permission for the role if no DB record exists
+        if (!getDefaultPermission(user.role, routePath)) {
+          return c.json(
+            {
+              success: false,
+              message: "Forbidden: Akses ditolak oleh pengaturan default role",
+            },
+            403,
+          );
+        }
       }
 
-      // Default behavior is allowed if no explicit record exists
       await next();
     } catch (error) {
       console.error("Permission check error:", error);

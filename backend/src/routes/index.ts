@@ -17,6 +17,7 @@ import usersRoute from "./users";
 import notificationsRoute from "./notifications";
 import divisionsRoute from "./divisions";
 import studentLeavesRoute from "./student-leaves";
+import savingsRoute from "./savings";
 
 import settingsRoute from "./settings";
 import permissionsRoute from "./permissions";
@@ -73,4 +74,5 @@ export {
   pushRoute,
   analyticsRoute,
   studentLeavesRoute,
+  savingsRoute,
 };

@@ -40,6 +40,7 @@ import {
   pushRoute,
   analyticsRoute,
   studentLeavesRoute,
+  savingsRoute,
 } from "./routes";
 
 import {
@@ -79,6 +80,7 @@ app.get("/", (c) => {
       utils: "/api/utils",
       divisions: "/api/divisions",
       informationBoard: "/api/information-board",
+      savings: "/api/savings",
       websocket: "/ws",
     },
   });
@@ -130,6 +132,7 @@ app.route("/api/roles", rolesRoute);
 app.route("/api/parent-dashboard", parentDashboardRoute);
 app.route("/api/analytics", analyticsRoute);
 app.route("/api/student-leaves", studentLeavesRoute);
+app.route("/api/savings", savingsRoute);
 
 // 404 handler
 app.notFound((c) => {

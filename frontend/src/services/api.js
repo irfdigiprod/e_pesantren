@@ -2185,4 +2185,50 @@ export const studentLeavesApi = {
   },
 };
 
+// ============================================
+// SAVINGS (TABUNGAN) API
+// ============================================
+export const savingsApi = {
+  async getSavings() {
+    return request("/api/savings");
+  },
+  async getSavingById(id) {
+    return request(`/api/savings/${id}`);
+  },
+  async createSaving(data) {
+    return request("/api/savings", { method: "POST", body: data });
+  },
+  async updateSaving(id, data) {
+    return request(`/api/savings/${id}`, { method: "PUT", body: data });
+  },
+  async deleteSaving(id) {
+    return request(`/api/savings/${id}`, { method: "DELETE" });
+  },
+  async getUsers() {
+    return request("/api/savings/users");
+  },
+  async uploadReceipt(file) {
+    return uploadFile(file);
+  },
+  async getBalances(userId = "") {
+    return request(`/api/savings/balance${userId ? `?userId=${userId}` : ""}`);
+  },
+  async updateStatus(id, status) {
+    return request(`/api/savings/${id}/status`, { method: "PATCH", body: { status } });
+  },
+  async getBankAccounts() {
+    return request("/api/savings/bank-accounts");
+  },
+  async createBankAccount(data) {
+    return request("/api/savings/bank-accounts", { method: "POST", body: data });
+  },
+  async updateBankAccount(id, data) {
+    return request(`/api/savings/bank-accounts/${id}`, { method: "PUT", body: data });
+  },
+  async deleteBankAccount(id) {
+    return request(`/api/savings/bank-accounts/${id}`, { method: "DELETE" });
+  },
+};
+
+
 

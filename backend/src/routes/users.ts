@@ -4,7 +4,7 @@ import { users, teachers } from "../db/schema";
 import { eq } from "drizzle-orm";
 import path from "path";
 import fs from "fs";
-import { authMiddleware } from "../middleware/auth";
+import { authMiddleware, requirePermission } from "../middleware/auth";
 
 const usersRoute = new Hono();
 
@@ -30,7 +30,7 @@ async function saveUserPhoto(file: File): Promise<string> {
 }
 
 // Get all users (Admin only)
-usersRoute.get("/", authMiddleware, async (c) => {
+usersRoute.get("/", authMiddleware, requirePermission("/security/users"), async (c) => {
   try {
     const allUsers = await db.select().from(users).orderBy(users.name);
 
@@ -70,7 +70,7 @@ usersRoute.get("/current", authMiddleware, async (c) => {
 });
 
 // Get user by ID
-usersRoute.get("/:id", authMiddleware, async (c) => {
+usersRoute.get("/:id", authMiddleware, requirePermission("/security/users"), async (c) => {
   try {
     const id = parseInt(c.req.param("id"));
     if (isNaN(id)) {
@@ -96,7 +96,7 @@ usersRoute.get("/:id", authMiddleware, async (c) => {
 // ============ IMPORT USERS ============
 
 // Preview import users from Excel
-usersRoute.post("/import/preview", async (c) => {
+usersRoute.post("/import/preview", authMiddleware, requirePermission("/security/users"), async (c) => {
   try {
     const body = await c.req.parseBody();
     const file = body["file"];
@@ -229,7 +229,7 @@ usersRoute.post("/import/preview", async (c) => {
 });
 
 // Import users (Admin only)
-usersRoute.post("/import", async (c) => {
+usersRoute.post("/import", authMiddleware, requirePermission("/security/users"), async (c) => {
   try {
     const body = await c.req.parseBody();
     const file = body["file"];
@@ -370,7 +370,7 @@ usersRoute.post("/import", async (c) => {
 });
 
 // Create new user (Admin only)
-usersRoute.post("/", async (c) => {
+usersRoute.post("/", authMiddleware, requirePermission("/security/users"), async (c) => {
   try {
     let body: any = {};
     const contentType = c.req.header("Content-Type") || "";
@@ -700,7 +700,7 @@ usersRoute.patch("/current", authMiddleware, async (c) => {
 });
 
 // Update user by ID (Admin only)
-usersRoute.patch("/:id", async (c) => {
+usersRoute.patch("/:id", authMiddleware, requirePermission("/security/users"), async (c) => {
   try {
     const id = parseInt(c.req.param("id"));
     let body: any = {};
@@ -801,7 +801,7 @@ usersRoute.patch("/:id", async (c) => {
 });
 
 // Delete user by ID (Admin only)
-usersRoute.delete("/:id", async (c) => {
+usersRoute.delete("/:id", authMiddleware, requirePermission("/security/users"), async (c) => {
   try {
     const id = parseInt(c.req.param("id"));
     if (isNaN(id)) {

@@ -323,44 +323,44 @@ const router = createRouter({
           path: "settings",
           name: "MobileSettingsGeneral",
           component: () => import("@/views/settings/SettingsGeneral.vue"),
-          meta: { title: "Pengaturan Umum" },
+          meta: { title: "Pengaturan Umum", requiresAdmin: true },
         },
         {
           path: "settings-attendance",
           name: "MobileSettingsAttendance",
           component: () => import("@/views/settings/SettingsAttendance.vue"),
-          meta: { title: "Pengaturan Kehadiran" },
+          meta: { title: "Pengaturan Kehadiran", requiresAdmin: true },
         },
         {
           path: "settings-salary",
           name: "MobileSettingsSalary",
           component: () => import("@/views/settings/SalarySettings.vue"),
-          meta: { title: "Pengaturan Gaji" },
+          meta: { title: "Pengaturan Gaji", requiresAdmin: true },
         },
         {
           path: "settings-salary-grading",
           name: "MobileSettingsSalaryGrading",
           component: () => import("@/views/settings/SalaryGrading.vue"),
-          meta: { title: "Komponen Gaji" },
+          meta: { title: "Komponen Gaji", requiresAdmin: true },
         },
         {
           path: "settings-institution",
           name: "MobileSettingsInstitution",
           component: () => import("@/views/settings/SettingsInstitution.vue"),
-          meta: { title: "Identitas Lembaga" },
+          meta: { title: "Identitas Lembaga", requiresAdmin: true },
         },
         {
           path: "settings-information-board",
           name: "MobileSettingsInfoBoard",
           component: () =>
             import("@/views/settings/InformationBoardSettings.vue"),
-          meta: { title: "Papan Informasi" },
+          meta: { title: "Papan Informasi", requiresAdmin: true },
         },
         {
           path: "settings-academic",
           name: "MobileSettingsAcademic",
           component: () => import("@/views/settings/AcademicSettings.vue"),
-          meta: { title: "Pengaturan Akademik" },
+          meta: { title: "Pengaturan Akademik", requiresAdmin: true },
         },
 
         // Security & About
@@ -368,7 +368,7 @@ const router = createRouter({
           path: "security-roles",
           name: "MobileSecurityRoles",
           component: () => import("@/views/security/SecurityRoles.vue"),
-          meta: { title: "Roles" },
+          meta: { title: "Roles", requiresAdmin: true },
         },
         {
           path: "about",
@@ -419,6 +419,12 @@ const router = createRouter({
           name: "MobileNotifications",
           component: () => import("@/views/pages/Notifications.vue"),
           meta: { title: "Notifikasi" },
+        },
+        {
+          path: "savings",
+          name: "MobileSavings",
+          component: () => import("@/views/apps/Savings.vue"),
+          meta: { title: "Tabungan" },
         },
       ],
     },
@@ -733,11 +739,13 @@ const router = createRouter({
           path: "analytics/overview",
           name: "AnalyticsOverview",
           component: () => import("@/views/analytics/AnalyticsOverview.vue"),
+          meta: { requiresAdmin: true },
         },
         {
           path: "analytics/reports",
           name: "AnalyticsReports",
           component: () => import("@/views/analytics/AnalyticsReports.vue"),
+          meta: { requiresAdmin: true },
         },
 
         // =======================
@@ -747,42 +755,50 @@ const router = createRouter({
           path: "settings/general",
           name: "SettingsGeneral",
           component: () => import("@/views/settings/SettingsGeneral.vue"),
+          meta: { requiresAdmin: true },
         },
         {
           path: "settings/billing",
           name: "SettingsBilling",
           component: () => import("@/views/settings/SettingsBilling.vue"),
+          meta: { requiresAdmin: true },
         },
         {
           path: "settings/attendance",
           name: "SettingsAttendance",
           component: () => import("@/views/settings/SettingsAttendance.vue"),
+          meta: { requiresAdmin: true },
         },
         {
           path: "settings/salary-grading",
           name: "SalaryGrading",
           component: () => import("@/views/settings/SalaryGrading.vue"),
+          meta: { requiresAdmin: true },
         },
         {
           path: "settings/salary",
           name: "SalarySettings",
           component: () => import("@/views/settings/SalarySettings.vue"),
+          meta: { requiresAdmin: true },
         },
         {
           path: "settings/institution",
           name: "SettingsInstitution",
           component: () => import("@/views/settings/SettingsInstitution.vue"),
+          meta: { requiresAdmin: true },
         },
         {
           path: "settings/information-board",
           name: "InformationBoardSettings",
           component: () =>
             import("@/views/settings/InformationBoardSettings.vue"),
+          meta: { requiresAdmin: true },
         },
         {
           path: "settings/academic",
           name: "AcademicSettings",
           component: () => import("@/views/settings/AcademicSettings.vue"),
+          meta: { requiresAdmin: true },
         },
         {
           path: "about",
@@ -797,11 +813,18 @@ const router = createRouter({
           path: "security/roles",
           name: "SecurityRoles",
           component: () => import("@/views/security/SecurityRoles.vue"),
+          meta: { requiresAdmin: true },
         },
         {
           path: "security/users",
           name: "SecurityUsers",
           component: () => import("@/views/security/Users.vue"),
+          meta: { requiresAdmin: true },
+        },
+        {
+          path: "apps/savings",
+          name: "Savings",
+          component: () => import("@/views/apps/Savings.vue"),
         },
 
         //
@@ -867,6 +890,24 @@ router.beforeEach((to, from, next) => {
 
     const isMobileOrTablet = window.innerWidth < 1024;
     return next(isMobileOrTablet ? "/mobile-dashboard/attendance" : "/apps/teacher-attendance");
+  }
+
+  // Check requiresAdmin - redirect non-admin users
+  if (to.meta.requiresAdmin) {
+    const userStr = localStorage.getItem("user");
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        if (user.role !== "admin") {
+          const isMobile = to.path.startsWith("/mobile-dashboard");
+          return next(isMobile ? "/mobile-dashboard" : "/");
+        }
+      } catch (e) {
+        console.error("Failed to parse user from localStorage", e);
+      }
+    } else {
+      return next("/login");
+    }
   }
 
   // Check blockedRoles - redirect blocked users
