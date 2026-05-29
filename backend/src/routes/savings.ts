@@ -763,6 +763,19 @@ savingsRoute.put(
         return c.json({ success: false, message: "Rekening tidak ditemukan" }, 404);
       }
 
+      // Check if trying to change account details while it is active
+      const isChangingDetails =
+        (data.bankName !== undefined && data.bankName !== record.bankName) ||
+        (data.accountNumber !== undefined && data.accountNumber !== record.accountNumber) ||
+        (data.accountName !== undefined && data.accountName !== record.accountName);
+
+      if (record.isActive && isChangingDetails) {
+        return c.json({
+          success: false,
+          message: "Rekening aktif tidak dapat diubah detailnya. Silakan nonaktifkan terlebih dahulu."
+        }, 400);
+      }
+
       const updateData: any = {};
       if (data.bankName !== undefined) updateData.bankName = data.bankName;
       if (data.accountNumber !== undefined) updateData.accountNumber = data.accountNumber;
@@ -801,6 +814,14 @@ savingsRoute.delete(
 
       if (!record) {
         return c.json({ success: false, message: "Rekening tidak ditemukan" }, 404);
+      }
+
+      // Block deleting active bank accounts
+      if (record.isActive) {
+        return c.json({
+          success: false,
+          message: "Rekening aktif tidak dapat dihapus. Silakan nonaktifkan terlebih dahulu."
+        }, 400);
       }
 
       await db.delete(savingsBankAccounts).where(eq(savingsBankAccounts.id, id));

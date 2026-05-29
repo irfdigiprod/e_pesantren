@@ -717,16 +717,18 @@
               <!-- Action Buttons -->
               <div class="absolute top-4 right-4 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button
-                  @click="openAccountModal(acc)"
-                  class="p-1.5 rounded-lg bg-white border border-slate-200 hover:border-amber-300 hover:text-amber-600 transition-all text-slate-500 shadow-sm"
-                  title="Ubah Rekening"
+                  @click="acc.isActive ? showActiveAccountWarning('edit') : openAccountModal(acc)"
+                  class="p-1.5 rounded-lg bg-white border border-slate-200 transition-all shadow-sm"
+                  :class="acc.isActive ? 'opacity-40 cursor-not-allowed text-slate-400' : 'hover:border-amber-300 hover:text-amber-600 text-slate-500'"
+                  :title="acc.isActive ? 'Nonaktifkan rekening untuk mengubah detail' : 'Ubah Rekening'"
                 >
                   <Icon icon="solar:pen-bold-duotone" class="text-xs" />
                 </button>
                 <button
-                  @click="confirmDeleteAccount(acc)"
-                  class="p-1.5 rounded-lg bg-white border border-slate-200 hover:border-red-300 hover:text-red-600 transition-all text-slate-500 shadow-sm"
-                  title="Hapus Rekening"
+                  @click="acc.isActive ? showActiveAccountWarning('delete') : confirmDeleteAccount(acc)"
+                  class="p-1.5 rounded-lg bg-white border border-slate-200 transition-all shadow-sm"
+                  :class="acc.isActive ? 'opacity-40 cursor-not-allowed text-slate-400' : 'hover:border-red-300 hover:text-red-600 text-slate-500'"
+                  :title="acc.isActive ? 'Nonaktifkan rekening sebelum menghapus' : 'Hapus Rekening'"
                 >
                   <Icon icon="solar:trash-bin-trash-bold-duotone" class="text-xs" />
                 </button>
@@ -1295,6 +1297,15 @@ async function fetchBankAccounts() {
   } catch (error) {
     console.error("Failed to fetch bank accounts:", error);
   }
+}
+
+function showActiveAccountWarning(action) {
+  statusModal.type = "warning";
+  statusModal.title = "Rekening Masih Aktif";
+  statusModal.message = action === "edit"
+    ? "Rekening yang berstatus aktif tidak dapat diubah detailnya. Silakan nonaktifkan terlebih dahulu."
+    : "Rekening yang berstatus aktif tidak dapat dihapus. Silakan nonaktifkan terlebih dahulu.";
+  statusModal.show = true;
 }
 
 // Copy to clipboard helper
