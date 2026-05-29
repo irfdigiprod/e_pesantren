@@ -351,6 +351,27 @@ savingsRoute.get("/", requirePermission("/apps/savings"), async (c) => {
   }
 });
 
+
+// 9. Get list of savings bank accounts (Accessible by all users with /apps/savings)
+savingsRoute.get(
+  "/bank-accounts",
+  requirePermission("/apps/savings"),
+  async (c) => {
+    try {
+      const accounts = await db.query.savingsBankAccounts.findMany({
+        orderBy: (accounts, { desc }) => [desc(accounts.isActive), desc(accounts.id)],
+      });
+      return c.json({
+        success: true,
+        data: accounts,
+      });
+    } catch (error) {
+      console.error("Get bank accounts error:", error);
+      return c.json({ success: false, message: "Gagal mengambil data rekening" }, 500);
+    }
+  }
+);
+
 // 4. Get Single Savings Record
 savingsRoute.get("/:id", requirePermission("/apps/savings"), async (c) => {
   try {
@@ -692,26 +713,6 @@ savingsRoute.delete("/:id", requirePermission("/apps/savings"), async (c) => {
 // ============================================
 // SAVINGS BANK ACCOUNTS API
 // ============================================
-
-// 9. Get list of savings bank accounts (Accessible by all users with /apps/savings)
-savingsRoute.get(
-  "/bank-accounts",
-  requirePermission("/apps/savings"),
-  async (c) => {
-    try {
-      const accounts = await db.query.savingsBankAccounts.findMany({
-        orderBy: (accounts, { desc }) => [desc(accounts.isActive), desc(accounts.id)],
-      });
-      return c.json({
-        success: true,
-        data: accounts,
-      });
-    } catch (error) {
-      console.error("Get bank accounts error:", error);
-      return c.json({ success: false, message: "Gagal mengambil data rekening" }, 500);
-    }
-  }
-);
 
 // 10. Create savings bank account (Manager only)
 savingsRoute.post(
