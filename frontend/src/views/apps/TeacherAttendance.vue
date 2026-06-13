@@ -204,7 +204,9 @@
             <span class="w-2 h-2 rounded-full bg-amber-400"></span>
             <span class="text-xs text-slate-600 font-medium">Masuk</span>
             <span class="text-xs text-slate-400 ml-auto">{{
-              distance !== null ? formatDistance(distance) : "..."
+              todayAttendance?.checkIn && todayAttendance?.checkInLatitude
+                ? calculateDistanceFromCoords(todayAttendance.checkInLatitude, todayAttendance.checkInLongitude)
+                : (distance !== null ? formatDistance(distance) : "...")
             }}</span>
             <Icon
               v-if="isWithinRadius"
@@ -284,7 +286,9 @@
             <span class="w-2 h-2 rounded-full bg-amber-400"></span>
             <span class="text-xs text-slate-600 font-medium">Pulang</span>
             <span class="text-xs text-slate-400 ml-auto">{{
-              distance !== null ? formatDistance(distance) : "..."
+              todayAttendance?.checkOut && todayAttendance?.checkOutLatitude
+                ? calculateDistanceFromCoords(todayAttendance.checkOutLatitude, todayAttendance.checkOutLongitude)
+                : (distance !== null ? formatDistance(distance) : "...")
             }}</span>
             <Icon
               v-if="isWithinRadius"
