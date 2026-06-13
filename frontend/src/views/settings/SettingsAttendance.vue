@@ -498,7 +498,193 @@
           </div>
         </div>
       </div>
+
+      <!-- Custom Location per Division Section -->
+      <div
+        class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mt-6"
+      >
+        <div
+          class="px-4 md:px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between gap-4"
+        >
+          <div class="flex-1">
+            <h2 class="text-xl font-semibold text-slate-800">
+              Pengaturan Custom Lokasi per Divisi
+            </h2>
+            <p class="text-sm text-slate-500 mt-1">
+              Atur koordinat pusat absensi yang berbeda untuk divisi tertentu. Jika tidak diatur, divisi akan menggunakan lokasi default di atas.
+            </p>
+          </div>
+          <div class="p-2 bg-indigo-50 text-indigo-900 rounded-lg">
+            <Icon icon="lucide:layers" class="w-6 h-6" />
+          </div>
+        </div>
+
+        <div class="p-4 md:p-6 space-y-4">
+          <div v-if="loadingDivisions" class="flex items-center justify-center py-6">
+            <Icon icon="lucide:loader-2" class="w-8 h-8 animate-spin text-indigo-500" />
+            <span class="ml-2 text-sm text-slate-500 font-medium">Memuat data divisi...</span>
+          </div>
+
+          <div v-else-if="divisions.length === 0" class="text-center py-8 text-slate-400 text-sm">
+            Tidak ada divisi yang terdaftar.
+          </div>
+
+          <div v-else class="grid grid-cols-1 gap-4">
+            <div
+              v-for="division in divisions"
+              :key="division.id"
+              class="border rounded-xl p-4 transition-all duration-200"
+              :class="[
+                editingDivisionId === division.id
+                  ? 'border-indigo-500 bg-indigo-50/10 shadow-sm'
+                  : division.latitude != null && division.longitude != null
+                  ? 'border-emerald-200 bg-emerald-50/10'
+                  : 'border-slate-200 bg-white hover:border-slate-300'
+              ]"
+            >
+              <!-- Info Header -->
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div class="flex-1">
+                  <h3 class="text-base font-semibold text-slate-800 flex flex-wrap items-center gap-2">
+                    {{ division.name }}
+                    <span
+                      v-if="division.latitude != null && division.longitude != null"
+                      class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-100"
+                    >
+                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                      Custom Lokasi
+                    </span>
+                    <span
+                      v-else
+                      class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600"
+                    >
+                      Lokasi Global
+                    </span>
+                  </h3>
+                  <p class="text-xs text-slate-500 mt-1">
+                    {{ division.description || 'Tidak ada deskripsi.' }}
+                  </p>
+                  <div
+                    v-if="division.latitude != null && division.longitude != null"
+                    class="text-xs font-mono text-slate-500 mt-2 flex flex-wrap gap-x-4 gap-y-1 bg-slate-50 p-2 rounded-lg border border-slate-100 w-fit"
+                  >
+                    <span><strong>Lat:</strong> {{ parseFloat(division.latitude).toFixed(6) }}</span>
+                    <span><strong>Lng:</strong> {{ parseFloat(division.longitude).toFixed(6) }}</span>
+                    <span><strong>Radius:</strong> {{ division.radius || 100 }}m</span>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-2 shrink-0">
+                  <button
+                    v-if="editingDivisionId !== division.id"
+                    type="button"
+                    @click="editDivision(division)"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:border-indigo-500 text-slate-700 hover:text-indigo-600 rounded-lg text-sm font-medium transition-all"
+                  >
+                    <Icon icon="lucide:edit-2" class="w-4 h-4" />
+                    Atur Lokasi
+                  </button>
+                </div>
+              </div>
+
+              <!-- Edit Form Specific to division -->
+              <div
+                v-if="editingDivisionId === division.id"
+                class="mt-6 pt-6 border-t border-slate-100 space-y-4"
+              >
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <!-- Latitude -->
+                  <div class="space-y-1.5">
+                    <label class="text-xs font-semibold text-slate-700">Latitude</label>
+                    <input
+                      v-model.number="editForm.latitude"
+                      type="number"
+                      step="any"
+                      placeholder="Contoh: -6.9175"
+                      class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all text-sm outline-none"
+                    />
+                  </div>
+
+                  <!-- Longitude -->
+                  <div class="space-y-1.5">
+                    <label class="text-xs font-semibold text-slate-700">Longitude</label>
+                    <input
+                      v-model.number="editForm.longitude"
+                      type="number"
+                      step="any"
+                      placeholder="Contoh: 107.6191"
+                      class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all text-sm outline-none"
+                    />
+                  </div>
+
+                  <!-- Radius -->
+                  <div class="space-y-1.5">
+                    <label class="text-xs font-semibold text-slate-700">Radius (Meter)</label>
+                    <input
+                      v-model.number="editForm.radius"
+                      type="number"
+                      min="1"
+                      placeholder="Default global (100)"
+                      class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all text-sm outline-none"
+                    />
+                  </div>
+                </div>
+
+                <!-- Division Geolocation Helper -->
+                <div class="flex flex-wrap items-center justify-between gap-3 bg-amber-50/50 border border-amber-100/50 rounded-lg p-3">
+                  <div class="flex items-center gap-2 text-xs text-amber-900">
+                    <Icon icon="lucide:info" class="w-4 h-4 shrink-0 text-amber-700" />
+                    <span>Gunakan koordinat GPS perangkat Anda saat ini sebagai koordinat divisi.</span>
+                  </div>
+                  <button
+                    type="button"
+                    @click="useCurrentLocationForDivision"
+                    class="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-900 hover:bg-amber-800 text-white rounded-md text-xs font-medium transition-colors"
+                  >
+                    <Icon v-if="loadingDivLoc" icon="lucide:loader-2" class="w-3 h-3 animate-spin" />
+                    <Icon v-else icon="lucide:crosshair" class="w-3 h-3" />
+                    Gunakan Lokasi Saya
+                  </button>
+                  <p v-if="divLocError" class="text-xs text-rose-600 w-full mt-1">
+                    {{ divLocError }}
+                  </p>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex flex-wrap items-center justify-end gap-2 pt-2">
+                  <button
+                    v-if="division.latitude != null && division.longitude != null"
+                    type="button"
+                    @click="resetDivisionLocation(division)"
+                    class="px-4 py-2 border border-rose-200 text-rose-600 hover:bg-rose-50 rounded-lg text-sm font-medium mr-auto transition-colors"
+                  >
+                    Hapus Custom (Gunakan Global)
+                  </button>
+
+                  <button
+                    type="button"
+                    @click="cancelEditDivision"
+                    class="px-4 py-2 border border-slate-200 text-slate-700 hover:bg-slate-100 rounded-lg text-sm font-medium transition-colors"
+                  >
+                    Batal
+                  </button>
+
+                  <button
+                    type="button"
+                    @click="saveDivisionLocation(division)"
+                    class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium shadow-sm transition-colors flex items-center gap-1.5"
+                  >
+                    <Icon icon="lucide:save" class="w-4 h-4" />
+                    Simpan Lokasi Divisi
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
+
     <!-- Status Modal -->
     <StatusModal
       :is-open="statusModal.open"
@@ -513,7 +699,7 @@
 <script setup>
 import { ref, onMounted, reactive } from "vue";
 import { Icon } from "@iconify/vue";
-import { settingsApi } from "@/services/api";
+import { settingsApi, divisionsApi } from "@/services/api";
 import StatusModal from "@/components/ui/StatusModal.vue";
 
 const settings = ref({
@@ -812,7 +998,166 @@ async function saveSettings(silent = false) {
   }
 }
 
+// ==========================================
+// Division Location Custom Settings Logic
+// ==========================================
+const divisions = ref([]);
+const loadingDivisions = ref(false);
+const editingDivisionId = ref(null);
+const editForm = ref({
+  latitude: null,
+  longitude: null,
+  radius: null,
+});
+
+async function fetchDivisions() {
+  loadingDivisions.value = true;
+  try {
+    const res = await divisionsApi.getAll();
+    divisions.value = res.data || [];
+  } catch (e) {
+    console.error("Gagal memuat divisi:", e);
+  } finally {
+    loadingDivisions.value = false;
+  }
+}
+
+function editDivision(div) {
+  editingDivisionId.value = div.id;
+  editForm.value = {
+    latitude: div.latitude != null ? parseFloat(div.latitude) : null,
+    longitude: div.longitude != null ? parseFloat(div.longitude) : null,
+    radius: div.radius != null ? parseInt(div.radius) : null,
+  };
+}
+
+function cancelEditDivision() {
+  editingDivisionId.value = null;
+  editForm.value = {
+    latitude: null,
+    longitude: null,
+    radius: null,
+  };
+}
+
+const loadingDivLoc = ref(false);
+const divLocError = ref("");
+
+function getDivPosition() {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error("Browser tidak mendukung Geolocation"));
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => resolve(pos),
+      (err) => {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => resolve(pos),
+          (err2) => reject(err2),
+          { enableHighAccuracy: false, timeout: 15000, maximumAge: 120000 }
+        );
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  });
+}
+
+function useCurrentLocationForDivision() {
+  loadingDivLoc.value = true;
+  divLocError.value = "";
+
+  getDivPosition()
+    .then((position) => {
+      editForm.value.latitude = position.coords.latitude;
+      editForm.value.longitude = position.coords.longitude;
+    })
+    .catch((err) => {
+      console.error(err);
+      let msg = err.message;
+      if (err.code === 1) msg = "Izin lokasi ditolak.";
+      else if (err.code === 2) msg = "Lokasi tidak tersedia.";
+      else if (err.code === 3) msg = "Waktu permintaan lokasi habis.";
+      divLocError.value = "Gagal mengambil lokasi: " + msg;
+    })
+    .finally(() => {
+      loadingDivLoc.value = false;
+    });
+}
+
+async function saveDivisionLocation(division) {
+  const hasLat = editForm.value.latitude != null && !isNaN(editForm.value.latitude);
+  const hasLng = editForm.value.longitude != null && !isNaN(editForm.value.longitude);
+  
+  if ((hasLat && !hasLng) || (!hasLat && hasLng)) {
+    showStatus(
+      "error",
+      "Validasi Gagal",
+      "Kedua Latitude dan Longitude harus diisi atau dikosongkan bersamaan."
+    );
+    return;
+  }
+
+  if (hasLat) {
+    if (editForm.value.latitude < -90 || editForm.value.latitude > 90) {
+      showStatus("error", "Validasi Gagal", "Latitude harus antara -90 dan 90.");
+      return;
+    }
+    if (editForm.value.longitude < -180 || editForm.value.longitude > 180) {
+      showStatus("error", "Validasi Gagal", "Longitude harus antara -180 dan 180.");
+      return;
+    }
+    if (editForm.value.radius != null && editForm.value.radius <= 0) {
+      showStatus("error", "Validasi Gagal", "Radius harus lebih dari 0 meter.");
+      return;
+    }
+  }
+
+  try {
+    loading.value = true;
+    await divisionsApi.update(division.id, {
+      name: division.name,
+      description: division.description || undefined,
+      latitude: editForm.value.latitude,
+      longitude: editForm.value.longitude,
+      radius: editForm.value.radius,
+    });
+
+    showStatus("success", "Berhasil", `Lokasi custom untuk divisi "${division.name}" berhasil disimpan.`);
+    editingDivisionId.value = null;
+    await fetchDivisions();
+  } catch (e) {
+    console.error("Gagal menyimpan lokasi divisi:", e);
+    showStatus("error", "Gagal", "Gagal menyimpan lokasi divisi: " + e.message);
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function resetDivisionLocation(division) {
+  try {
+    loading.value = true;
+    await divisionsApi.update(division.id, {
+      name: division.name,
+      description: division.description || undefined,
+      latitude: null,
+      longitude: null,
+      radius: null,
+    });
+
+    showStatus("success", "Berhasil", `Lokasi divisi "${division.name}" direset ke Pengaturan Global.`);
+    editingDivisionId.value = null;
+    await fetchDivisions();
+  } catch (e) {
+    console.error("Gagal mereset lokasi divisi:", e);
+    showStatus("error", "Gagal", "Gagal mereset lokasi divisi: " + e.message);
+  } finally {
+    loading.value = false;
+  }
+}
+
 onMounted(() => {
   fetchSettings();
+  fetchDivisions();
 });
 </script>

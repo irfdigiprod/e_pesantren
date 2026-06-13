@@ -16,11 +16,17 @@ divisionsRoute.use("*", authMiddleware);
 const createDivisionSchema = z.object({
   name: z.string().min(1, "Nama divisi wajib diisi"),
   description: z.string().optional(),
+  latitude: z.union([z.number(), z.string()]).transform(val => val != null ? String(val) : null).nullable().optional(),
+  longitude: z.union([z.number(), z.string()]).transform(val => val != null ? String(val) : null).nullable().optional(),
+  radius: z.number().nullable().optional(),
 });
 
 const updateDivisionSchema = z.object({
   name: z.string().min(1).optional(),
   description: z.string().optional(),
+  latitude: z.union([z.number(), z.string()]).transform(val => val != null ? String(val) : null).nullable().optional(),
+  longitude: z.union([z.number(), z.string()]).transform(val => val != null ? String(val) : null).nullable().optional(),
+  radius: z.number().nullable().optional(),
 });
 
 // ============ DIVISIONS CRUD ============

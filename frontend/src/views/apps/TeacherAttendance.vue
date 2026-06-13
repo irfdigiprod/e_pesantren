@@ -1179,6 +1179,31 @@ let geoTimeoutId = null;
 const currentPos = ref({ lat: null, lng: null });
 const isUpdatingLocation = ref(false); // Lock to prevent concurrent requests
 
+// Determine the active attendance location (custom division or global)
+const activeLocation = computed(() => {
+  if (currentTeacher.value && currentTeacher.value.divisions && currentTeacher.value.divisions.length > 0) {
+    const customDiv = currentTeacher.value.divisions.find(
+      (d) => d.latitude != null && d.longitude != null
+    );
+    if (customDiv) {
+      return {
+        latitude: parseFloat(customDiv.latitude),
+        longitude: parseFloat(customDiv.longitude),
+        radius: customDiv.radius != null ? parseInt(customDiv.radius) : settings.value.radius,
+        isCustom: true,
+        divisionName: customDiv.name,
+      };
+    }
+  }
+  return {
+    latitude: settings.value.latitude,
+    longitude: settings.value.longitude,
+    radius: settings.value.radius,
+    isCustom: false,
+    divisionName: null,
+  };
+});
+
 // Smart tolerance: Consider GPS accuracy when determining if user is within radius
 // Uses "minimum possible distance" = calculated distance - accuracy (benefit of the doubt)
 // Accuracy tolerance is now configurable via settings
@@ -1207,7 +1232,7 @@ const isWithinRadius = computed(() => {
     effectiveDistance = Math.max(0, distance.value - tolerance);
   }
 
-  return effectiveDistance <= settings.value.radius;
+  return effectiveDistance <= activeLocation.value.radius;
 });
 
 // Computed for accuracy status display
@@ -1307,8 +1332,8 @@ function calculateDistanceFromCoords(lat, lng) {
   const dist = getDistanceFromLatLonInMeters(
     Number(lat),
     Number(lng),
-    settings.value.latitude,
-    settings.value.longitude
+    activeLocation.value.latitude,
+    activeLocation.value.longitude
   );
   return formatDistance(dist);
 }
@@ -1538,8 +1563,8 @@ async function handleCheckIn() {
     const dist = getDistanceFromLatLonInMeters(
       lat,
       lng,
-      settings.value.latitude,
-      settings.value.longitude
+      activeLocation.value.latitude,
+      activeLocation.value.longitude
     );
 
     distance.value = dist; // Update UI distance
@@ -1561,7 +1586,7 @@ async function handleCheckIn() {
     const tolerance = Math.min(accuracy, configuredTolerance);
     const effectiveDistance = Math.max(0, dist - tolerance);
 
-    if (effectiveDistance > settings.value.radius) {
+    if (effectiveDistance > activeLocation.value.radius) {
       throw new Error(
         `Anda berada di luar radius absensi (${formatDistance(dist)})`
       );
@@ -1613,8 +1638,8 @@ async function handleCheckOut() {
     const dist = getDistanceFromLatLonInMeters(
       lat,
       lng,
-      settings.value.latitude,
-      settings.value.longitude
+      activeLocation.value.latitude,
+      activeLocation.value.longitude
     );
 
     distance.value = dist;
@@ -1636,7 +1661,7 @@ async function handleCheckOut() {
     const tolerance = Math.min(accuracy, configuredTolerance);
     const effectiveDistance = Math.max(0, dist - tolerance);
 
-    if (effectiveDistance > settings.value.radius) {
+    if (effectiveDistance > activeLocation.value.radius) {
       throw new Error(
         `Anda berada di luar radius absensi (${formatDistance(dist)})`
       );
@@ -1690,15 +1715,15 @@ async function updateLocation() {
 
     // Check if settings are properly configured (use null check, not truthy)
     if (
-      settings.value &&
-      settings.value.latitude != null &&
-      settings.value.longitude != null
+      activeLocation.value &&
+      activeLocation.value.latitude != null &&
+      activeLocation.value.longitude != null
     ) {
       const calculatedDistance = getDistanceFromLatLonInMeters(
         currentPos.value.lat,
         currentPos.value.lng,
-        settings.value.latitude,
-        settings.value.longitude
+        activeLocation.value.latitude,
+        activeLocation.value.longitude
       );
 
       if (calculatedDistance !== null) {

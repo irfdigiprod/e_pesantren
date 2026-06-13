@@ -4,6 +4,7 @@ import {
   int,
   text,
   timestamp,
+  decimal,
 } from "drizzle-orm/mysql-core";
 import { teachers } from "./teachers";
 
@@ -12,6 +13,9 @@ export const divisions = mysqlTable("divisions", {
   id: int("id").primaryKey().autoincrement(),
   name: varchar("name", { length: 100 }).notNull(),
   description: text("description"),
+  latitude: decimal("latitude", { precision: 10, scale: 8 }),
+  longitude: decimal("longitude", { precision: 11, scale: 8 }),
+  radius: int("radius"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
 });

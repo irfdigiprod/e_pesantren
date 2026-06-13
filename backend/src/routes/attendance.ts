@@ -51,7 +51,7 @@ function deg2rad(deg: number) {
 
 // Helper: Validate Location with Smart Tolerance
 // accuracy: GPS accuracy in meters (optional, from device)
-async function validateLocation(lat: number, lng: number, accuracy?: number) {
+async function validateLocation(lat: number, lng: number, accuracy?: number, teacherId?: number) {
   const settingsList = await db.query.settings.findMany({
     where: inArray(settings.key, [
       "attendance_latitude",
@@ -66,12 +66,31 @@ async function validateLocation(lat: number, lng: number, accuracy?: number) {
     return acc;
   }, {} as Record<string, string | null>);
 
-  const centerLat = parseFloat(settingsMap["attendance_latitude"] || "");
-  const centerLng = parseFloat(settingsMap["attendance_longitude"] || "");
-  const radius = parseFloat(settingsMap["attendance_radius"] || "100");
+  let centerLat = parseFloat(settingsMap["attendance_latitude"] || "");
+  let centerLng = parseFloat(settingsMap["attendance_longitude"] || "");
+  let radius = parseFloat(settingsMap["attendance_radius"] || "100");
   const maxAccuracyTolerance = parseFloat(
     settingsMap["attendance_accuracy_tolerance"] || "50"
   );
+
+  // If teacher has a division and that division has custom location, use it
+  if (teacherId) {
+    const teacher = await db.query.teachers.findFirst({
+      where: eq(teachers.id, teacherId),
+    });
+    if (teacher && teacher.divisionId) {
+      const division = await db.query.divisions.findFirst({
+        where: eq(divisions.id, teacher.divisionId),
+      });
+      if (division && division.latitude != null && division.longitude != null) {
+        centerLat = parseFloat(division.latitude);
+        centerLng = parseFloat(division.longitude);
+        if (division.radius != null) {
+          radius = parseFloat(String(division.radius));
+        }
+      }
+    }
+  }
 
   // Check if settings are properly configured (use isNaN instead of truthy check)
   if (isNaN(centerLat) || isNaN(centerLng)) {
@@ -469,7 +488,8 @@ attendanceRoute.post(
         const result = await validateLocation(
           data.latitude,
           data.longitude,
-          data.accuracy // GPS accuracy from device
+          data.accuracy, // GPS accuracy from device
+          data.teacherId
         );
 
         if (result.error) {
@@ -588,7 +608,8 @@ attendanceRoute.post(
         const result = await validateLocation(
           data.latitude,
           data.longitude,
-          data.accuracy // GPS accuracy from device
+          data.accuracy, // GPS accuracy from device
+          data.teacherId
         );
 
         if (result.error) {
