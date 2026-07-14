@@ -23,7 +23,14 @@ const salaryRoute = new Hono();
 
 // Middleware: Auth required, mostly admin/staff access
 salaryRoute.use("*", authMiddleware);
-salaryRoute.use("*", requirePermission("/apps/salary"));
+salaryRoute.use("*", async (c, next) => {
+  // Bypass middleware for salary report routes to avoid conflicts
+  if (c.req.path.includes("/reports")) {
+    await next();
+    return;
+  }
+  return requirePermission("/settings/salary-grading")(c, next);
+});
 
 // Get all settings and allowances configuration
 salaryRoute.get("/settings", async (c) => {

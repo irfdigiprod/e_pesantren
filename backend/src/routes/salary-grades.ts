@@ -13,7 +13,7 @@ const salaryGradesRoute = new Hono();
 
 // Middleware: Auth required, admin/staff access
 salaryGradesRoute.use("*", authMiddleware);
-salaryGradesRoute.use("*", requirePermission("/settings/salary-grading"));
+salaryGradesRoute.use("*", requirePermission("/settings/salary"));
 
 // GET all grades
 salaryGradesRoute.get("/", async (c) => {

@@ -415,7 +415,7 @@ attendanceRoute.get("/teachers", async (c) => {
 // Create teacher attendance
 attendanceRoute.post(
   "/teachers",
-  requirePermission("/apps/attendance"),
+  requirePermission("/apps/attendance-recap"),
   zValidator("json", createTeacherAttendanceSchema),
   async (c) => {
     try {
@@ -695,7 +695,10 @@ attendanceRoute.post(
 );
 
 // Recap Endpoint
-attendanceRoute.get("/teachers/recap", requirePermission("/apps/attendance"), async (c) => {
+attendanceRoute.get(
+  "/teachers/recap",
+  requirePermission("/apps/attendance-recap"),
+  async (c) => {
   try {
     const {
       month,
@@ -976,7 +979,7 @@ attendanceRoute.get("/teachers/recap", requirePermission("/apps/attendance"), as
 // Delete Teacher Attendance (e.g. Claim)
 attendanceRoute.delete(
   "/teachers/attendances/:id",
-  requirePermission("/apps/attendance"),
+  requirePermission("/apps/attendance-recap"),
   async (c) => {
     try {
       const id = parseInt(c.req.param("id"));
