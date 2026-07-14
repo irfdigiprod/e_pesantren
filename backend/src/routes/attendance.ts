@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import { eq, and, sql, inArray, gte, lte } from "drizzle-orm";
+import { eq, and, or, sql, inArray, gte, lte } from "drizzle-orm";
 import { db } from "../db";
 import {
   studentAttendances,
@@ -767,7 +767,25 @@ attendanceRoute.get("/teachers/recap", requirePermission("/apps/attendance"), as
     // 3. Fetch Teachers
     const teacherConditions: any[] = [eq(teachers.status, "active")];
     if (divisionId) {
-      teacherConditions.push(eq(teachers.divisionId, parseInt(divisionId)));
+      const targetDivId = parseInt(divisionId);
+      // Fetch teacher IDs associated with this division from pivot table
+      const memberRows = await db
+        .select({ teacherId: teacherDivisions.teacherId })
+        .from(teacherDivisions)
+        .where(eq(teacherDivisions.divisionId, targetDivId));
+      
+      const teacherIdsInPivot = memberRows.map((r) => r.teacherId);
+      
+      if (teacherIdsInPivot.length > 0) {
+        teacherConditions.push(
+          or(
+            eq(teachers.divisionId, targetDivId),
+            inArray(teachers.id, teacherIdsInPivot)
+          )
+        );
+      } else {
+        teacherConditions.push(eq(teachers.divisionId, targetDivId));
+      }
     }
     if (gender) {
       teacherConditions.push(eq(teachers.gender, gender as any));
@@ -783,6 +801,15 @@ attendanceRoute.get("/teachers/recap", requirePermission("/apps/attendance"), as
         gender: true,
       },
     });
+
+    // Fetch related divisions for these teachers to display in the recap
+    const allRelations = await db
+      .select({
+        teacherId: teacherDivisions.teacherId,
+        divisionName: divisions.name,
+      })
+      .from(teacherDivisions)
+      .innerJoin(divisions, eq(teacherDivisions.divisionId, divisions.id));
 
     // 4. Fetch Attendances
     const attendancesList = await db.query.teacherAttendances.findMany({
@@ -902,7 +929,10 @@ attendanceRoute.get("/teachers/recap", requirePermission("/apps/attendance"), as
         id: t.id,
         nip: t.nip,
         name: t.fullName,
-        division: t.department,
+        division: allRelations
+          .filter((r) => r.teacherId === t.id)
+          .map((r) => r.divisionName)
+          .join(", ") || t.department || "-",
         gender: t.gender,
         daily: dailyMap, // Frontend will iterate dates and lookup this map
         stats: {

@@ -50,6 +50,7 @@
           <div class="grid grid-cols-2 gap-2">
             <select
               v-model="filter.month"
+              @change="fetchRecap"
               class="px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 w-full"
             >
               <option v-for="(m, i) in months" :key="i" :value="i + 1">
@@ -59,6 +60,7 @@
 
             <select
               v-model="filter.year"
+              @change="fetchRecap"
               class="px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 w-full"
             >
               <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
@@ -81,12 +83,14 @@
           <input
             type="date"
             v-model="filter.startDate"
+            @change="fetchRecap"
             class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 min-w-0"
           />
           <span class="text-slate-400 font-medium">-</span>
           <input
             type="date"
             v-model="filter.endDate"
+            @change="fetchRecap"
             class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 min-w-0"
           />
         </div>
@@ -94,6 +98,7 @@
         <!-- Division Filter -->
         <select
           v-model="filter.divisionId"
+          @change="fetchRecap"
           class="px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 min-w-[120px] w-full md:w-auto"
         >
           <option value="">Semua Divisi</option>
@@ -105,6 +110,7 @@
         <!-- Gender Filter -->
         <select
           v-model="filter.gender"
+          @change="fetchRecap"
           class="px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 min-w-[120px] w-full md:w-auto"
         >
           <option value="">Semua Gender</option>

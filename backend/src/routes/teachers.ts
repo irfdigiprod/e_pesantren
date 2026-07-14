@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import { eq, desc, getTableColumns } from "drizzle-orm";
+import { eq, and, desc, getTableColumns } from "drizzle-orm";
 import { db } from "../db";
 import { teachers } from "../db/schema/teachers";
 import { divisions, teacherDivisions } from "../db/schema/divisions";
@@ -210,6 +210,16 @@ teachersRoute.post(
         userId = Number(userResult[0].insertId);
       }
 
+      let resolvedDivisionId: number | null = null;
+      if (data.department) {
+        const div = await db.query.divisions.findFirst({
+          where: eq(divisions.name, data.department.trim()),
+        });
+        if (div) {
+          resolvedDivisionId = div.id;
+        }
+      }
+
       const result = await db.insert(teachers).values({
         userId,
         nip: data.nip,
@@ -228,6 +238,7 @@ teachersRoute.post(
         phone: data.phone,
         email: data.email,
         position: data.position,
+        divisionId: resolvedDivisionId,
         department: data.department,
         employeeType: data.employeeType || "teacher",
         joinDate: data.joinDate ? new Date(data.joinDate) : undefined,
@@ -235,8 +246,18 @@ teachersRoute.post(
         photo: data.photo,
       });
 
+      const newTeacherId = Number(result[0].insertId);
+
+      if (resolvedDivisionId) {
+        await db.insert(teacherDivisions).values({
+          teacherId: newTeacherId,
+          divisionId: resolvedDivisionId,
+          role: "member",
+        });
+      }
+
       const newTeacher = await db.query.teachers.findFirst({
-        where: eq(teachers.id, Number(result[0].insertId)),
+        where: eq(teachers.id, newTeacherId),
       });
 
       return c.json({
@@ -282,14 +303,51 @@ teachersRoute.put(
         }
       }
 
+      let resolvedDivisionId: number | null = null;
+      let shouldUpdateDivision = false;
+
+      if (data.department !== undefined) {
+        shouldUpdateDivision = true;
+        if (data.department) {
+          const div = await db.query.divisions.findFirst({
+            where: eq(divisions.name, data.department.trim()),
+          });
+          if (div) {
+            resolvedDivisionId = div.id;
+          }
+        }
+      }
+
       await db
         .update(teachers)
         .set({
           ...data,
+          divisionId: shouldUpdateDivision ? resolvedDivisionId : undefined,
           birthDate: data.birthDate ? new Date(data.birthDate) : undefined,
           joinDate: data.joinDate ? new Date(data.joinDate) : undefined,
         })
         .where(eq(teachers.id, id));
+
+      if (shouldUpdateDivision) {
+        if (resolvedDivisionId) {
+          const existingPivot = await db.query.teacherDivisions.findFirst({
+            where: and(
+              eq(teacherDivisions.teacherId, id),
+              eq(teacherDivisions.divisionId, resolvedDivisionId)
+            ),
+          });
+          if (!existingPivot) {
+            await db.delete(teacherDivisions).where(eq(teacherDivisions.teacherId, id));
+            await db.insert(teacherDivisions).values({
+              teacherId: id,
+              divisionId: resolvedDivisionId,
+              role: "member",
+            });
+          }
+        } else {
+          await db.delete(teacherDivisions).where(eq(teacherDivisions.teacherId, id));
+        }
+      }
 
       const updated = await db.query.teachers.findFirst({
         where: eq(teachers.id, id),
@@ -759,6 +817,20 @@ teachersRoute.post("/import", requirePermission("/apps/teachers"), async (c) => 
           .filter(Boolean)
           .join(", ");
 
+        // Resolve Division
+        let resolvedDivisionId: number | null = null;
+        let resolvedDepartment: string | null = null;
+        if (rawData.division) {
+          const divName = rawData.division.trim();
+          const div = await db.query.divisions.findFirst({
+            where: eq(divisions.name, divName),
+          });
+          if (div) {
+            resolvedDivisionId = div.id;
+            resolvedDepartment = div.name;
+          }
+        }
+
         // Insert Teacher
         const res = await db.insert(teachers).values({
           userId,
@@ -781,6 +853,8 @@ teachersRoute.post("/import", requirePermission("/apps/teachers"), async (c) => 
           phone: rawData.phone ? String(rawData.phone) : undefined,
           email: rawData.email,
           position: rawData.position,
+          divisionId: resolvedDivisionId,
+          department: resolvedDepartment,
           employeeType: rawData.employeeType,
           status: rawData.status,
         });
@@ -788,21 +862,12 @@ teachersRoute.post("/import", requirePermission("/apps/teachers"), async (c) => 
         const newTeacherId = Number(res[0].insertId);
 
         // Link Division if provided
-        if (rawData.division) {
-          // Try to find division by name
-          const divName = rawData.division.trim();
-          let div = await db.query.divisions.findFirst({
-            where: eq(divisions.name, divName),
+        if (resolvedDivisionId) {
+          await db.insert(teacherDivisions).values({
+            teacherId: newTeacherId,
+            divisionId: resolvedDivisionId,
+            role: "member",
           });
-
-          // Optionally create if not exists? For now assume valid divisions only or skip
-          if (div) {
-            await db.insert(teacherDivisions).values({
-              teacherId: newTeacherId,
-              divisionId: div.id,
-              role: "member",
-            });
-          }
         }
 
         results.success++;
