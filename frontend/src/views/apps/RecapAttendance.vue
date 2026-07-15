@@ -955,156 +955,316 @@ async function exportToExcel() {
   if (!recapData.teachers.length) return;
 
   try {
+    // Fetch institution settings for headers
+    let institutionName = "PONDOK PESANTREN MINHAJUL HAQ";
+    let regencyName = "Subang";
+    try {
+      const instRes = await settingsApi.getAll(["institution_name", "institution_regency"]);
+      if (instRes && (instRes.data || instRes.value)) {
+        const dataObj = instRes.data || instRes.value;
+        if (dataObj.institution_name) institutionName = dataObj.institution_name;
+        if (dataObj.institution_regency) {
+          try {
+            const regObj = JSON.parse(dataObj.institution_regency);
+            regencyName = regObj?.name || dataObj.institution_regency;
+          } catch {
+            regencyName = dataObj.institution_regency;
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Failed to fetch institution settings", e);
+    }
+
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet("Rekap Absensi");
 
-    // Columns
-    const columns = [
-      { header: "No", key: "no", width: 5 },
-      { header: "Nama Guru", key: "name", width: 30 },
-      { header: "NIP", key: "nip", width: 15 },
-      { header: "Divisi", key: "division", width: 15 },
-      { header: "Gender", key: "gender", width: 10 },
+    const startCol = 2; // Column B
+    const endCol = 6 + dateRange.value.length + 5; // Last Column (AO)
+    const sumStartIndex = 7 + dateRange.value.length; // Hadir Column (AK)
+
+    // Title Row 1: REKAP KEHADIRAN PEGAWAI
+    sheet.mergeCells(1, startCol, 1, endCol);
+    const titleCell1 = sheet.getCell(1, startCol);
+    titleCell1.value = "REKAP KEHADIRAN PEGAWAI";
+    titleCell1.font = { bold: true, size: 14, name: "Calibri" };
+    titleCell1.alignment = { horizontal: "center", vertical: "middle" };
+
+    // Title Row 2: NAMA LEMBAGA
+    sheet.mergeCells(2, startCol, 2, endCol);
+    const titleCell2 = sheet.getCell(2, startCol);
+    titleCell2.value = institutionName.toUpperCase();
+    titleCell2.font = { bold: true, size: 12, name: "Calibri" };
+    titleCell2.alignment = { horizontal: "center", vertical: "middle" };
+
+    // Title Row 3: Divisi & Gender
+    sheet.mergeCells(3, startCol, 3, endCol);
+    const titleCell3 = sheet.getCell(3, startCol);
+    const divisionName = filter.divisionId
+      ? (divisions.value.find((d) => String(d.id) === String(filter.divisionId))?.name || "Semua Divisi")
+      : "Semua Divisi";
+    const genderName = filter.gender === "male" ? "Laki-laki" : (filter.gender === "female" ? "Perempuan" : "Semua Gender");
+    titleCell3.value = `Divisi: ${divisionName}     Gender: ${genderName}`;
+    titleCell3.font = { size: 10, name: "Calibri" };
+    titleCell3.alignment = { horizontal: "center", vertical: "middle" };
+
+    // Title Row 4: Periode
+    sheet.mergeCells(4, startCol, 4, endCol);
+    const titleCell4 = sheet.getCell(4, startCol);
+    titleCell4.value = `Periode: ${activePeriodText.value}`;
+    titleCell4.font = { size: 10, name: "Calibri" };
+    titleCell4.alignment = { horizontal: "center", vertical: "middle" };
+
+    // Set row heights
+    sheet.getRow(1).height = 20;
+    sheet.getRow(2).height = 18;
+    sheet.getRow(3).height = 16;
+    sheet.getRow(4).height = 16;
+    sheet.getRow(5).height = 10; // Empty spacer
+
+    // Set column widths manually
+    sheet.getColumn(1).width = 3; // Column A empty padding
+    sheet.getColumn(2).width = 5; // No
+    sheet.getColumn(3).width = 25; // Nama Guru
+    sheet.getColumn(4).width = 15; // NIP
+    sheet.getColumn(5).width = 15; // Divisi
+    sheet.getColumn(6).width = 8; // Gender
+
+    // Date columns widths
+    for (let i = 0; i < dateRange.value.length; i++) {
+      sheet.getColumn(7 + i).width = 4.5;
+    }
+
+    // Summary columns widths
+    sheet.getColumn(sumStartIndex).width = 8; // Hadir
+    sheet.getColumn(sumStartIndex + 1).width = 8; // Jam
+    sheet.getColumn(sumStartIndex + 2).width = 12; // Izin Potong
+    sheet.getColumn(sumStartIndex + 3).width = 16; // Izin Tanpa Potong
+    sheet.getColumn(sumStartIndex + 4).width = 12; // Hari Dibayar
+
+    // Write headers in Row 6
+    const headerRow = sheet.getRow(6);
+    headerRow.height = 25;
+
+    const headers = [
+      { col: 2, label: "No" },
+      { col: 3, label: "Nama Guru" },
+      { col: 4, label: "NIP" },
+      { col: 5, label: "Divisi" },
+      { col: 6, label: "Gender" },
     ];
 
-    // Add Date Columns
-    dateRange.value.forEach((d) => {
-      columns.push({
-        header: `${d.day}`,
-        key: d.iso,
-        width: 5,
-        style: { alignment: { horizontal: "center" } },
-      });
+    dateRange.value.forEach((d, idx) => {
+      headers.push({ col: 7 + idx, label: String(d.day) });
     });
 
-    // Add Summary Columns
-    columns.push({ header: "Hadir", key: "presence", width: 8 });
-    columns.push({ header: "Jam", key: "hours", width: 8 });
-    columns.push({ header: "Izin Potong", key: "permitDeduct", width: 12 });
-    columns.push({
-      header: "Izin Tanpa Potong",
-      key: "permitNoDeduct",
-      width: 16,
-    });
-    columns.push({ header: "Hari Dibayar", key: "paidDays", width: 12 });
+    headers.push({ col: sumStartIndex, label: "Hadir" });
+    headers.push({ col: sumStartIndex + 1, label: "Jam" });
+    headers.push({ col: sumStartIndex + 2, label: "Izin Potong" });
+    headers.push({ col: sumStartIndex + 3, label: "Izin Tanpa Potong" });
+    headers.push({ col: sumStartIndex + 4, label: "Hari Dibayar" });
 
-    sheet.columns = columns;
-
-    // Header Style
-    const headerRow = sheet.getRow(1);
-    for (let i = 1; i <= columns.length; i++) {
-      const cell = headerRow.getCell(i);
-      cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
+    headers.forEach((h) => {
+      const cell = headerRow.getCell(h.col);
+      cell.value = h.label;
+      cell.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 9, name: "Calibri" };
       cell.fill = {
         type: "pattern",
         pattern: "solid",
-        fgColor: { argb: "FF4F46E5" }, // Indigo 600
+        fgColor: { argb: "FF305496" }, // Classic medium blue
       };
+      cell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
       cell.border = {
-        top: { style: "thin" },
-        left: { style: "thin" },
-        bottom: { style: "thin" },
-        right: { style: "thin" },
+        top: { style: "thin", color: { argb: "FFD1D5DB" } },
+        left: { style: "thin", color: { argb: "FFD1D5DB" } },
+        bottom: { style: "thin", color: { argb: "FFD1D5DB" } },
+        right: { style: "thin", color: { argb: "FFD1D5DB" } },
       };
-    }
-
-    // Data Rows
-    recapData.teachers.forEach((t, index) => {
-      const rowData = {
-        no: index + 1,
-        name: t.name,
-        nip: t.nip || "-",
-        division: t.division || "-",
-        gender: t.gender === 'male' ? 'L' : (t.gender === 'female' ? 'P' : '-'),
-        presence: t.stats.presence,
-        hours: t.stats.hours,
-        permitDeduct: t.stats.permitDeduct || 0,
-        permitNoDeduct: t.stats.permitNoDeduct || 0,
-        paidDays: t.stats.presence + (t.stats.permitNoDeduct || 0),
-      };
-
-      // Date Data
-      dateRange.value.forEach((d) => {
-        const dayData = t.daily[d.iso];
-        if (dayData) {
-          if (dayData.status === "present" && dayData.isClaim)
-            rowData[d.iso] = "K";
-          else if (dayData.status === "present") rowData[d.iso] = "H";
-          else if (
-            ["permitted", "permit_deduct", "sick_deduct"].includes(
-              dayData.status
-            )
-          )
-            rowData[d.iso] = "IP";
-          else if (
-            ["permit_no_deduct", "sick_no_deduct"].includes(dayData.status)
-          )
-            rowData[d.iso] = "IT";
-          else if (dayData.status === "sick") rowData[d.iso] = "S";
-          else rowData[d.iso] = "";
-        } else {
-          rowData[d.iso] = "";
-        }
-      });
-
-      const row = sheet.addRow(rowData);
-
-      // Styling for Data Cells
-      row.eachCell((cell, colNumber) => {
-        cell.border = {
-          top: { style: "thin" },
-          left: { style: "thin" },
-          bottom: { style: "thin" },
-          right: { style: "thin" },
-        };
-
-        // Colorize specific cells (Date columns start at index 5)
-        if (colNumber > 4 && colNumber <= 4 + dateRange.value.length) {
-          const val = cell.value;
-          if (val === "H") {
-            cell.fill = {
-              type: "pattern",
-              pattern: "solid",
-              fgColor: { argb: "FFD1FAE5" },
-            }; // Emerald 100
-            cell.font = { color: { argb: "FF047857" }, bold: true }; // Emerald 700
-          } else if (val === "I") {
-            cell.fill = {
-              type: "pattern",
-              pattern: "solid",
-              fgColor: { argb: "FFDBEAFE" },
-            }; // Blue 100
-            cell.font = { color: { argb: "FF1D4ED8" }, bold: true }; // Blue 700
-          } else if (val === "S") {
-            cell.fill = {
-              type: "pattern",
-              pattern: "solid",
-              fgColor: { argb: "FFFEF3C7" },
-            }; // Amber 100
-            cell.font = { color: { argb: "FFB45309" }, bold: true }; // Amber 700
-          }
-
-          // Check for Holiday (using column header index against dateRange)
-          const dateIdx = colNumber - 5;
-          if (dateIdx >= 0 && dateIdx < dateRange.value.length) {
-            const dObj = dateRange.value[dateIdx].obj;
-            if (isHoliday(dObj)) {
-              // Apply holiday style if cell is empty (or override?)
-              // Usually holiday background is for the whole column.
-              // ExcelJS doesn't support column styling easily mixed with cell styling.
-              // Let's just color red text for holiday header? Or background for empty cells.
-              if (!val) {
-                cell.fill = {
-                  type: "pattern",
-                  pattern: "solid",
-                  fgColor: { argb: "FFFFF1F2" },
-                }; // Rose 50
-              }
-            }
-          }
-        }
-      });
     });
+
+    // Write Data Rows
+    recapData.teachers.forEach((t, index) => {
+      const rowIndex = 7 + index;
+      const row = sheet.getRow(rowIndex);
+      row.height = 20;
+
+      // Basic fields
+      row.getCell(2).value = index + 1; // No
+      row.getCell(2).alignment = { horizontal: "center", vertical: "middle" };
+
+      row.getCell(3).value = t.name;
+      row.getCell(3).alignment = { horizontal: "left", vertical: "middle" };
+
+      row.getCell(4).value = t.nip || "-";
+      row.getCell(4).alignment = { horizontal: "center", vertical: "middle" };
+      row.getCell(4).numFmt = "@"; // Text format
+
+      row.getCell(5).value = t.division || "-";
+      row.getCell(5).alignment = { horizontal: "center", vertical: "middle" };
+
+      row.getCell(6).value = t.gender === "male" ? "L" : (t.gender === "female" ? "P" : "-");
+      row.getCell(6).alignment = { horizontal: "center", vertical: "middle" };
+
+      // Date cells
+      dateRange.value.forEach((d, idx) => {
+        const colIndex = 7 + idx;
+        const cell = row.getCell(colIndex);
+        const dayData = t.daily[d.iso];
+
+        let val = "";
+        if (dayData) {
+          if (dayData.status === "present" && dayData.isClaim) {
+            val = "K";
+          } else if (dayData.status === "present") {
+            val = "H";
+          } else if (["permitted", "permit_deduct", "sick_deduct"].includes(dayData.status)) {
+            val = "IP";
+          } else if (["permit_no_deduct", "sick_no_deduct"].includes(dayData.status)) {
+            val = "IT";
+          } else if (dayData.status === "sick") {
+            val = "S";
+          } else if (dayData.status === "leave_deduct") {
+            val = "CP";
+          } else if (dayData.status === "leave_no_deduct") {
+            val = "CT";
+          }
+        }
+        cell.value = val;
+        cell.alignment = { horizontal: "center", vertical: "middle" };
+
+        // Color cell styles
+        if (val === "H") {
+          cell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: "FFC6EFCE" }, // Light green
+          };
+          cell.font = { color: { argb: "FF006100" }, bold: true, name: "Calibri", size: 9 };
+        } else if (val === "K") {
+          cell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: "FFE2E8F0" }, // Light gray
+          };
+          cell.font = { color: { argb: "FF334155" }, bold: true, name: "Calibri", size: 9 };
+        } else if (val === "IP") {
+          cell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: "FFFFC7CE" }, // Light red
+          };
+          cell.font = { color: { argb: "FF9C0006" }, bold: true, name: "Calibri", size: 9 };
+        } else if (val === "IT") {
+          cell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: "FFC6EFCE" }, // Light green (matches present / H)
+          };
+          cell.font = { color: { argb: "FF006100" }, bold: true, name: "Calibri", size: 9 };
+        } else if (val === "S") {
+          cell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: "FFFFEB9C" }, // Light yellow
+          };
+          cell.font = { color: { argb: "FF9C6500" }, bold: true, name: "Calibri", size: 9 };
+        } else if (val === "CP") {
+          cell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: "FFF3E8FF" }, // Light purple
+          };
+          cell.font = { color: { argb: "FF7E22CE" }, bold: true, name: "Calibri", size: 9 };
+        } else if (val === "CT") {
+          cell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: "FFCCFBF1" }, // Light teal
+          };
+          cell.font = { color: { argb: "FF0F766E" }, bold: true, name: "Calibri", size: 9 };
+        }
+
+        // Shading for holidays
+        const dObj = d.obj;
+        if (isHoliday(dObj)) {
+          if (!val) {
+            cell.fill = {
+              type: "pattern",
+              pattern: "solid",
+              fgColor: { argb: "FFFFF1F2" }, // Light pink for empty cells on holidays
+            };
+          }
+        }
+      });
+
+      // Summary fields
+      const presenceCell = row.getCell(sumStartIndex);
+      presenceCell.value = t.stats.presence;
+      presenceCell.alignment = { horizontal: "center", vertical: "middle" };
+
+      const hoursCell = row.getCell(sumStartIndex + 1);
+      hoursCell.value = parseFloat(t.stats.hours.toFixed(2));
+      hoursCell.alignment = { horizontal: "center", vertical: "middle" };
+      hoursCell.numFmt = "0.00";
+
+      const permitDeductCell = row.getCell(sumStartIndex + 2);
+      permitDeductCell.value = (t.stats.permitDeduct || 0) + (t.stats.leaveDeduct || 0);
+      permitDeductCell.alignment = { horizontal: "center", vertical: "middle" };
+
+      const permitNoDeductCell = row.getCell(sumStartIndex + 3);
+      permitNoDeductCell.value = (t.stats.permitNoDeduct || 0) + (t.stats.leaveNoDeduct || 0);
+      permitNoDeductCell.alignment = { horizontal: "center", vertical: "middle" };
+
+      const paidDaysCell = row.getCell(sumStartIndex + 4);
+      paidDaysCell.value = t.stats.presence + (t.stats.permitNoDeduct || 0) + (t.stats.leaveNoDeduct || 0);
+      paidDaysCell.alignment = { horizontal: "center", vertical: "middle" };
+
+      // Set borders for all cells in row (columns B to AO)
+      for (let c = 2; c <= endCol; c++) {
+        row.getCell(c).border = {
+          top: { style: "thin", color: { argb: "FFD1D5DB" } },
+          left: { style: "thin", color: { argb: "FFD1D5DB" } },
+          bottom: { style: "thin", color: { argb: "FFD1D5DB" } },
+          right: { style: "thin", color: { argb: "FFD1D5DB" } },
+        };
+        row.getCell(c).font = { name: "Calibri", size: 9 };
+      }
+    });
+
+    // Write signature section
+    const startSigRow = 7 + recapData.teachers.length + 2;
+
+    const today = new Date();
+    const formattedToday = today.toLocaleDateString("id-ID", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+    const locationText = regencyName ? `${regencyName}, ${formattedToday}` : formattedToday;
+
+    const sigColStart = sumStartIndex; // Column AK
+    const sigColEnd = sumStartIndex + 4; // Column AO
+
+    // Location & Date
+    sheet.mergeCells(startSigRow, sigColStart, startSigRow, sigColEnd);
+    const sigCell1 = sheet.getCell(startSigRow, sigColStart);
+    sigCell1.value = locationText;
+    sigCell1.font = { name: "Calibri", size: 10, bold: false };
+    sigCell1.alignment = { horizontal: "center", vertical: "middle" };
+
+    // Role
+    sheet.mergeCells(startSigRow + 1, sigColStart, startSigRow + 1, sigColEnd);
+    const sigCell2 = sheet.getCell(startSigRow + 1, sigColStart);
+    sigCell2.value = "Kepala Bidang SDM";
+    sigCell2.font = { name: "Calibri", size: 10, bold: true };
+    sigCell2.alignment = { horizontal: "center", vertical: "middle" };
+
+    // Signature line
+    sheet.mergeCells(startSigRow + 6, sigColStart, startSigRow + 6, sigColEnd);
+    const sigCell3 = sheet.getCell(startSigRow + 6, sigColStart);
+    sigCell3.value = "........................................................";
+    sigCell3.font = { name: "Calibri", size: 10, bold: false };
+    sigCell3.alignment = { horizontal: "center", vertical: "middle" };
 
     const buf = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buf], {
