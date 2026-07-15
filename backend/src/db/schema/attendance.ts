@@ -35,8 +35,7 @@ export const studentAttendances = mysqlTable("student_attendances", {
 export const teacherAttendances = mysqlTable("teacher_attendances", {
   id: int("id").primaryKey().autoincrement(),
   teacherId: int("teacher_id")
-    .references(() => teachers.id)
-    .notNull(),
+    .references(() => teachers.id),
   teacherName: varchar("teacher_name", { length: 255 }),
   teacherDivision: varchar("teacher_division", { length: 255 }),
   divisionId: varchar("division_id", { length: 100 }), // Store division IDs (comma-separated if multiple)

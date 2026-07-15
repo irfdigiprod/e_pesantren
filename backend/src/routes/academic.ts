@@ -939,31 +939,33 @@ academicRoute.put(
 
       // ====== ANTI-CLASH VALIDATION ======
       // Check for Teacher Clash
-      const teacherClash = await db.query.schedules.findFirst({
-        where: and(
-          ne(schedules.id, id),
-          eq(schedules.teacherId, mergedData.teacherId),
-          eq(schedules.dayOfWeek, mergedData.dayOfWeek),
-          lt(schedules.startTime, mergedData.endTime),
-          gt(schedules.endTime, mergedData.startTime),
-          mergedData.academicYear
-            ? eq(schedules.academicYear, mergedData.academicYear)
-            : undefined,
-          mergedData.semester
-            ? eq(schedules.semester, mergedData.semester)
-            : undefined,
-        ),
-      });
+      if (mergedData.teacherId) {
+        const teacherClash = await db.query.schedules.findFirst({
+          where: and(
+            ne(schedules.id, id),
+            eq(schedules.teacherId, mergedData.teacherId as number),
+            eq(schedules.dayOfWeek, mergedData.dayOfWeek),
+            lt(schedules.startTime, mergedData.endTime),
+            gt(schedules.endTime, mergedData.startTime),
+            mergedData.academicYear
+              ? eq(schedules.academicYear, mergedData.academicYear)
+              : undefined,
+            mergedData.semester
+              ? eq(schedules.semester, mergedData.semester)
+              : undefined,
+          ),
+        });
 
-      if (teacherClash) {
-        return c.json(
-          {
-            success: false,
-            message:
-              "Bentrok: Guru tersebut sudah memiliki jadwal di kelas lain pada waktu yang beririsan.",
-          },
-          400,
-        );
+        if (teacherClash) {
+          return c.json(
+            {
+              success: false,
+              message:
+                "Bentrok: Guru tersebut sudah memiliki jadwal di kelas lain pada waktu yang beririsan.",
+            },
+            400,
+          );
+        }
       }
 
       // Check for Class Clash

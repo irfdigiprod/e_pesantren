@@ -19,8 +19,7 @@ export const tahfidzDeposits = mysqlTable("tahfidz_deposits", {
     .references(() => students.id)
     .notNull(),
   teacherId: int("teacher_id")
-    .references(() => teachers.id)
-    .notNull(), // Musyrif/Penerima setoran
+    .references(() => teachers.id), // Musyrif/Penerima setoran
 
   depositDate: timestamp("deposit_date").defaultNow().notNull(),
   type: mysqlEnum("type", [
@@ -69,8 +68,7 @@ export const tahfidzExams = mysqlTable("tahfidz_exams", {
     .references(() => students.id)
     .notNull(),
   examinerId: int("examiner_id")
-    .references(() => teachers.id)
-    .notNull(),
+    .references(() => teachers.id),
 
   examDate: date("exam_date").notNull(),
   // Modified: examType is still useful, but adding category is better e.g. UPK vs UKJ

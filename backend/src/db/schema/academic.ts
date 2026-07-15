@@ -86,8 +86,7 @@ export const schedules = mysqlTable("schedules", {
     .references(() => subjects.id)
     .notNull(),
   teacherId: int("teacher_id")
-    .references(() => teachers.id)
-    .notNull(),
+    .references(() => teachers.id),
   dayOfWeek: int("day_of_week").notNull(), // 0=Sunday, 1=Monday, etc.
   startTime: time("start_time").notNull(),
   endTime: time("end_time").notNull(),

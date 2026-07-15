@@ -15,8 +15,7 @@ import { users } from "./users";
 export const permissionRequests = mysqlTable("permission_requests", {
   id: int("id").primaryKey().autoincrement(),
   teacherId: int("teacher_id")
-    .references(() => teachers.id)
-    .notNull(),
+    .references(() => teachers.id),
   type: mysqlEnum("type", ["sick", "permit", "leave"]).notNull(),
   startDate: date("start_date").notNull(),
   endDate: date("end_date").notNull(),

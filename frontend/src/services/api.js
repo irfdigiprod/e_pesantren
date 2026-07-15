@@ -505,8 +505,9 @@ export const teachersApi = {
     });
   },
 
-  async delete(id) {
-    return request(`/api/teachers/${id}`, {
+  async delete(id, cascade = false) {
+    const endpoint = cascade ? `/api/teachers/${id}?cascade=true` : `/api/teachers/${id}`;
+    return request(endpoint, {
       method: "DELETE",
     });
   },

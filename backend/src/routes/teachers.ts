@@ -1,11 +1,19 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import { eq, and, desc, getTableColumns } from "drizzle-orm";
+import { eq, and, desc, getTableColumns, sql } from "drizzle-orm";
 import { db } from "../db";
 import { teachers } from "../db/schema/teachers";
 import { divisions, teacherDivisions } from "../db/schema/divisions";
 import { users } from "../db/schema/users";
 import { salaryGrades, positionAllowances } from "../db/schema/salary";
+import { roomSupervisors } from "../db/schema/rooms";
+import { halaqahMentors } from "../db/schema/halaqah";
+import { quranMemorizations } from "../db/schema/quran-memorization";
+import { teacherAttendances } from "../db/schema/attendance";
+import { classes, classHomeroomTeachers, schedules } from "../db/schema/academic";
+import { permissionRequests } from "../db/schema/permissions";
+import { tahfidzDeposits, tahfidzExams } from "../db/schema/tahfidz";
+import { pushSubscriptions } from "../db/schema/push-subscriptions";
 import { authMiddleware, requirePermission } from "../middleware/auth";
 import { hashPassword } from "../utils/password";
 import {
@@ -368,6 +376,34 @@ teachersRoute.put(
   },
 );
 
+async function getTeacherReferenceCounts(id: number) {
+  const [divisionsCount] = await db.select({ count: sql<number>`count(*)` }).from(teacherDivisions).where(eq(teacherDivisions.teacherId, id));
+  const [roomsCount] = await db.select({ count: sql<number>`count(*)` }).from(roomSupervisors).where(eq(roomSupervisors.teacherId, id));
+  const [halaqahCount] = await db.select({ count: sql<number>`count(*)` }).from(halaqahMentors).where(eq(halaqahMentors.teacherId, id));
+  const [classHomeroomCount] = await db.select({ count: sql<number>`count(*)` }).from(classHomeroomTeachers).where(eq(classHomeroomTeachers.teacherId, id));
+  const [schedulesCount] = await db.select({ count: sql<number>`count(*)` }).from(schedules).where(eq(schedules.teacherId, id));
+  const [permissionsCount] = await db.select({ count: sql<number>`count(*)` }).from(permissionRequests).where(eq(permissionRequests.teacherId, id));
+  const [tahfidzDepositsCount] = await db.select({ count: sql<number>`count(*)` }).from(tahfidzDeposits).where(eq(tahfidzDeposits.teacherId, id));
+  const [tahfidzExamsCount] = await db.select({ count: sql<number>`count(*)` }).from(tahfidzExams).where(eq(tahfidzExams.examinerId, id));
+  const [classesCount] = await db.select({ count: sql<number>`count(*)` }).from(classes).where(eq(classes.homeroomTeacherId, id));
+  const [quranCount] = await db.select({ count: sql<number>`count(*)` }).from(quranMemorizations).where(eq(quranMemorizations.teacherId, id));
+  const [attendanceCount] = await db.select({ count: sql<number>`count(*)` }).from(teacherAttendances).where(eq(teacherAttendances.teacherId, id));
+
+  return {
+    divisions: divisionsCount?.count || 0,
+    rooms: roomsCount?.count || 0,
+    halaqah: halaqahCount?.count || 0,
+    classHomeroom: classHomeroomCount?.count || 0,
+    schedules: schedulesCount?.count || 0,
+    permissions: permissionsCount?.count || 0,
+    tahfidzDeposits: tahfidzDepositsCount?.count || 0,
+    tahfidzExams: tahfidzExamsCount?.count || 0,
+    classes: classesCount?.count || 0,
+    quran: quranCount?.count || 0,
+    attendance: attendanceCount?.count || 0,
+  };
+}
+
 // Delete teacher
 teachersRoute.delete("/:id", requirePermission("/apps/teachers"), async (c) => {
   try {
@@ -381,15 +417,68 @@ teachersRoute.delete("/:id", requirePermission("/apps/teachers"), async (c) => {
       return c.json({ success: false, message: "Teacher not found" }, 404);
     }
 
-    await db.delete(teachers).where(eq(teachers.id, id));
+    const refCounts = await getTeacherReferenceCounts(id);
+    const totalRefs = Object.values(refCounts).reduce((a, b) => a + b, 0);
 
-    // Optionally delete associated user account
-    if (existing.userId) {
-      await db.delete(users).where(eq(users.id, existing.userId));
+    if (totalRefs > 0 && c.req.query("cascade") !== "true") {
+      const labels: string[] = [];
+      if (refCounts.divisions > 0) labels.push(`${refCounts.divisions} divisi`);
+      if (refCounts.rooms > 0) labels.push(`${refCounts.rooms} kamar`);
+      if (refCounts.halaqah > 0) labels.push(`${refCounts.halaqah} halaqah`);
+      if (refCounts.classHomeroom > 0) labels.push(`${refCounts.classHomeroom} wali kelas`);
+      if (refCounts.schedules > 0) labels.push(`${refCounts.schedules} jadwal pelajaran`);
+      if (refCounts.permissions > 0) labels.push(`${refCounts.permissions} perizinan`);
+      if (refCounts.tahfidzDeposits > 0) labels.push(`${refCounts.tahfidzDeposits} setoran tahfidz`);
+      if (refCounts.tahfidzExams > 0) labels.push(`${refCounts.tahfidzExams} ujian tahfidz`);
+      if (refCounts.classes > 0) labels.push(`${refCounts.classes} kelas`);
+      if (refCounts.quran > 0) labels.push(`${refCounts.quran} setoran quran`);
+      if (refCounts.attendance > 0) labels.push(`${refCounts.attendance} absensi`);
+
+      return c.json({
+        success: true,
+        hasRelations: true,
+        message: `Guru ini terikat dengan data berikut: ${labels.join(", ")}. Jika Anda melanjutkan, hubungan/data terkait tersebut akan diset kosong atau disesuaikan. Apakah Anda yakin ingin melanjutkan?`,
+      });
     }
+
+    // Execute deletion inside transaction
+    await db.transaction(async (tx) => {
+      // 1. Delete pivot/link records
+      await tx.delete(teacherDivisions).where(eq(teacherDivisions.teacherId, id));
+      await tx.delete(roomSupervisors).where(eq(roomSupervisors.teacherId, id));
+      await tx.delete(halaqahMentors).where(eq(halaqahMentors.teacherId, id));
+      await tx.delete(classHomeroomTeachers).where(eq(classHomeroomTeachers.teacherId, id));
+
+      // 2. Set nullable references to null
+      await tx.update(schedules).set({ teacherId: null }).where(eq(schedules.teacherId, id));
+      await tx.update(tahfidzDeposits).set({ teacherId: null }).where(eq(tahfidzDeposits.teacherId, id));
+      await tx.update(tahfidzExams).set({ examinerId: null }).where(eq(tahfidzExams.examinerId, id));
+      await tx.update(teacherAttendances).set({ teacherId: null }).where(eq(teacherAttendances.teacherId, id));
+      await tx.update(permissionRequests).set({ teacherId: null }).where(eq(permissionRequests.teacherId, id));
+      await tx.update(classes).set({ homeroomTeacherId: null }).where(eq(classes.homeroomTeacherId, id));
+      await tx.update(quranMemorizations).set({ teacherId: null }).where(eq(quranMemorizations.teacherId, id));
+
+      // 3. Delete teacher record
+      await tx.delete(teachers).where(eq(teachers.id, id));
+
+      // 4. Optionally delete associated user account
+      if (existing.userId) {
+        try {
+          // Delete push subscriptions first since they reference user_id
+          await tx.delete(pushSubscriptions).where(eq(pushSubscriptions.userId, existing.userId));
+          // Try to delete user record
+          await tx.delete(users).where(eq(users.id, existing.userId));
+        } catch (userErr) {
+          console.warn(`Could not delete associated user ID ${existing.userId} due to constraints, deactivating instead:`, userErr);
+          // Set user to inactive so they can't login, keeping logs intact
+          await tx.update(users).set({ isActive: false }).where(eq(users.id, existing.userId));
+        }
+      }
+    });
 
     return c.json({
       success: true,
+      hasRelations: false,
       message: "Teacher deleted successfully",
     });
   } catch (error) {

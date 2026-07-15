@@ -641,6 +641,17 @@
       @cancel="confirmCancel"
     />
 
+    <!-- Confirm Delete Cascade Modal -->
+    <ConfirmModal
+      :isOpen="cascadeDeleteConfirm.show"
+      title="Konfirmasi Hapus Hubungan Data"
+      :message="cascadeDeleteConfirm.message"
+      confirmText="Ya, Tetap Hapus"
+      cancelText="Batal"
+      @confirm="deleteItemCascade"
+      @cancel="cascadeCancel"
+    />
+
     <!-- Status Modal -->
     <StatusModal
       :isOpen="statusModal.isOpen"
@@ -752,6 +763,12 @@ const form = reactive({
 const confirm = reactive({
   show: false,
   item: null,
+});
+
+const cascadeDeleteConfirm = reactive({
+  show: false,
+  message: "",
+  itemId: null,
 });
 
 const viewModal = reactive({
@@ -951,14 +968,41 @@ async function submitForm() {
 
 async function deleteItem() {
   if (!confirm.item) return;
+  const itemId = confirm.item.id;
 
   try {
-    await teachersApi.delete(confirm.item.id);
+    const res = await teachersApi.delete(itemId);
+    if (res.hasRelations) {
+      confirmCancel();
+      cascadeDeleteConfirm.itemId = itemId;
+      cascadeDeleteConfirm.message = res.message;
+      cascadeDeleteConfirm.show = true;
+    } else {
+      statusModal.type = "success";
+      statusModal.title = "Berhasil!";
+      statusModal.message = "Guru berhasil dihapus";
+      statusModal.isOpen = true;
+      confirmCancel();
+      fetchData();
+    }
+  } catch (e) {
+    statusModal.type = "error";
+    statusModal.title = "Gagal!";
+    statusModal.message = e.message || "Gagal menghapus data";
+    statusModal.isOpen = true;
+  }
+}
+
+async function deleteItemCascade() {
+  if (!cascadeDeleteConfirm.itemId) return;
+
+  try {
+    await teachersApi.delete(cascadeDeleteConfirm.itemId, true);
     statusModal.type = "success";
     statusModal.title = "Berhasil!";
-    statusModal.message = "Guru berhasil dihapus";
+    statusModal.message = "Guru beserta data terkait berhasil disesuaikan/dihapus";
     statusModal.isOpen = true;
-    confirmCancel();
+    cascadeCancel();
     fetchData();
   } catch (e) {
     statusModal.type = "error";
@@ -1062,6 +1106,12 @@ function confirmDelete(item) {
 function confirmCancel() {
   confirm.show = false;
   confirm.item = null;
+}
+
+function cascadeCancel() {
+  cascadeDeleteConfirm.show = false;
+  cascadeDeleteConfirm.message = "";
+  cascadeDeleteConfirm.itemId = null;
 }
 
 // Import Template Header Config for Component

@@ -78,7 +78,7 @@ permissionsRoute.get("/", async (c) => {
           .orderBy(desc(permissionRequests.createdAt));
 
         // Fetch teachers manually to avoid join issues
-        const teacherIds = [...new Set(allPermissions.map((p) => p.teacherId))];
+        const teacherIds = [...new Set(allPermissions.map((p) => p.teacherId).filter((id): id is number => id !== null))];
 
         let teachersMap = new Map();
         if (teacherIds.length > 0) {
@@ -304,7 +304,7 @@ permissionsRoute.post(
           // Check if attendance already exists
           const existing = await db.query.teacherAttendances.findFirst({
             where: and(
-              eq(teacherAttendances.teacherId, req.teacherId),
+              eq(teacherAttendances.teacherId, req.teacherId as number),
               eq(teacherAttendances.date, isoDate as any),
             ),
           });
@@ -325,7 +325,7 @@ permissionsRoute.post(
           } else {
             // Create
             const t = await db.query.teachers.findFirst({
-              where: eq(teachers.id, req.teacherId),
+              where: eq(teachers.id, req.teacherId as number),
             });
 
             if (t) {
@@ -347,7 +347,7 @@ permissionsRoute.post(
 
       // Notify User (Teacher)
       const teacherRecord = await db.query.teachers.findFirst({
-        where: eq(teachers.id, req.teacherId),
+        where: eq(teachers.id, req.teacherId as number),
       });
 
       if (teacherRecord && teacherRecord.userId) {
