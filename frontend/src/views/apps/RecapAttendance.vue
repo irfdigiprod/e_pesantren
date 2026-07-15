@@ -978,9 +978,10 @@ async function exportToExcel() {
 
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet("Rekap Absensi");
+    sheet.views = [{ showGridLines: true }]; // Enable default grid lines!
 
     const startCol = 2; // Column B
-    const endCol = 6 + dateRange.value.length + 5; // Last Column (AO)
+    const endCol = 6 + dateRange.value.length + 7; // Last Column (AQ)
     const sumStartIndex = 7 + dateRange.value.length; // Hadir Column (AK)
 
     // Title Row 1: REKAP KEHADIRAN PEGAWAI
@@ -1040,7 +1041,17 @@ async function exportToExcel() {
     sheet.getColumn(sumStartIndex + 1).width = 8; // Jam
     sheet.getColumn(sumStartIndex + 2).width = 12; // Izin Potong
     sheet.getColumn(sumStartIndex + 3).width = 16; // Izin Tanpa Potong
-    sheet.getColumn(sumStartIndex + 4).width = 12; // Hari Dibayar
+    sheet.getColumn(sumStartIndex + 4).width = 12; // Cuti Potong
+    sheet.getColumn(sumStartIndex + 5).width = 16; // Cuti Tidak Potong
+    sheet.getColumn(sumStartIndex + 6).width = 12; // Hari Dibayar
+
+    // Define clear cell borders
+    const borderStyle = {
+      top: { style: "thin", color: { argb: "FF7F7F7F" } }, // Clearly visible gray borders
+      left: { style: "thin", color: { argb: "FF7F7F7F" } },
+      bottom: { style: "thin", color: { argb: "FF7F7F7F" } },
+      right: { style: "thin", color: { argb: "FF7F7F7F" } },
+    };
 
     // Write headers in Row 6
     const headerRow = sheet.getRow(6);
@@ -1062,7 +1073,9 @@ async function exportToExcel() {
     headers.push({ col: sumStartIndex + 1, label: "Jam" });
     headers.push({ col: sumStartIndex + 2, label: "Izin Potong" });
     headers.push({ col: sumStartIndex + 3, label: "Izin Tanpa Potong" });
-    headers.push({ col: sumStartIndex + 4, label: "Hari Dibayar" });
+    headers.push({ col: sumStartIndex + 4, label: "Cuti Potong" });
+    headers.push({ col: sumStartIndex + 5, label: "Cuti Tidak Potong" });
+    headers.push({ col: sumStartIndex + 6, label: "Hari Dibayar" });
 
     headers.forEach((h) => {
       const cell = headerRow.getCell(h.col);
@@ -1074,12 +1087,7 @@ async function exportToExcel() {
         fgColor: { argb: "FF305496" }, // Classic medium blue
       };
       cell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
-      cell.border = {
-        top: { style: "thin", color: { argb: "FFD1D5DB" } },
-        left: { style: "thin", color: { argb: "FFD1D5DB" } },
-        bottom: { style: "thin", color: { argb: "FFD1D5DB" } },
-        right: { style: "thin", color: { argb: "FFD1D5DB" } },
-      };
+      cell.border = borderStyle;
     });
 
     // Write Data Rows
@@ -1208,25 +1216,28 @@ async function exportToExcel() {
       hoursCell.numFmt = "0.00";
 
       const permitDeductCell = row.getCell(sumStartIndex + 2);
-      permitDeductCell.value = (t.stats.permitDeduct || 0) + (t.stats.leaveDeduct || 0);
+      permitDeductCell.value = t.stats.permitDeduct || 0;
       permitDeductCell.alignment = { horizontal: "center", vertical: "middle" };
 
       const permitNoDeductCell = row.getCell(sumStartIndex + 3);
-      permitNoDeductCell.value = (t.stats.permitNoDeduct || 0) + (t.stats.leaveNoDeduct || 0);
+      permitNoDeductCell.value = t.stats.permitNoDeduct || 0;
       permitNoDeductCell.alignment = { horizontal: "center", vertical: "middle" };
 
-      const paidDaysCell = row.getCell(sumStartIndex + 4);
+      const leaveDeductCell = row.getCell(sumStartIndex + 4);
+      leaveDeductCell.value = t.stats.leaveDeduct || 0;
+      leaveDeductCell.alignment = { horizontal: "center", vertical: "middle" };
+
+      const leaveNoDeductCell = row.getCell(sumStartIndex + 5);
+      leaveNoDeductCell.value = t.stats.leaveNoDeduct || 0;
+      leaveNoDeductCell.alignment = { horizontal: "center", vertical: "middle" };
+
+      const paidDaysCell = row.getCell(sumStartIndex + 6);
       paidDaysCell.value = t.stats.presence + (t.stats.permitNoDeduct || 0) + (t.stats.leaveNoDeduct || 0);
       paidDaysCell.alignment = { horizontal: "center", vertical: "middle" };
 
-      // Set borders for all cells in row (columns B to AO)
+      // Set borders for all cells in row (columns B to AQ)
       for (let c = 2; c <= endCol; c++) {
-        row.getCell(c).border = {
-          top: { style: "thin", color: { argb: "FFD1D5DB" } },
-          left: { style: "thin", color: { argb: "FFD1D5DB" } },
-          bottom: { style: "thin", color: { argb: "FFD1D5DB" } },
-          right: { style: "thin", color: { argb: "FFD1D5DB" } },
-        };
+        row.getCell(c).border = borderStyle;
         row.getCell(c).font = { name: "Calibri", size: 9 };
       }
     });
@@ -1243,7 +1254,7 @@ async function exportToExcel() {
     const locationText = regencyName ? `${regencyName}, ${formattedToday}` : formattedToday;
 
     const sigColStart = sumStartIndex; // Column AK
-    const sigColEnd = sumStartIndex + 4; // Column AO
+    const sigColEnd = sumStartIndex + 6; // Column AQ
 
     // Location & Date
     sheet.mergeCells(startSigRow, sigColStart, startSigRow, sigColEnd);
