@@ -929,7 +929,55 @@ router.beforeEach(async (to, from, next) => {
 
   // Admin always has access to everything
   const isAdmin = user && user.role === "admin";
-  const isAllowedByPermission = Array.isArray(permissions) && permissions.includes(to.path);
+  
+  // Helper to map mobile route paths to their equivalent permission paths (desktop routes)
+  const getPermissionPath = (path) => {
+    const explicitMappings = {
+      "/mobile-dashboard/analytics": "/analytics/overview",
+      "/mobile-dashboard/analytics-reports": "/analytics/reports",
+      "/mobile-dashboard/tahfidz": "/apps/tahfidz/dashboard",
+      "/mobile-dashboard/tahfidz-input": "/apps/tahfidz/halaqah",
+      "/mobile-dashboard/tahfidz-exams": "/apps/tahfidz/exams",
+      "/mobile-dashboard/tahfidz-reports": "/apps/tahfidz/reports",
+      "/mobile-dashboard/tahfidz-mading": "/apps/tahfidz/mading",
+      "/mobile-dashboard/tahfidz-settings": "/apps/tahfidz/settings",
+      "/mobile-dashboard/attendance": "/apps/teacher-attendance",
+      "/mobile-dashboard/student-attendance": "/apps/attendance",
+      "/mobile-dashboard/student-leaves": "/apps/students/leaves",
+      "/mobile-dashboard/attendance-recap": "/apps/attendance-recap",
+      "/mobile-dashboard/permissions": "/apps/attendance/permissions",
+      "/mobile-dashboard/approvals": "/apps/attendance/approvals",
+      "/mobile-dashboard/salary": "/apps/salary-report",
+      "/mobile-dashboard/classes": "/apps/academic/classes",
+      "/mobile-dashboard/subjects": "/apps/academic/subjects",
+      "/mobile-dashboard/grades": "/apps/academic/grades",
+      "/mobile-dashboard/report-card": "/apps/academic/report-card",
+      "/mobile-dashboard/homeroom-notes": "/apps/academic/homeroom-notes",
+      "/mobile-dashboard/about": "/about",
+      "/mobile-dashboard/chat": "/apps/chat",
+      "/mobile-dashboard/savings": "/apps/savings",
+      "/mobile-dashboard/settings": "/settings/institution",
+      "/mobile-dashboard/users": "/security/users",
+      "/mobile-dashboard/security-roles": "/security/roles",
+    };
+
+    if (explicitMappings[path]) return explicitMappings[path];
+
+    if (path.startsWith("/mobile-dashboard")) {
+      return path
+        .replace("/mobile-dashboard/clinic-", "/apps/clinic/")
+        .replace("/mobile-dashboard/rewards-", "/apps/rewards/")
+        .replace("/mobile-dashboard/settings-", "/settings/")
+        .replace("/mobile-dashboard/security-", "/security/")
+        .replace("/mobile-dashboard/", "/apps/");
+    }
+    return path;
+  };
+
+  const permissionPath = getPermissionPath(to.path);
+  const isAllowedByPermission =
+    Array.isArray(permissions) &&
+    (permissions.includes(to.path) || permissions.includes(permissionPath));
 
   // Check requiresAdmin - redirect non-admin users unless they have explicit permission
   if (to.meta.requiresAdmin) {
