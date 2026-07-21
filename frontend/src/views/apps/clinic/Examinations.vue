@@ -225,12 +225,7 @@
                   addressDetail: form.addressDetail,
                   postalCode: form.postalCode,
                 }"
-                @update:modelValue="
-                  (val) => {
-                    form.patientType = val.type;
-                    Object.assign(form, val);
-                  }
-                "
+                @update:modelValue="onPatientSelect"
               />
               <div>
                 <label
@@ -626,6 +621,312 @@
       @close="statusModal.show = false"
     />
 
+    <!-- Modal Konfirmasi Riwayat Pemeriksaan Lampau -->
+    <Teleport to="body">
+      <div
+        v-if="historyModal.showConfirm"
+        class="fixed inset-0 z-[10000] flex items-center justify-center p-4"
+      >
+        <div
+          class="absolute inset-0 bg-black/50 backdrop-blur-sm"
+          @click="cancelAutoFill"
+        ></div>
+        <div
+          class="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden animate-fade-in-up relative z-10 border border-slate-100"
+        >
+          <!-- Header -->
+          <div class="p-5 bg-gradient-to-r from-amber-600 to-[#602515] text-white flex justify-between items-center">
+            <div class="flex items-center gap-3">
+              <div class="p-2 bg-white/20 backdrop-blur rounded-xl">
+                <Icon icon="solar:history-bold" class="text-2xl" />
+              </div>
+              <div>
+                <h3 class="font-bold text-base">Riwayat Pemeriksaan Ditemukan</h3>
+                <p class="text-xs text-amber-100 font-medium">
+                  {{ historyModal.patientName }} memiliki {{ historyModal.historyList.length }} record riwayat pemeriksaan
+                </p>
+              </div>
+            </div>
+            <button
+              @click="cancelAutoFill"
+              class="text-white/80 hover:text-white text-xl font-bold p-1"
+            >
+              ✕
+            </button>
+          </div>
+
+          <!-- Body -->
+          <div class="p-6 space-y-4 text-slate-700 text-sm">
+            <p class="font-medium text-slate-800">
+              Apakah isian form akan diisi otomatis oleh data pemeriksaan lampau?
+            </p>
+
+            <!-- Latest Exam Summary Card -->
+            <div v-if="historyModal.latestExam" class="bg-amber-50/80 border border-amber-200/70 rounded-xl p-4 space-y-2 text-xs">
+              <div class="flex justify-between items-center text-amber-900 font-bold border-b border-amber-200/60 pb-2">
+                <span class="flex items-center gap-1.5">
+                  <Icon icon="solar:calendar-bold" class="text-amber-700" />
+                  Pemeriksaan Terakhir: {{ formatDate(historyModal.latestExam.date || historyModal.latestExam.examinationDate) }}
+                </span>
+                <span class="px-2 py-0.5 bg-amber-200/70 text-amber-900 rounded font-semibold text-[10px]">
+                  Terbaru
+                </span>
+              </div>
+              <div v-if="historyModal.latestExam.symptoms || historyModal.latestExam.complaint" class="grid grid-cols-3 gap-1">
+                <span class="font-semibold text-slate-500">Keluhan:</span>
+                <span class="col-span-2 text-slate-800">{{ historyModal.latestExam.symptoms || historyModal.latestExam.complaint }}</span>
+              </div>
+              <div v-if="historyModal.latestExam.diagnosis" class="grid grid-cols-3 gap-1">
+                <span class="font-semibold text-slate-500">Diagnosa:</span>
+                <span class="col-span-2 font-bold text-emerald-800">{{ historyModal.latestExam.diagnosis }}</span>
+              </div>
+              <div v-if="historyModal.latestExam.treatment" class="grid grid-cols-3 gap-1">
+                <span class="font-semibold text-slate-500">Penanganan:</span>
+                <span class="col-span-2 text-slate-700 truncate">{{ historyModal.latestExam.treatment }}</span>
+              </div>
+              <div v-if="historyModal.latestExam.historyAllergies" class="grid grid-cols-3 gap-1">
+                <span class="font-semibold text-rose-600">Alergi:</span>
+                <span class="col-span-2 text-rose-700 font-medium">{{ historyModal.latestExam.historyAllergies }}</span>
+              </div>
+            </div>
+
+            <p class="text-xs text-slate-500 italic">
+              * Mengisi otomatis akan menyalin riwayat medis, tanda vital, diagnosa & obat dari pemeriksaan terakhir ke form pemeriksaan baru ini.
+            </p>
+          </div>
+
+          <!-- Actions -->
+          <div class="p-5 bg-slate-50 border-t border-slate-100 flex flex-col gap-2.5">
+            <button
+              @click="applyPastExam(historyModal.latestExam)"
+              class="w-full py-2.5 px-4 bg-[#602515] text-white font-medium rounded-xl hover:bg-[#4a1d10] transition flex items-center justify-center gap-2 shadow-md shadow-[#602515]/20 text-sm"
+            >
+              <Icon icon="solar:magic-stick-3-bold" class="text-lg" />
+              Isi Otomatis dari Pemeriksaan Terakhir
+            </button>
+
+            <button
+              @click="viewHistoryDetails"
+              class="w-full py-2.5 px-4 bg-white border border-slate-300 text-slate-700 font-medium rounded-xl hover:bg-slate-100 transition flex items-center justify-center gap-2 text-sm"
+            >
+              <Icon icon="solar:eye-bold" class="text-lg text-amber-600" />
+              Lihat Detail Riwayat Pemeriksaan
+            </button>
+
+            <button
+              @click="cancelAutoFill"
+              class="w-full py-2 px-4 text-slate-500 hover:text-slate-700 font-medium rounded-xl transition text-xs text-center"
+            >
+              Tidak, saya ingin input data pemeriksaan baru
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- Modal Detail Riwayat Pemeriksaan -->
+    <Teleport to="body">
+      <div
+        v-if="historyModal.showDetail"
+        class="fixed inset-0 z-[10000] flex items-center justify-center p-4"
+      >
+        <div
+          class="absolute inset-0 bg-black/50 backdrop-blur-sm"
+          @click="historyModal.showDetail = false"
+        ></div>
+        <div
+          class="bg-white w-full max-w-4xl rounded-2xl shadow-2xl overflow-hidden animate-fade-in-up relative z-10 border border-slate-100 flex flex-col max-h-[90vh]"
+        >
+          <!-- Header -->
+          <div class="p-5 border-b border-slate-100 bg-slate-50/70 flex justify-between items-center">
+            <div>
+              <h3 class="font-bold text-slate-800 text-lg flex items-center gap-2">
+                <Icon icon="solar:document-text-bold" class="text-[#602515]" />
+                Detail Riwayat Medis & Pemeriksaan
+              </h3>
+              <p class="text-xs text-slate-500 mt-0.5">
+                Pasien: <span class="font-bold text-slate-700">{{ historyModal.patientName }}</span> • {{ historyModal.historyList.length }} kali pemeriksaan tercatat
+              </p>
+            </div>
+            <button
+              @click="historyModal.showDetail = false"
+              class="text-slate-400 hover:text-slate-600 text-xl font-bold p-1"
+            >
+              ✕
+            </button>
+          </div>
+
+          <!-- Content Grid -->
+          <div class="flex-1 overflow-hidden grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-slate-200">
+            <!-- Sidebar: Timeline / List of exams -->
+            <div class="p-4 overflow-y-auto max-h-[350px] md:max-h-[600px] space-y-2.5 bg-slate-50/40">
+              <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Daftar Tanggal</h4>
+              <div
+                v-for="exam in historyModal.historyList"
+                :key="exam.id"
+                @click="historyModal.selectedExamDetail = exam"
+                class="p-3 rounded-xl border cursor-pointer transition text-xs space-y-1 relative"
+                :class="
+                  historyModal.selectedExamDetail?.id === exam.id
+                    ? 'bg-amber-50 border-amber-300 ring-2 ring-amber-500/20 shadow-sm'
+                    : 'bg-white border-slate-200 hover:border-slate-300'
+                "
+              >
+                <div class="font-bold text-slate-800 flex justify-between items-center">
+                  <span>{{ formatDate(exam.date || exam.examinationDate) }}</span>
+                  <span v-if="exam.id === historyModal.latestExam?.id" class="px-1.5 py-0.5 text-[9px] font-semibold bg-emerald-100 text-emerald-800 rounded">Terbaru</span>
+                </div>
+                <div class="text-slate-600 font-medium truncate">
+                  {{ exam.diagnosis || exam.symptoms || exam.complaint || "Pemeriksaan Umum" }}
+                </div>
+                <div class="text-[11px] text-slate-400 flex items-center gap-1">
+                  <Icon icon="solar:user-linear" />
+                  <span>{{ exam.patientName || historyModal.patientName }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Detail View of Selected Exam -->
+            <div class="md:col-span-2 p-6 overflow-y-auto max-h-[450px] md:max-h-[600px] space-y-5">
+              <template v-if="historyModal.selectedExamDetail">
+                <div class="flex justify-between items-start border-b border-slate-100 pb-3">
+                  <div>
+                    <span class="text-xs font-semibold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-md border border-amber-100">
+                      Pemeriksaan {{ formatDate(historyModal.selectedExamDetail.date || historyModal.selectedExamDetail.examinationDate) }}
+                    </span>
+                    <h4 class="text-base font-bold text-slate-800 mt-2">
+                      {{ historyModal.selectedExamDetail.diagnosis || "Tidak ada diagnosa spesifik" }}
+                    </h4>
+                  </div>
+                  <button
+                    @click="applyPastExam(historyModal.selectedExamDetail)"
+                    class="px-3.5 py-1.5 bg-[#602515] text-white text-xs font-medium rounded-lg hover:bg-[#4a1d10] transition flex items-center gap-1.5 shadow-sm"
+                  >
+                    <Icon icon="solar:magic-stick-3-bold" />
+                    Gunakan Data Ini
+                  </button>
+                </div>
+
+                <!-- Vital Signs Grid -->
+                <div>
+                  <h5 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Tanda-tanda Vital</h5>
+                  <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-slate-50 p-3.5 rounded-xl border border-slate-100 text-xs">
+                    <div>
+                      <span class="text-slate-400 block text-[10px]">Tekanan Darah</span>
+                      <span class="font-bold text-slate-700">{{ historyModal.selectedExamDetail.bloodPressure || "-" }}</span>
+                    </div>
+                    <div>
+                      <span class="text-slate-400 block text-[10px]">Suhu (°C)</span>
+                      <span class="font-bold text-slate-700">{{ historyModal.selectedExamDetail.temperature ? historyModal.selectedExamDetail.temperature + ' °C' : "-" }}</span>
+                    </div>
+                    <div>
+                      <span class="text-slate-400 block text-[10px]">Nadi (bpm)</span>
+                      <span class="font-bold text-slate-700">{{ historyModal.selectedExamDetail.heartRate ? historyModal.selectedExamDetail.heartRate + ' bpm' : "-" }}</span>
+                    </div>
+                    <div>
+                      <span class="text-slate-400 block text-[10px]">Pernapasan</span>
+                      <span class="font-bold text-slate-700">{{ historyModal.selectedExamDetail.respiratoryRate ? historyModal.selectedExamDetail.respiratoryRate + ' rpm' : "-" }}</span>
+                    </div>
+                    <div>
+                      <span class="text-slate-400 block text-[10px]">Berat Badan</span>
+                      <span class="font-bold text-slate-700">{{ historyModal.selectedExamDetail.weight ? historyModal.selectedExamDetail.weight + ' kg' : "-" }}</span>
+                    </div>
+                    <div>
+                      <span class="text-slate-400 block text-[10px]">Tinggi Badan</span>
+                      <span class="font-bold text-slate-700">{{ historyModal.selectedExamDetail.height ? historyModal.selectedExamDetail.height + ' cm' : "-" }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Anamnesis & Keluhan -->
+                <div class="space-y-3 text-xs">
+                  <h5 class="text-xs font-bold text-slate-500 uppercase tracking-wider">Keluhan & Anamnesis</h5>
+                  <div class="bg-slate-50 p-3 rounded-lg border border-slate-100 space-y-2">
+                    <div>
+                      <span class="font-semibold text-slate-500 block">Keluhan Utama:</span>
+                      <p class="text-slate-800">{{ historyModal.selectedExamDetail.symptoms || historyModal.selectedExamDetail.complaint || "-" }}</p>
+                    </div>
+                    <div v-if="historyModal.selectedExamDetail.anamnesis">
+                      <span class="font-semibold text-slate-500 block">Riwayat Keluhan Saat Ini:</span>
+                      <p class="text-slate-800">{{ historyModal.selectedExamDetail.anamnesis }}</p>
+                    </div>
+                    <div v-if="historyModal.selectedExamDetail.physicalExam">
+                      <span class="font-semibold text-slate-500 block">Pemeriksaan Fisik:</span>
+                      <p class="text-slate-800">{{ historyModal.selectedExamDetail.physicalExam }}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Riwayat Penyakit & Alergi -->
+                <div class="space-y-3 text-xs">
+                  <h5 class="text-xs font-bold text-slate-500 uppercase tracking-wider">Riwayat Medis Pasien</h5>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div class="bg-rose-50/60 p-3 rounded-lg border border-rose-100">
+                      <span class="font-semibold text-rose-800 block mb-0.5">Alergi:</span>
+                      <p class="text-rose-900">{{ historyModal.selectedExamDetail.historyAllergies || "Tidak ada data alergi" }}</p>
+                    </div>
+                    <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                      <span class="font-semibold text-slate-600 block mb-0.5">Penyakit Dahulu:</span>
+                      <p class="text-slate-800">{{ historyModal.selectedExamDetail.historyPastDiseases || "-" }}</p>
+                    </div>
+                    <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                      <span class="font-semibold text-slate-600 block mb-0.5">Penyakit Keluarga:</span>
+                      <p class="text-slate-800">{{ historyModal.selectedExamDetail.historyFamilyDiseases || "-" }}</p>
+                    </div>
+                    <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                      <span class="font-semibold text-slate-600 block mb-0.5">Obat Dikonsumsi:</span>
+                      <p class="text-slate-800">{{ historyModal.selectedExamDetail.historyCurrentMedications || "-" }}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Penanganan & Resep Obat -->
+                <div class="space-y-3 text-xs">
+                  <h5 class="text-xs font-bold text-slate-500 uppercase tracking-wider">Penanganan & Resep Obat</h5>
+                  <div class="bg-emerald-50/50 p-3 rounded-lg border border-emerald-100 space-y-2">
+                    <div>
+                      <span class="font-semibold text-emerald-900 block">Rencana / Tindakan:</span>
+                      <p class="text-emerald-950 font-medium">{{ historyModal.selectedExamDetail.treatment || "-" }}</p>
+                    </div>
+                    <div v-if="historyModal.selectedExamDetail.prescribedMedicinesText || historyModal.selectedExamDetail.prescribedMedicines">
+                      <span class="font-semibold text-emerald-900 block">Resep Obat:</span>
+                      <p class="text-emerald-900 font-mono whitespace-pre-wrap">{{ historyModal.selectedExamDetail.prescribedMedicinesText || historyModal.selectedExamDetail.prescribedMedicines }}</p>
+                    </div>
+                    <div v-if="historyModal.selectedExamDetail.followUpInstructions">
+                      <span class="font-semibold text-emerald-900 block">Instruksi Dokter:</span>
+                      <p class="text-emerald-800 italic">{{ historyModal.selectedExamDetail.followUpInstructions }}</p>
+                    </div>
+                  </div>
+                </div>
+              </template>
+              <div v-else class="text-center py-12 text-slate-400 text-xs">
+                Pilih tanggal pemeriksaan di sebelah kiri untuk melihat rincian medis.
+              </div>
+            </div>
+          </div>
+
+          <!-- Modal Footer -->
+          <div class="p-4 bg-slate-50 border-t border-slate-100 flex justify-between items-center">
+            <button
+              @click="cancelAutoFill"
+              class="px-4 py-2 text-xs font-medium text-slate-600 hover:text-slate-800 border border-slate-200 bg-white rounded-lg transition"
+            >
+              Tutup & Input Data Baru
+            </button>
+
+            <button
+              v-if="historyModal.selectedExamDetail"
+              @click="applyPastExam(historyModal.selectedExamDetail)"
+              class="px-5 py-2 bg-[#602515] text-white text-xs font-medium rounded-lg hover:bg-[#4a1d10] transition flex items-center gap-1.5 shadow-md shadow-[#602515]/20"
+            >
+              <Icon icon="solar:magic-stick-3-bold" />
+              Isi Form Menggunakan Data Pemeriksaan Ini
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
     <!-- Hidden Print Templates -->
     <div
       id="print-area"
@@ -906,6 +1207,14 @@ const statusModal = reactive({
   message: "",
 });
 const confirm = reactive({ show: false, item: null });
+const historyModal = reactive({
+  showConfirm: false,
+  showDetail: false,
+  patientName: "",
+  historyList: [],
+  latestExam: null,
+  selectedExamDetail: null,
+});
 
 const rooms = ref([]);
 const medicines = ref([]);
@@ -1191,9 +1500,136 @@ function printSickLetter(item) {
   }, 100);
 }
 
+let lastSelectedPatientKey = "";
+
+async function onPatientSelect(val) {
+  if (!val) return;
+  form.patientType = val.type;
+  Object.assign(form, val);
+
+  if (modal.mode === "create" && (val.name || val.refId || val.clinicPatientId)) {
+    const currentKey = `${val.type}-${val.clinicPatientId || val.refId || val.name}`;
+    if (currentKey !== lastSelectedPatientKey) {
+      lastSelectedPatientKey = currentKey;
+      await checkPatientHistory(val);
+    }
+  }
+}
+
+async function checkPatientHistory(val) {
+  if (!val) return;
+  const name = val.name;
+  const refId = val.refId;
+  const clinicPatientId = val.clinicPatientId;
+  const type = val.type;
+
+  // 1. Search local examinations first
+  let matches = (examinations.value || []).filter((item) => {
+    if (clinicPatientId && item.clinicPatientId === clinicPatientId) return true;
+    if (refId && item.patientType === type && (item.patientId === refId || item.refId === refId)) return true;
+    if (
+      name &&
+      ((item.student?.fullName && item.student.fullName.toLowerCase() === name.toLowerCase()) ||
+        (item.patientName && item.patientName.toLowerCase() === name.toLowerCase()))
+    )
+      return true;
+    return false;
+  });
+
+  // 2. Fetch from API to ensure complete history
+  try {
+    const params = {};
+    if (clinicPatientId) params.clinicPatientId = clinicPatientId;
+    else if (refId) {
+      params.patientType = type;
+      params.refId = refId;
+    } else if (name) {
+      params.name = name;
+    }
+    const res = await clinicApi.getExaminations(params);
+    if (res?.data && Array.isArray(res.data) && res.data.length > 0) {
+      matches = res.data;
+    }
+  } catch (e) {
+    console.debug("Error fetching patient history", e);
+  }
+
+  if (matches && matches.length > 0) {
+    matches.sort(
+      (a, b) =>
+        new Date(b.date || b.examinationDate) -
+        new Date(a.date || a.examinationDate)
+    );
+
+    historyModal.patientName =
+      val.name ||
+      matches[0].patientName ||
+      matches[0].student?.fullName ||
+      "Pasien";
+    historyModal.historyList = matches;
+    historyModal.latestExam = matches[0];
+    historyModal.selectedExamDetail = matches[0];
+    historyModal.showConfirm = true;
+  }
+}
+
+function applyPastExam(pastExam) {
+  if (!pastExam) return;
+
+  const currentDate = form.date || new Date().toISOString().split("T")[0];
+
+  Object.assign(form, {
+    historyPastDiseases: pastExam.historyPastDiseases || form.historyPastDiseases,
+    historyFamilyDiseases: pastExam.historyFamilyDiseases || form.historyFamilyDiseases,
+    historyAllergies: pastExam.historyAllergies || form.historyAllergies,
+    historyCurrentMedications: pastExam.historyCurrentMedications || form.historyCurrentMedications,
+    historyHabits: pastExam.historyHabits || form.historyHabits,
+    anamnesis: pastExam.anamnesis || "",
+    bloodPressure: pastExam.bloodPressure || "",
+    temperature: pastExam.temperature || "",
+    heartRate: pastExam.heartRate || "",
+    respiratoryRate: pastExam.respiratoryRate || "",
+    weight: pastExam.weight || "",
+    height: pastExam.height || "",
+    physicalExam: pastExam.physicalExam || "",
+    complaint: pastExam.complaint || pastExam.symptoms || "",
+    diagnosis: pastExam.diagnosis || "",
+    diagnosisCode: pastExam.diagnosisCode || "",
+    treatment: pastExam.treatment || "",
+    prescribedMedicinesText: pastExam.prescribedMedicinesText || pastExam.prescribedMedicines || "",
+    followUpInstructions: pastExam.followUpInstructions || "",
+    date: currentDate,
+  });
+
+  historyModal.showConfirm = false;
+  historyModal.showDetail = false;
+  showStatus(
+    "success",
+    "Berhasil Auto-Fill",
+    "Data pemeriksaan lampau telah diisikan ke form."
+  );
+}
+
+function viewHistoryDetails() {
+  historyModal.showConfirm = false;
+  historyModal.showDetail = true;
+}
+
+function cancelAutoFill() {
+  historyModal.showConfirm = false;
+  historyModal.showDetail = false;
+}
+
 function openCreate() {
   modal.show = true;
   modal.mode = "create";
+  lastSelectedPatientKey = "";
+  historyModal.showConfirm = false;
+  historyModal.showDetail = false;
+  historyModal.historyList = [];
+  historyModal.latestExam = null;
+  historyModal.selectedExamDetail = null;
+
   Object.assign(form, {
     id: null,
     patientType: "student",

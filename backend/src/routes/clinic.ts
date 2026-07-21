@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import { eq, like, or, and, sql, desc, getTableColumns } from "drizzle-orm";
+import { eq, like, or, and, sql, desc, asc, getTableColumns } from "drizzle-orm";
 import { db } from "../db";
 import {
   medicines,
@@ -491,7 +491,9 @@ clinicRoute.delete(
 // Get all medicines
 clinicRoute.get("/medicines", async (c) => {
   try {
-    const allMedicines = await db.query.medicines.findMany();
+    const allMedicines = await db.query.medicines.findMany({
+      orderBy: asc(medicines.name),
+    });
     const medicinesWithWarning = allMedicines.map((med) => ({
       ...med,
       isLowStock: med.stock <= (med.minStock || 10),
@@ -617,6 +619,11 @@ clinicRoute.post(
         "Nama Obat": "name",
         Nama: "name",
         Kategori: "category",
+        "Rute Pemberian": "administrationRoute",
+        Rute: "administrationRoute",
+        "Rute Obat": "administrationRoute",
+        "Kelompok Rute": "administrationRoute",
+        Route: "administrationRoute",
         Stok: "stock",
         Satuan: "unit",
         "Harga Beli": "price", // Optional
@@ -721,6 +728,11 @@ clinicRoute.post(
         "Nama Obat": "name",
         Nama: "name",
         Kategori: "category",
+        "Rute Pemberian": "administrationRoute",
+        Rute: "administrationRoute",
+        "Rute Obat": "administrationRoute",
+        "Kelompok Rute": "administrationRoute",
+        Route: "administrationRoute",
         Stok: "stock",
         Satuan: "unit",
         Harga: "price",
@@ -1023,8 +1035,29 @@ clinicRoute.delete(
 // ============ EXAMINATIONS (Updated) ============
 
 clinicRoute.get("/examinations", async (c) => {
-  // Join with clinicPatients
-  const list = await db
+  const { clinicPatientId, patientId, refId, name, patientType } = c.req.query();
+
+  const conditions = [];
+
+  if (clinicPatientId) {
+    conditions.push(eq(healthExaminations.clinicPatientId, Number(clinicPatientId)));
+  }
+
+  const targetPatientId = patientId || refId;
+  if (targetPatientId) {
+    conditions.push(eq(healthExaminations.patientId, Number(targetPatientId)));
+  }
+
+  if (name) {
+    conditions.push(
+      or(
+        like(clinicPatients.name, `%${name}%`),
+        like(healthExaminations.patientId, `%${name}%`)
+      )
+    );
+  }
+
+  let query = db
     .select({
       ...getTableColumns(healthExaminations),
       patientName: clinicPatients.name,
@@ -1047,13 +1080,18 @@ clinicRoute.get("/examinations", async (c) => {
         AND DATE(student_attendances.date) = DATE(${healthExaminations.examinationDate})
         AND student_attendances.status = 'sick'
       )`,
-      // patientRefId: clinicPatients.refId,
     })
     .from(healthExaminations)
     .leftJoin(
       clinicPatients,
       eq(healthExaminations.clinicPatientId, clinicPatients.id),
-    )
+    );
+
+  if (conditions.length > 0) {
+    query = query.where(and(...conditions));
+  }
+
+  const list = await query
     .orderBy(desc(healthExaminations.examinationDate))
     .limit(50);
 

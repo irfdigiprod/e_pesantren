@@ -57,6 +57,7 @@ export const medicines = mysqlTable("medicines", {
   genericName: varchar("generic_name", { length: 255 }),
   type: varchar("type", { length: 100 }), // tablet, sirup, kapsul, etc.
   category: varchar("category", { length: 100 }), // antibiotik, analgesik, etc.
+  administrationRoute: varchar("administration_route", { length: 255 }), // Injeksi, Obat oral, etc.
   stock: int("stock").notNull().default(0),
   unit: varchar("unit", { length: 50 }).notNull().default("pcs"), // pcs, bottle, box
   minStock: int("min_stock").default(10),

@@ -92,6 +92,16 @@
         </span>
       </template>
 
+      <template #cell-administrationRoute="{ item }">
+        <span
+          v-if="item.administrationRoute"
+          class="inline-flex px-2 py-1 rounded-md bg-blue-50 text-blue-700 text-xs font-medium border border-blue-100"
+        >
+          {{ item.administrationRoute }}
+        </span>
+        <span v-else class="text-slate-400 text-xs">-</span>
+      </template>
+
       <template #cell-stock="{ item }">
         <div :class="getStockClass(item)">
           {{ item.stock }}
@@ -143,11 +153,19 @@
               >
                 {{ item.name }}
               </h3>
-              <span
-                class="inline-block px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600 border border-slate-200"
-              >
-                {{ item.category || "Umum" }}
-              </span>
+              <div class="flex flex-wrap gap-1">
+                <span
+                  class="inline-block px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600 border border-slate-200"
+                >
+                  {{ item.category || "Umum" }}
+                </span>
+                <span
+                  v-if="item.administrationRoute"
+                  class="inline-block px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-100"
+                >
+                  {{ item.administrationRoute }}
+                </span>
+              </div>
             </div>
 
             <!-- Stock Badge -->
@@ -256,6 +274,38 @@
                   v-model="form.name"
                   class="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#602515]/20 focus:border-[#602515] transition"
                   placeholder="Contoh: Paracetamol 500mg"
+                />
+              </div>
+
+              <div>
+                <label
+                  class="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider"
+                  >Rute Pemberian Obat (Route of Administration)</label
+                >
+                <select
+                  v-model="form.administrationRoute"
+                  class="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#602515]/20 focus:border-[#602515] transition bg-white"
+                >
+                  <option value="">- Pilih Rute Pemberian -</option>
+                  <option
+                    v-for="opt in administrationRouteOptions"
+                    :key="opt"
+                    :value="opt"
+                  >
+                    {{ opt }}
+                  </option>
+                </select>
+              </div>
+
+              <div v-if="form.administrationRoute === 'Lainnya'">
+                <label
+                  class="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider"
+                  >Tulis Rute Pemberian Manual <span class="text-red-500">*</span></label
+                >
+                <input
+                  v-model="form.customAdministrationRoute"
+                  class="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#602515]/20 focus:border-[#602515] transition"
+                  placeholder="Misal: Sublingual, Bintik Mata, dll..."
                 />
               </div>
 
@@ -427,10 +477,23 @@ const statusModal = reactive({
 });
 const confirm = reactive({ show: false, item: null });
 
+const administrationRouteOptions = [
+  "Injeksi (parenteral)",
+  "Obat oral (tablet, kapsul)",
+  "Obat oral cair (sirup, suspensi)",
+  "Obat topikal (salep, krim, gel)",
+  "Obat inhalasi",
+  "Obat rektal/vaginal",
+  "Obat tetes (mata, telinga, hidung)",
+  "Lainnya",
+];
+
 const form = reactive({
   id: null,
   name: "",
   category: "",
+  administrationRoute: "",
+  customAdministrationRoute: "",
   stock: 0,
   minStock: 10,
   unit: "",
@@ -441,6 +504,7 @@ const form = reactive({
 const columns = [
   { label: "Nama Obat", field: "name", sortable: true },
   { label: "Kategori", field: "category", sortable: true },
+  { label: "Rute Pemberian", field: "administrationRoute", sortable: true },
   { label: "Stok", field: "stock", sortable: true, align: "center" },
   { label: "Satuan", field: "unit" },
   { label: "Kadaluarsa", field: "expiryDate", sortable: true },
@@ -451,6 +515,7 @@ const medicineImportTemplate = [
   {
     "Nama Obat": "Paracetamol 500mg",
     Kategori: "Analgesik",
+    "Rute Pemberian": "Obat oral (tablet, kapsul)",
     Stok: 100,
     Satuan: "Strip",
     Harga: 5000,
@@ -461,21 +526,15 @@ const medicineImportTemplate = [
 ];
 
 const filteredMedicines = computed(() => {
-  let result = medicines.value;
-
-  // Search logic is handled inside DataTable via v-model search, BUT if we want custom search logic (like searching category)
-  // we can filter here. The DataTable simple search might only check one field if not customized.
-  // Actually DataTable doesn't natively filter "items" prop unless we do it here.
-  // Wait, looking at DataTable source, it emits 'update:search' but doesn't filter `items` itself?
-  // Let's re-read DataTable. It binds :value="search" and emits update. It does NOT filter internally.
-  // So we MUST filter here.
+  let result = [...medicines.value];
 
   if (search.value) {
     const q = search.value.toLowerCase();
     result = result.filter(
       (m) =>
         m.name.toLowerCase().includes(q) ||
-        (m.category && m.category.toLowerCase().includes(q)),
+        (m.category && m.category.toLowerCase().includes(q)) ||
+        (m.administrationRoute && m.administrationRoute.toLowerCase().includes(q)),
     );
   }
 
@@ -491,6 +550,11 @@ const filteredMedicines = computed(() => {
       return true;
     });
   }
+
+  // Always sort alphabetically by name (A-Z)
+  result.sort((a, b) =>
+    (a.name || "").localeCompare(b.name || "", "id", { sensitivity: "base" })
+  );
 
   return result;
 });
@@ -537,9 +601,16 @@ async function submitForm() {
     if (!form.name) {
       throw new Error("Nama obat wajib diisi");
     }
+
+    const finalRoute =
+      form.administrationRoute === "Lainnya"
+        ? form.customAdministrationRoute || "Lainnya"
+        : form.administrationRoute;
+
     const payload = {
       name: form.name,
       category: form.category || undefined,
+      administrationRoute: finalRoute || undefined,
       stock: parseInt(form.stock) || 0,
       minStock: parseInt(form.minStock) || 10,
       unit: form.unit || undefined,
@@ -582,6 +653,8 @@ function openCreate() {
     id: null,
     name: "",
     category: "",
+    administrationRoute: "",
+    customAdministrationRoute: "",
     stock: 0,
     minStock: 10,
     unit: "",
@@ -593,8 +666,19 @@ function openCreate() {
 function openEdit(item) {
   modal.show = true;
   modal.mode = "edit";
+
+  let routeVal = item.administrationRoute || "";
+  let customRouteVal = "";
+
+  if (routeVal && !administrationRouteOptions.includes(routeVal)) {
+    customRouteVal = routeVal;
+    routeVal = "Lainnya";
+  }
+
   Object.assign(form, {
     ...item,
+    administrationRoute: routeVal,
+    customAdministrationRoute: customRouteVal,
     minStock: item.minStock || 10,
   });
 }
