@@ -12,6 +12,9 @@
       :pagination="pagination"
       @page-change="onPageChange"
       @update:limit="onLimitChange"
+      :sortBy="sortBy"
+      :sortOrder="sortOrder"
+      @sort="handleSort"
     >
       <template #filters="{ close }">
         <div class="space-y-4">
@@ -773,6 +776,18 @@ const form = reactive({
 
 const confirm = reactive({ show: false, item: null });
 
+const sortBy = ref("name");
+const sortOrder = ref("asc");
+
+function handleSort(field) {
+  if (sortBy.value === field) {
+    sortOrder.value = sortOrder.value === "asc" ? "desc" : "asc";
+  } else {
+    sortBy.value = field;
+    sortOrder.value = "asc";
+  }
+}
+
 const historyModal = reactive({
   show: false,
   loading: false,
@@ -808,19 +823,19 @@ function formatDate(dateStr) {
 const columns = [
   { label: "Nama Pasien", field: "name", sortable: true },
   { label: "Tipe", field: "type", sortable: true },
-  { label: "Kelas/Rombel", field: "class" },
-  { label: "Grup Halaqah", field: "halaqah" },
-  { label: "Kamar", field: "room" },
-  { label: "L/P", field: "gender" },
-  { label: "No. HP", field: "phone" },
-  { label: "Usia", field: "age" }, // Derived
-  { label: "Gol. Darah", field: "bloodType" },
-  { label: "Alamat", field: "address" },
+  { label: "Kelas/Rombel", field: "class", sortable: true },
+  { label: "Grup Halaqah", field: "halaqah", sortable: true },
+  { label: "Kamar", field: "room", sortable: true },
+  { label: "L/P", field: "gender", sortable: true },
+  { label: "No. HP", field: "phone", sortable: true },
+  { label: "Usia", field: "age", sortable: true },
+  { label: "Gol. Darah", field: "bloodType", sortable: true },
+  { label: "Alamat", field: "address", sortable: true },
   { label: "Aksi", field: "actions", align: "right" },
 ];
 
 const filteredPatients = computed(() => {
-  let result = patients.value;
+  let result = [...patients.value];
 
   // Search
   if (search.value) {
@@ -839,6 +854,41 @@ const filteredPatients = computed(() => {
   }
   if (filters.gender) {
     result = result.filter((r) => r.gender === filters.gender);
+  }
+
+  // Sort
+  if (sortBy.value) {
+    result.sort((a, b) => {
+      let valA = a[sortBy.value];
+      let valB = b[sortBy.value];
+
+      // Nested/Derived mappings
+      if (sortBy.value === 'class') {
+        valA = a.student?.class?.name || '';
+        valB = b.student?.class?.name || '';
+      } else if (sortBy.value === 'halaqah') {
+        valA = a.student?.halaqah?.name || '';
+        valB = b.student?.halaqah?.name || '';
+      } else if (sortBy.value === 'room') {
+        valA = a.student?.roomNumber || '';
+        valB = b.student?.roomNumber || '';
+      }
+
+      if (valA === undefined || valA === null) valA = "";
+      if (valB === undefined || valB === null) valB = "";
+
+      if (typeof valA === "string") valA = valA.trim().toLowerCase();
+      if (typeof valB === "string") valB = valB.trim().toLowerCase();
+
+      let comparison = 0;
+      if (typeof valA === "number" && typeof valB === "number") {
+        comparison = valA - valB;
+      } else {
+        comparison = String(valA).localeCompare(String(valB), "id", { sensitivity: "base" });
+      }
+
+      return sortOrder.value === "asc" ? comparison : -comparison;
+    });
   }
 
   return result;

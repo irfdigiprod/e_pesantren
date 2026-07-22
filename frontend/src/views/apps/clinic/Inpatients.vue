@@ -10,6 +10,9 @@
       :viewMode="viewMode"
       v-model:viewMode="viewMode"
       :hideFilter="true"
+      :sortBy="sortBy"
+      :sortOrder="sortOrder"
+      @sort="handleSort"
     >
       <template #header-actions>
         <button
@@ -741,6 +744,18 @@ const statusModal = reactive({
 const confirm = reactive({ show: false, item: null });
 const printData = ref(null);
 
+const sortBy = ref("admission");
+const sortOrder = ref("desc");
+
+function handleSort(field) {
+  if (sortBy.value === field) {
+    sortOrder.value = sortOrder.value === "asc" ? "desc" : "asc";
+  } else {
+    sortBy.value = field;
+    sortOrder.value = "asc";
+  }
+}
+
 const detailModal = reactive({
   show: false,
   activeTab: "details",
@@ -793,12 +808,50 @@ const columns = [
   { label: "Pasien", field: "student", sortable: true },
   { label: "Kamar / Bed", field: "bed", sortable: true },
   { label: "Waktu Masuk", field: "admission", sortable: true },
-  { label: "Diagnosa", field: "diagnosis" },
+  { label: "Diagnosa", field: "diagnosis", sortable: true },
   { label: "Status", field: "status", sortable: true },
   { label: "Aksi", field: "actions", align: "right" },
 ];
 
-const activeInpatients = computed(() => inpatients.value);
+const activeInpatients = computed(() => {
+  let result = [...inpatients.value];
+
+  if (sortBy.value) {
+    result.sort((a, b) => {
+      let valA = a[sortBy.value];
+      let valB = b[sortBy.value];
+
+      // Nested/Derived mappings
+      if (sortBy.value === 'student') {
+        valA = a.student?.fullName || a.patientName || '';
+        valB = b.student?.fullName || b.patientName || '';
+      } else if (sortBy.value === 'bed') {
+        valA = `${a.roomNumber || ''} - ${a.bedNumber || ''}`;
+        valB = `${b.roomNumber || ''} - ${b.bedNumber || ''}`;
+      } else if (sortBy.value === 'admission') {
+        valA = a.admissionDate || '';
+        valB = b.admissionDate || '';
+      }
+
+      if (valA === undefined || valA === null) valA = "";
+      if (valB === undefined || valB === null) valB = "";
+
+      if (typeof valA === "string") valA = valA.trim().toLowerCase();
+      if (typeof valB === "string") valB = valB.trim().toLowerCase();
+
+      let comparison = 0;
+      if (typeof valA === "number" && typeof valB === "number") {
+        comparison = valA - valB;
+      } else {
+        comparison = String(valA).localeCompare(String(valB), "id", { sensitivity: "base" });
+      }
+
+      return sortOrder.value === "asc" ? comparison : -comparison;
+    });
+  }
+
+  return result;
+});
 
 const availableBeds = computed(() => {
   if (!form.roomId) return [];

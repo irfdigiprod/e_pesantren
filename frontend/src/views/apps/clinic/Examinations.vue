@@ -11,6 +11,9 @@
       v-model:viewMode="viewMode"
       v-model:search="search"
       :hideFilter="true"
+      :sortBy="sortBy"
+      :sortOrder="sortOrder"
+      @sort="handleSort"
     >
       <template #header-actions>
         <button
@@ -1313,24 +1316,83 @@ function updatePrescriptionText(items) {
 const columns = [
   { label: "Waktu", field: "date", sortable: true },
   { label: "Santri", field: "student", sortable: true },
-  { label: "Kelas/Rombel", field: "class" },
-  { label: "Grup Halaqah", field: "halaqah" },
-  { label: "Kamar", field: "room" },
-  { label: "Keluhan", field: "complaint" },
-  { label: "Diagnosa", field: "diagnosis" },
-  { label: "Penanganan", field: "treatment" },
+  { label: "Kelas/Rombel", field: "class", sortable: true },
+  { label: "Grup Halaqah", field: "halaqah", sortable: true },
+  { label: "Kamar", field: "room", sortable: true },
+  { label: "Keluhan", field: "complaint", sortable: true },
+  { label: "Diagnosa", field: "diagnosis", sortable: true },
+  { label: "Penanganan", field: "treatment", sortable: true },
   { label: "Aksi", field: "actions", align: "right" },
 ];
 
+const sortBy = ref("date");
+const sortOrder = ref("desc");
+
+function handleSort(field) {
+  if (sortBy.value === field) {
+    sortOrder.value = sortOrder.value === "asc" ? "desc" : "asc";
+  } else {
+    sortBy.value = field;
+    sortOrder.value = "asc";
+  }
+}
+
 const filteredExaminations = computed(() => {
-  if (!search.value) return examinations.value;
-  const q = search.value.toLowerCase();
-  return examinations.value.filter(
-    (e) =>
-      e.student?.fullName?.toLowerCase().includes(q) ||
-      String(e.studentId).includes(q) ||
-      (e.diagnosis || "").toLowerCase().includes(q),
-  );
+  let result = [...examinations.value];
+
+  // Search
+  if (search.value) {
+    const q = search.value.toLowerCase();
+    result = result.filter(
+      (e) =>
+        e.student?.fullName?.toLowerCase().includes(q) ||
+        String(e.studentId).includes(q) ||
+        (e.diagnosis || "").toLowerCase().includes(q),
+    );
+  }
+
+  // Sort
+  if (sortBy.value) {
+    result.sort((a, b) => {
+      let valA = a[sortBy.value];
+      let valB = b[sortBy.value];
+
+      // Nested/Derived mappings
+      if (sortBy.value === 'student') {
+        valA = a.student?.fullName || a.patientName || '';
+        valB = b.student?.fullName || b.patientName || '';
+      } else if (sortBy.value === 'class') {
+        valA = a.student?.class?.name || '';
+        valB = b.student?.class?.name || '';
+      } else if (sortBy.value === 'halaqah') {
+        valA = a.student?.halaqah?.name || '';
+        valB = b.student?.halaqah?.name || '';
+      } else if (sortBy.value === 'room') {
+        valA = a.student?.roomNumber || '';
+        valB = b.student?.roomNumber || '';
+      } else if (sortBy.value === 'date') {
+        valA = a.date || a.examinationDate || '';
+        valB = b.date || b.examinationDate || '';
+      }
+
+      if (valA === undefined || valA === null) valA = "";
+      if (valB === undefined || valB === null) valB = "";
+
+      if (typeof valA === "string") valA = valA.trim().toLowerCase();
+      if (typeof valB === "string") valB = valB.trim().toLowerCase();
+
+      let comparison = 0;
+      if (typeof valA === "number" && typeof valB === "number") {
+        comparison = valA - valB;
+      } else {
+        comparison = String(valA).localeCompare(String(valB), "id", { sensitivity: "base" });
+      }
+
+      return sortOrder.value === "asc" ? comparison : -comparison;
+    });
+  }
+
+  return result;
 });
 
 const availableBeds = computed(() => {
