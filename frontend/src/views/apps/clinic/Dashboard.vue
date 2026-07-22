@@ -103,7 +103,7 @@
               Lihat Semua
             </button>
           </div>
-          <div class="overflow-x-auto">
+          <div class="hidden md:block overflow-x-auto">
             <table class="w-full text-sm">
               <thead
                 class="bg-slate-50 text-slate-500 border-b border-slate-100"
@@ -154,6 +154,48 @@
                 </tr>
               </tbody>
             </table>
+          </div>
+
+          <!-- Card View (Mobile only) -->
+          <div class="block md:hidden divide-y divide-slate-100 p-4 space-y-4">
+            <div
+              v-for="exam in recentExaminations"
+              :key="exam.id"
+              class="pt-4 first:pt-0 flex flex-col gap-3"
+            >
+              <div class="flex justify-between items-start">
+                <div>
+                  <h4 class="font-bold text-slate-800 text-sm">
+                    {{ exam.studentName }}
+                  </h4>
+                  <p class="text-xs text-slate-400 mt-1 flex items-center gap-1">
+                    <Icon icon="solar:clock-circle-linear" class="text-slate-400 text-xs" />
+                    {{ formatDate(exam.createdAt) }}
+                  </p>
+                </div>
+                <div class="flex gap-2">
+                  <span
+                    class="px-2 py-0.5 rounded text-[10px] font-medium bg-green-50 text-green-700 border border-green-100"
+                  >
+                    Selesai
+                  </span>
+                  <button
+                    @click="viewHistory(exam)"
+                    class="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg border border-slate-100 transition"
+                    title="Riwayat Medis"
+                  >
+                    <Icon icon="solar:medical-kit-linear" class="text-sm" />
+                  </button>
+                </div>
+              </div>
+              <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-100 text-xs flex justify-between">
+                <span class="text-slate-400">Diagnosa:</span>
+                <span class="font-medium text-slate-700 truncate max-w-[200px]">{{ exam.diagnosis || "-" }}</span>
+              </div>
+            </div>
+            <div v-if="recentExaminations.length === 0" class="py-8 text-center text-slate-400 text-xs">
+              Belum ada pemeriksaan hari ini
+            </div>
           </div>
         </div>
 
