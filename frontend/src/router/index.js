@@ -661,6 +661,11 @@ const router = createRouter({
           name: "ClinicRooms",
           component: () => import("@/views/apps/clinic/Rooms.vue"),
         },
+        {
+          path: "apps/clinic/pharmacies",
+          name: "ClinicPharmacies",
+          component: () => import("@/views/apps/clinic/Pharmacies.vue"),
+        },
         // Academic Routes
         {
           path: "apps/academic/classes",

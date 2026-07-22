@@ -2,6 +2,7 @@ import { z } from "zod";
 
 // Medicine validators
 export const createMedicineSchema = z.object({
+    pharmacyId: z.number().nullable().optional(),
     name: z.string().min(1, "Name is required"),
     genericName: z.string().optional(),
     type: z.string().optional(),
@@ -17,6 +18,7 @@ export const createMedicineSchema = z.object({
 });
 
 export const updateMedicineSchema = z.object({
+    pharmacyId: z.number().nullable().optional(),
     name: z.string().min(1).optional(),
     genericName: z.string().optional(),
     type: z.string().optional(),
@@ -28,6 +30,17 @@ export const updateMedicineSchema = z.object({
     price: z.number().min(0).optional(),
     expiryDate: z.string().optional(),
     manufacturer: z.string().optional(),
+    description: z.string().optional(),
+});
+
+// Pharmacy validators
+export const createPharmacySchema = z.object({
+    name: z.string().min(1, "Nama apotik wajib diisi"),
+    description: z.string().optional(),
+});
+
+export const updatePharmacySchema = z.object({
+    name: z.string().min(1).optional(),
     description: z.string().optional(),
 });
 
@@ -106,3 +119,5 @@ export type UpdateInpatientInput = z.infer<typeof updateInpatientSchema>;
 export type DischargePatientInput = z.infer<typeof dischargePatientSchema>;
 export type CreateExaminationInput = z.infer<typeof createExaminationSchema>;
 export type UpdateExaminationInput = z.infer<typeof updateExaminationSchema>;
+export type CreatePharmacyInput = z.infer<typeof createPharmacySchema>;
+export type UpdatePharmacyInput = z.infer<typeof updatePharmacySchema>;

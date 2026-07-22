@@ -11,6 +11,7 @@ import {
   mysqlEnum,
 } from "drizzle-orm/mysql-core";
 import { users } from "./users";
+import { teachers } from "./teachers";
 
 // Pasien Klinik (Unified Table)
 export const clinicPatients = mysqlTable("clinic_patients", {
@@ -50,9 +51,31 @@ export const clinicRooms = mysqlTable("clinic_rooms", {
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
 });
 
+// Apotik
+export const pharmacies = mysqlTable("pharmacies", {
+  id: int("id").primaryKey().autoincrement(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
+});
+
+// Pivot table untuk apoteker di setiap apotik
+export const pharmacyPharmacists = mysqlTable("pharmacy_pharmacists", {
+  id: int("id").primaryKey().autoincrement(),
+  pharmacyId: int("pharmacy_id")
+    .references(() => pharmacies.id)
+    .notNull(),
+  teacherId: int("teacher_id")
+    .references(() => teachers.id)
+    .notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Stok Obat
 export const medicines = mysqlTable("medicines", {
   id: int("id").primaryKey().autoincrement(),
+  pharmacyId: int("pharmacy_id").references(() => pharmacies.id), // Lokasi apotik
   name: varchar("name", { length: 255 }).notNull(),
   genericName: varchar("generic_name", { length: 255 }),
   type: varchar("type", { length: 100 }), // tablet, sirup, kapsul, etc.
@@ -187,3 +210,7 @@ export type HealthExamination = typeof healthExaminations.$inferSelect;
 export type NewHealthExamination = typeof healthExaminations.$inferInsert;
 export type MedicineUsage = typeof medicineUsages.$inferSelect;
 export type NewMedicineUsage = typeof medicineUsages.$inferInsert;
+export type Pharmacy = typeof pharmacies.$inferSelect;
+export type NewPharmacy = typeof pharmacies.$inferInsert;
+export type PharmacyPharmacist = typeof pharmacyPharmacists.$inferSelect;
+export type NewPharmacyPharmacist = typeof pharmacyPharmacists.$inferInsert;

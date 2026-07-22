@@ -1,11 +1,13 @@
 import { relations } from "drizzle-orm";
 import { teachers } from "./teachers";
 import { divisions, teacherDivisions } from "./divisions";
+import { pharmacies, pharmacyPharmacists, medicines } from "./clinic";
 
 import { salaryGrades, positionAllowances } from "./salary";
 
 export const teachersRelations = relations(teachers, ({ many, one }) => ({
   teacherDivisions: many(teacherDivisions),
+  pharmacyPharmacists: many(pharmacyPharmacists),
   salaryGrade: one(salaryGrades, {
     fields: [teachers.salaryGradeId],
     references: [salaryGrades.id],
@@ -85,3 +87,32 @@ export const studentClassesRelations = relations(studentClasses, ({ one }) => ({
     references: [classes.id],
   }),
 }));
+
+export const pharmaciesRelations = relations(pharmacies, ({ many }) => ({
+  pharmacyPharmacists: many(pharmacyPharmacists),
+  medicines: many(medicines),
+}));
+
+export const pharmacyPharmacistsRelations = relations(
+  pharmacyPharmacists,
+  ({ one }) => ({
+    pharmacy: one(pharmacies, {
+      fields: [pharmacyPharmacists.pharmacyId],
+      references: [pharmacies.id],
+    }),
+    teacher: one(teachers, {
+      fields: [pharmacyPharmacists.teacherId],
+      references: [teachers.id],
+    }),
+  })
+);
+
+export const medicinesRelations = relations(
+  medicines,
+  ({ one }) => ({
+    pharmacy: one(pharmacies, {
+      fields: [medicines.pharmacyId],
+      references: [pharmacies.id],
+    }),
+  })
+);

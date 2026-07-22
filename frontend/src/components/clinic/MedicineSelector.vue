@@ -46,7 +46,7 @@
                 {{ med.name }}
               </span>
               <span class="text-xs text-slate-400"
-                >{{ med.category }} • {{ med.unit }}</span
+                >{{ med.category }} • {{ med.unit }} <span v-if="med.pharmacyName">• Lokasi: {{ med.pharmacyName }}</span></span
               >
             </div>
             <span
@@ -107,6 +107,27 @@
           <p class="text-xs text-slate-500">
             {{ item.id ? "Dari Stok" : "Manual" }}
           </p>
+        </div>
+
+        <!-- Location Dropdown -->
+        <div v-if="getLocations(item).length > 1" class="flex items-center gap-1.5 shrink-0">
+          <label class="text-xs font-semibold text-slate-400">Apotik</label>
+          <select
+            :value="item.id"
+            @change="(e) => changeLocation(index, Number(e.target.value))"
+            class="px-2 py-1 text-xs border border-slate-200 rounded bg-white focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none max-w-[120px] truncate"
+          >
+            <option
+              v-for="loc in getLocations(item)"
+              :key="loc.id"
+              :value="loc.id"
+            >
+              {{ loc.pharmacyName || 'Umum' }} (Stok: {{ loc.stock }})
+            </option>
+          </select>
+        </div>
+        <div v-else-if="getLocations(item).length === 1 && getLocations(item)[0].pharmacyName" class="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded shrink-0">
+          Apotik: {{ getLocations(item)[0].pharmacyName }}
         </div>
 
         <!-- Quantity Input -->
@@ -183,14 +204,37 @@ watch(
 const filteredMedicines = computed(() => {
   if (!query.value) return [];
   const q = query.value.toLowerCase();
-  // Filter out already selected
-  const selectedIds = selectedItems.value.map((i) => i.id).filter(Boolean);
-  return props.medicines
-    .filter(
-      (m) => m.name.toLowerCase().includes(q) && !selectedIds.includes(m.id)
-    )
-    .slice(0, 5);
+  
+  // Filter out already selected NAMES to prevent duplicate entries of the same medicine
+  const selectedNames = selectedItems.value.map((i) => i.name.toLowerCase()).filter(Boolean);
+  
+  const results = [];
+  const seenNames = new Set();
+  
+  for (const m of props.medicines) {
+    const lowerName = m.name.toLowerCase();
+    if (lowerName.includes(q) && !selectedNames.includes(lowerName) && !seenNames.has(lowerName)) {
+      results.push(m);
+      seenNames.add(lowerName);
+    }
+  }
+  return results.slice(0, 5);
 });
+
+function getLocations(item) {
+  if (!item.id || item.isManual) return [];
+  return props.medicines.filter(
+    (m) => m.name.toLowerCase() === item.name.toLowerCase()
+  );
+}
+
+function changeLocation(index, newId) {
+  const selectedLoc = props.medicines.find(m => m.id === newId);
+  if (selectedLoc) {
+    selectedItems.value[index].id = selectedLoc.id;
+    selectedItems.value[index].pharmacyName = selectedLoc.pharmacyName || null;
+  }
+}
 
 function handleEnter() {
   if (activeIndex.value >= 0 && filteredMedicines.value[activeIndex.value]) {
@@ -214,6 +258,7 @@ function selectMedicine(med) {
     quantity: 1,
     unit: med.unit || "pcs",
     isManual: false,
+    pharmacyName: med.pharmacyName || null,
   });
   query.value = "";
   isOpen.value = false;

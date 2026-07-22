@@ -9,6 +9,8 @@ import {
   clinicPatients,
   clinicRooms,
   medicineUsages,
+  pharmacies,
+  pharmacyPharmacists,
 } from "../db/schema/clinic";
 import { students } from "../db/schema/students";
 import { teachers } from "../db/schema/teachers";
@@ -27,6 +29,8 @@ import {
   dischargePatientSchema,
   createExaminationSchema,
   updateExaminationSchema,
+  createPharmacySchema,
+  updatePharmacySchema,
 } from "../validators/clinic";
 import { z } from "zod";
 
@@ -493,9 +497,13 @@ clinicRoute.get("/medicines", async (c) => {
   try {
     const allMedicines = await db.query.medicines.findMany({
       orderBy: asc(medicines.name),
+      with: {
+        pharmacy: true,
+      },
     });
     const medicinesWithWarning = allMedicines.map((med) => ({
       ...med,
+      pharmacyName: med.pharmacy?.name || null,
       isLowStock: med.stock <= (med.minStock || 10),
     }));
     return c.json({ success: true, data: medicinesWithWarning });
@@ -592,6 +600,12 @@ clinicRoute.post(
         return c.json({ success: false, message: "No file uploaded" }, 400);
       }
 
+      // Fetch pharmacies list for lookup
+      const allPharmacies = await db.query.pharmacies.findMany();
+      const pharmacyMapByName = new Map(
+        allPharmacies.map((p) => [p.name.toLowerCase().trim(), p.id])
+      );
+
       // Parse Excel file
       const XLSX = await import("xlsx");
       const buffer = await file.arrayBuffer();
@@ -635,6 +649,11 @@ clinicRoute.post(
         "Kadaluarsa (YYYY-MM-DD)": "expiryDate",
         Kadaluarsa: "expiryDate",
         Deskripsi: "description",
+        Apotik: "pharmacyName",
+        Apotek: "pharmacyName",
+        "Lokasi Apotik": "pharmacyName",
+        "Lokasi Apotek": "pharmacyName",
+        "Lokasi": "pharmacyName",
       };
 
       const preview = {
@@ -681,6 +700,19 @@ clinicRoute.post(
             }
           }
 
+          // Link pharmacyId if pharmacyName exists
+          if (item.pharmacyName) {
+            const normName = String(item.pharmacyName).toLowerCase().trim();
+            const foundId = pharmacyMapByName.get(normName);
+            if (foundId) {
+              item.pharmacyId = foundId;
+            } else {
+              item.pharmacyId = null;
+            }
+          } else {
+            item.pharmacyId = null;
+          }
+
           preview.validRows++;
           preview.validData.push(item);
         } catch (e: any) {
@@ -710,6 +742,12 @@ clinicRoute.post(
       const formData = await c.req.formData();
       const file = formData.get("file") as File;
       if (!file) return c.json({ success: false, message: "No file" }, 400);
+
+      // Fetch pharmacies list for lookup
+      const allPharmacies = await db.query.pharmacies.findMany();
+      const pharmacyMapByName = new Map(
+        allPharmacies.map((p) => [p.name.toLowerCase().trim(), p.id])
+      );
 
       const XLSX = await import("xlsx");
       const buffer = await file.arrayBuffer();
@@ -742,6 +780,11 @@ clinicRoute.post(
         "Kadaluarsa (YYYY-MM-DD)": "expiryDate",
         Kadaluarsa: "expiryDate",
         Deskripsi: "description",
+        Apotik: "pharmacyName",
+        Apotek: "pharmacyName",
+        "Lokasi Apotik": "pharmacyName",
+        "Lokasi Apotek": "pharmacyName",
+        "Lokasi": "pharmacyName",
       };
 
       const result = { success: 0, failed: 0, errors: [] as any[] };
@@ -761,6 +804,16 @@ clinicRoute.post(
           const nameTrimmed = String(item.name || "").trim();
           if (!nameTrimmed) throw new Error("Nama Obat wajib diisi");
 
+          // Link pharmacyId if pharmacyName exists
+          let pharmacyId: number | null = null;
+          if (item.pharmacyName) {
+            const normName = String(item.pharmacyName).toLowerCase().trim();
+            const foundId = pharmacyMapByName.get(normName);
+            if (foundId) {
+              pharmacyId = foundId;
+            }
+          }
+
           // Check duplicate by Name
           const existing = await db.query.medicines.findFirst({
             where: eq(medicines.name, nameTrimmed),
@@ -776,6 +829,7 @@ clinicRoute.post(
             price: item.price ? String(item.price) : "0",
             description: item.description,
             expiryDate: item.expiryDate ? new Date(item.expiryDate) : undefined,
+            pharmacyId: pharmacyId,
           };
 
           if (finalData.expiryDate && isNaN(finalData.expiryDate.getTime())) {
@@ -1141,6 +1195,26 @@ clinicRoute.get("/examinations", async (c) => {
       }
     }
 
+    const usages = await db.query.medicineUsages.findMany({
+      where: eq(medicineUsages.examinationId, l.id),
+      with: {
+        medicine: {
+          with: {
+            pharmacy: true,
+          },
+        },
+      },
+    });
+
+    const consumedMedicines = usages.map((u) => ({
+      id: u.medicineId,
+      name: u.medicine?.name || "Obat",
+      quantity: u.quantity,
+      unit: u.medicine?.unit || "pcs",
+      isManual: false,
+      pharmacyName: u.medicine?.pharmacy?.name || null,
+    }));
+
     return {
       ...l,
       student: { fullName: l.patientName }, // Compat
@@ -1154,6 +1228,7 @@ clinicRoute.get("/examinations", async (c) => {
       room: room ? { id: room.id, name: room.name } : null,
       halaqah: halaqah ? { id: halaqah.id, name: halaqah.name } : null,
       inpatient: inpatientData,
+      consumedMedicines,
     };
   }));
 
@@ -1570,14 +1645,29 @@ clinicRoute.delete(
     try {
       const id = parseInt(c.req.param("id"));
 
-      // Optional: Restore stock? For now just delete usage logs.
-      // 1. Delete Medicine Usages
-      await db
-        .delete(medicineUsages)
-        .where(eq(medicineUsages.examinationId, id));
+      await db.transaction(async (tx) => {
+        // 1. Get old usages to restore stock
+        const usages = await tx.query.medicineUsages.findMany({
+          where: eq(medicineUsages.examinationId, id),
+        });
 
-      // 2. Delete Examination
-      await db.delete(healthExaminations).where(eq(healthExaminations.id, id));
+        for (const usage of usages) {
+          await tx
+            .update(medicines)
+            .set({
+              stock: sql`${medicines.stock} + ${usage.quantity}`,
+            })
+            .where(eq(medicines.id, usage.medicineId));
+        }
+
+        // 2. Delete Medicine Usages
+        await tx
+          .delete(medicineUsages)
+          .where(eq(medicineUsages.examinationId, id));
+
+        // 3. Delete Examination
+        await tx.delete(healthExaminations).where(eq(healthExaminations.id, id));
+      });
 
       return c.json({ success: true, message: "Deleted" });
     } catch (e) {
@@ -1668,5 +1758,264 @@ clinicRoute.get("/reports/summary", async (c) => {
     );
   }
 });
+
+// ============ PHARMACIES CRUD & PHARMACISTS penugasan ============
+
+// Get all pharmacies
+clinicRoute.get("/pharmacies", async (c) => {
+  try {
+    const allPharmacies = await db.query.pharmacies.findMany();
+
+    // Get pharmacists count for each pharmacy
+    const pharmaciesWithCount = await Promise.all(
+      allPharmacies.map(async (ph) => {
+        const pharmacistsCount = await db
+          .select({ count: sql<number>`count(*)` })
+          .from(pharmacyPharmacists)
+          .where(eq(pharmacyPharmacists.pharmacyId, ph.id));
+        return {
+          ...ph,
+          memberCount: Number(pharmacistsCount[0]?.count || 0),
+        };
+      })
+    );
+
+    return c.json({
+      success: true,
+      data: pharmaciesWithCount,
+    });
+  } catch (error) {
+    console.error("Get pharmacies error:", error);
+    return c.json({ success: false, message: "Gagal memuat data apotik" }, 500);
+  }
+});
+
+// Get pharmacy by ID
+clinicRoute.get("/pharmacies/:id", async (c) => {
+  try {
+    const id = parseInt(c.req.param("id"));
+    const pharmacy = await db.query.pharmacies.findFirst({
+      where: eq(pharmacies.id, id),
+    });
+
+    if (!pharmacy) {
+      return c.json({ success: false, message: "Apotik tidak ditemukan" }, 404);
+    }
+
+    return c.json({
+      success: true,
+      data: pharmacy,
+    });
+  } catch (error) {
+    console.error("Get pharmacy error:", error);
+    return c.json({ success: false, message: "Gagal memuat detail apotik" }, 500);
+  }
+});
+
+// Create pharmacy
+clinicRoute.post(
+  "/pharmacies",
+  requirePermission("/apps/clinic/medicines"),
+  zValidator("json", createPharmacySchema),
+  async (c) => {
+    try {
+      const data = c.req.valid("json");
+      const result = await db.insert(pharmacies).values(data);
+      const newPharmacy = await db.query.pharmacies.findFirst({
+        where: eq(pharmacies.id, Number(result[0].insertId)),
+      });
+      return c.json({
+        success: true,
+        message: "Apotik berhasil ditambahkan",
+        data: newPharmacy,
+      });
+    } catch (error) {
+      console.error("Create pharmacy error:", error);
+      return c.json({ success: false, message: "Gagal menambahkan apotik" }, 500);
+    }
+  }
+);
+
+// Update pharmacy
+clinicRoute.put(
+  "/pharmacies/:id",
+  requirePermission("/apps/clinic/medicines"),
+  zValidator("json", updatePharmacySchema),
+  async (c) => {
+    try {
+      const id = parseInt(c.req.param("id"));
+      const data = c.req.valid("json");
+
+      const existing = await db.query.pharmacies.findFirst({
+        where: eq(pharmacies.id, id),
+      });
+
+      if (!existing) {
+        return c.json({ success: false, message: "Apotik tidak ditemukan" }, 404);
+      }
+
+      await db.update(pharmacies).set(data).where(eq(pharmacies.id, id));
+      const updated = await db.query.pharmacies.findFirst({
+        where: eq(pharmacies.id, id),
+      });
+
+      return c.json({
+        success: true,
+        message: "Apotik berhasil diperbarui",
+        data: updated,
+      });
+    } catch (error) {
+      console.error("Update pharmacy error:", error);
+      return c.json({ success: false, message: "Gagal memperbarui apotik" }, 500);
+    }
+  }
+);
+
+// Delete pharmacy
+clinicRoute.delete(
+  "/pharmacies/:id",
+  requirePermission("/apps/clinic/medicines"),
+  async (c) => {
+    try {
+      const id = parseInt(c.req.param("id"));
+
+      // Check if there are medicines assigned to this pharmacy
+      const hasMedicines = await db.query.medicines.findFirst({
+        where: eq(medicines.pharmacyId, id),
+      });
+
+      if (hasMedicines) {
+        return c.json(
+          {
+            success: false,
+            message: "Apotik tidak dapat dihapus karena masih menyimpan obat. Pindahkan obat terlebih dahulu.",
+          },
+          400
+        );
+      }
+
+      // Delete pharmacists assignment first
+      await db.delete(pharmacyPharmacists).where(eq(pharmacyPharmacists.pharmacyId, id));
+
+      // Delete pharmacy
+      await db.delete(pharmacies).where(eq(pharmacies.id, id));
+
+      return c.json({
+        success: true,
+        message: "Apotik berhasil dihapus",
+      });
+    } catch (error) {
+      console.error("Delete pharmacy error:", error);
+      return c.json({ success: false, message: "Gagal menghapus apotik" }, 500);
+    }
+  }
+);
+
+// Get pharmacists of a pharmacy
+clinicRoute.get("/pharmacies/:id/pharmacists", async (c) => {
+  try {
+    const pharmacyId = parseInt(c.req.param("id"));
+    const pharmacistRecords = await db.query.pharmacyPharmacists.findMany({
+      where: eq(pharmacyPharmacists.pharmacyId, pharmacyId),
+    });
+
+    const pharmacistsList = await Promise.all(
+      pharmacistRecords.map(async (m) => {
+        const teacher = await db.query.teachers.findFirst({
+          where: eq(teachers.id, m.teacherId),
+        });
+        return {
+          id: m.id,
+          pharmacyId: m.pharmacyId,
+          teacherId: m.teacherId,
+          teacher,
+        };
+      })
+    );
+
+    return c.json({
+      success: true,
+      data: pharmacistsList,
+    });
+  } catch (error) {
+    console.error("Get pharmacists error:", error);
+    return c.json({ success: false, message: "Gagal memuat data apoteker" }, 500);
+  }
+});
+
+// Add pharmacist to pharmacy
+clinicRoute.post(
+  "/pharmacies/:id/pharmacists",
+  requirePermission("/apps/clinic/medicines"),
+  async (c) => {
+    try {
+      const pharmacyId = parseInt(c.req.param("id"));
+      const body = await c.req.json();
+      const teacherId = body.teacherId;
+
+      if (!teacherId) {
+        return c.json({ success: false, message: "ID Guru wajib diisi" }, 400);
+      }
+
+      // Check if already pharmacist in THIS pharmacy
+      const existing = await db.query.pharmacyPharmacists.findFirst({
+        where: and(
+          eq(pharmacyPharmacists.pharmacyId, pharmacyId),
+          eq(pharmacyPharmacists.teacherId, teacherId)
+        ),
+      });
+
+      if (existing) {
+        return c.json({ success: false, message: "Guru tersebut sudah terdaftar sebagai apoteker di apotik ini" }, 400);
+      }
+
+      await db.insert(pharmacyPharmacists).values({
+        pharmacyId,
+        teacherId,
+      });
+
+      return c.json({
+        success: true,
+        message: "Apoteker berhasil ditambahkan",
+      });
+    } catch (error) {
+      console.error("Add pharmacist error:", error);
+      return c.json({ success: false, message: "Gagal menambahkan apoteker" }, 500);
+    }
+  }
+);
+
+// Remove pharmacist from pharmacy
+clinicRoute.delete(
+  "/pharmacies/:id/pharmacists/:teacherId",
+  requirePermission("/apps/clinic/medicines"),
+  async (c) => {
+    try {
+      const pharmacyId = parseInt(c.req.param("id"));
+      const teacherId = parseInt(c.req.param("teacherId"));
+
+      const record = await db.query.pharmacyPharmacists.findFirst({
+        where: and(
+          eq(pharmacyPharmacists.pharmacyId, pharmacyId),
+          eq(pharmacyPharmacists.teacherId, teacherId)
+        ),
+      });
+
+      if (!record) {
+        return c.json({ success: false, message: "Penugasan apoteker tidak ditemukan" }, 404);
+      }
+
+      await db.delete(pharmacyPharmacists).where(eq(pharmacyPharmacists.id, record.id));
+
+      return c.json({
+        success: true,
+        message: "Apoteker berhasil dihapus",
+      });
+    } catch (error) {
+      console.error("Remove pharmacist error:", error);
+      return c.json({ success: false, message: "Gagal menghapus apoteker" }, 500);
+    }
+  }
+);
 
 export default clinicRoute;

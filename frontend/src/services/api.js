@@ -902,6 +902,36 @@ export const clinicApi = {
   async deleteRoom(id) {
     return request(`/api/clinic/rooms/${id}`, { method: "DELETE" });
   },
+
+  // Pharmacies
+  async getPharmacies() {
+    return request("/api/clinic/pharmacies");
+  },
+  async createPharmacy(data) {
+    return request("/api/clinic/pharmacies", { method: "POST", body: data });
+  },
+  async updatePharmacy(id, data) {
+    return request(`/api/clinic/pharmacies/${id}`, { method: "PUT", body: data });
+  },
+  async deletePharmacy(id) {
+    return request(`/api/clinic/pharmacies/${id}`, { method: "DELETE" });
+  },
+
+  // Pharmacy Pharmacists
+  async getPharmacists(pharmacyId) {
+    return request(`/api/clinic/pharmacies/${pharmacyId}/pharmacists`);
+  },
+  async addPharmacist(pharmacyId, teacherId) {
+    return request(`/api/clinic/pharmacies/${pharmacyId}/pharmacists`, {
+      method: "POST",
+      body: { teacherId },
+    });
+  },
+  async removePharmacist(pharmacyId, teacherId) {
+    return request(`/api/clinic/pharmacies/${pharmacyId}/pharmacists/${teacherId}`, {
+      method: "DELETE",
+    });
+  },
 };
 
 // ============================================

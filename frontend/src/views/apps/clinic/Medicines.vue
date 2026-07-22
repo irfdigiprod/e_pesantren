@@ -169,6 +169,15 @@
                   {{ item.administrationRoute }}
                 </span>
               </div>
+              <div class="flex flex-wrap gap-1 mt-1">
+                <span
+                  v-if="item.pharmacyName"
+                  class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100"
+                >
+                  <Icon icon="solar:shop-2-bold-duotone" class="text-xs" />
+                  {{ item.pharmacyName }}
+                </span>
+              </div>
             </div>
 
             <!-- Stock Badge -->
@@ -377,6 +386,26 @@
               <div>
                 <label
                   class="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider"
+                  >Lokasi Apotik (Penyimpanan)</label
+                >
+                <select
+                  v-model="form.pharmacyId"
+                  class="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#602515]/20 focus:border-[#602515] transition bg-white"
+                >
+                  <option :value="null">- Pilih Apotik -</option>
+                  <option
+                    v-for="p in pharmacies"
+                    :key="p.id"
+                    :value="p.id"
+                  >
+                    {{ p.name }}
+                  </option>
+                </select>
+              </div>
+
+              <div>
+                <label
+                  class="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider"
                   >Deskripsi / Indikasi</label
                 >
                 <textarea
@@ -422,7 +451,7 @@
       :apiImport="onImportSubmit"
       :templateHeader="medicineImportTemplate"
       templateName="template_import_obat"
-      requiredColumns="Nama Obat"
+      requiredColumns="Nama Obat (Wajib), Apotik (Opsional - Tulis nama apotik yang sudah terdaftar)"
       @success="onImportSuccess"
     >
       <!-- Custom Preview Columns if needed, otherwise default -->
@@ -505,6 +534,7 @@ const administrationRouteOptions = [
 
 const form = reactive({
   id: null,
+  pharmacyId: null,
   name: "",
   category: "",
   administrationRoute: "",
@@ -518,6 +548,7 @@ const form = reactive({
 
 const columns = [
   { label: "Nama Obat", field: "name", sortable: true },
+  { label: "Lokasi Apotik", field: "pharmacyName", sortable: true },
   { label: "Kategori", field: "category", sortable: true },
   { label: "Rute Pemberian", field: "administrationRoute", sortable: true },
   { label: "Stok", field: "stock", sortable: true, align: "center" },
@@ -537,6 +568,7 @@ const medicineImportTemplate = [
     "Min Stok": 10,
     "Kadaluarsa (YYYY-MM-DD)": "2025-12-31",
     Deskripsi: "Obat penurun panas",
+    Apotik: "Apotik Utama",
   },
 ];
 
@@ -621,6 +653,17 @@ function getExpiryClass(dateStr) {
   return "text-slate-600";
 }
 
+const pharmacies = ref([]);
+
+async function fetchPharmacies() {
+  try {
+    const res = await clinicApi.getPharmacies();
+    pharmacies.value = Array.isArray(res?.data) ? res.data : [];
+  } catch (e) {
+    console.error("Gagal memuat apotik:", e);
+  }
+}
+
 async function fetchData() {
   loading.value = true;
   try {
@@ -648,6 +691,7 @@ async function submitForm() {
 
     const payload = {
       name: trimmedName,
+      pharmacyId: form.pharmacyId || null,
       category: form.category || undefined,
       administrationRoute: finalRoute || undefined,
       stock: parseInt(form.stock) || 0,
@@ -690,6 +734,7 @@ function openCreate() {
   modal.mode = "create";
   Object.assign(form, {
     id: null,
+    pharmacyId: null,
     name: "",
     category: "",
     administrationRoute: "",
@@ -716,6 +761,7 @@ function openEdit(item) {
 
   Object.assign(form, {
     ...item,
+    pharmacyId: item.pharmacyId || null,
     administrationRoute: routeVal,
     customAdministrationRoute: customRouteVal,
     minStock: item.minStock || 10,
@@ -749,7 +795,10 @@ function onImportSuccess() {
   fetchData();
 }
 
-onMounted(fetchData);
+onMounted(() => {
+  fetchData();
+  fetchPharmacies();
+});
 </script>
 
 <style scoped>

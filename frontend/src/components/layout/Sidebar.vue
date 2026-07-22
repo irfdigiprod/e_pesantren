@@ -137,6 +137,7 @@ const submenuByMain = {
           { label: "Dashboard", route: "/apps/clinic/dashboard" },
           { label: "Data Pasien", route: "/apps/clinic/patients" },
           { label: "Obat-obatan", route: "/apps/clinic/medicines" },
+          { label: "Manajemen Apotik", route: "/apps/clinic/pharmacies" },
           { label: "Laporan", route: "/apps/clinic/reports" },
           { label: "Rawat Inap", route: "/apps/clinic/inpatients" },
           { label: "Manajemen Kamar", route: "/apps/clinic/rooms" },

@@ -1854,7 +1854,9 @@ function openEdit(item) {
       ? new Date(item.date).toISOString().split("T")[0]
       : new Date().toISOString().split("T")[0],
     prescribedMedicinesText: item.prescribedMedicines || "", // Legacy
-    consumedMedicines: [], // For edit we don't load structured yet to avoid stock issues
+    consumedMedicines: Array.isArray(item.consumedMedicines)
+      ? item.consumedMedicines.map((m) => ({ ...m }))
+      : [],
   });
 }
 function closeModal() {
