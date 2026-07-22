@@ -1205,11 +1205,14 @@
 
 <script setup>
 import { ref, reactive, onMounted, computed } from "vue";
+import { useRoute } from "vue-router";
 import { Icon } from "@iconify/vue";
 import { clinicApi, settingsApi } from "@/services/api.js";
 import DataTable from "@/components/ui/DataTable.vue";
 import ConfirmModal from "@/components/ui/ConfirmModal.vue";
 import StatusModal from "@/components/ui/StatusModal.vue";
+
+const route = useRoute();
 
 import PatientSelector from "@/components/clinic/PatientSelector.vue";
 import MedicineSelector from "@/components/clinic/MedicineSelector.vue";
@@ -1911,6 +1914,10 @@ async function fetchSettings() {
 onMounted(() => {
   fetchData();
   fetchSettings();
+  if (route.query.createInpatient === "true") {
+    openCreate();
+    form.isInpatient = true;
+  }
 });
 </script>
 

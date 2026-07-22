@@ -16,7 +16,7 @@
     >
       <template #header-actions>
         <button
-          @click="openCreate"
+          @click="goToRegistrasiPemeriksaan"
           :disabled="saving"
           class="px-4 py-2 bg-[#602515] text-white rounded-lg hover:bg-[#4a1d10] transition flex items-center gap-2 text-sm font-medium"
         >
@@ -719,6 +719,7 @@
 
 <script setup>
 import { ref, reactive, onMounted, computed, nextTick } from "vue";
+import { useRouter } from "vue-router";
 import { Icon } from "@iconify/vue";
 import { clinicApi } from "@/services/api.js";
 import DataTable from "@/components/ui/DataTable.vue";
@@ -726,6 +727,12 @@ import ConfirmModal from "@/components/ui/ConfirmModal.vue";
 import StatusModal from "@/components/ui/StatusModal.vue";
 
 import PatientSelector from "@/components/clinic/PatientSelector.vue";
+
+const router = useRouter();
+
+function goToRegistrasiPemeriksaan() {
+  router.push("/apps/clinic/examinations?createInpatient=true");
+}
 
 const viewMode = ref("list");
 const inpatients = ref([]);
