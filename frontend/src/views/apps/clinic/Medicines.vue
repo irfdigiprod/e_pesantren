@@ -12,6 +12,9 @@
       v-model:search="search"
       :hideFilter="false"
       filterButtonLabel="Filter Stok"
+      :sortBy="sortBy"
+      :sortOrder="sortOrder"
+      @sort="handleSort"
     >
       <template #header-actions>
         <div class="flex gap-2">
@@ -477,6 +480,18 @@ const statusModal = reactive({
 });
 const confirm = reactive({ show: false, item: null });
 
+const sortBy = ref("name");
+const sortOrder = ref("asc");
+
+function handleSort(field) {
+  if (sortBy.value === field) {
+    sortOrder.value = sortOrder.value === "asc" ? "desc" : "asc";
+  } else {
+    sortBy.value = field;
+    sortOrder.value = "asc";
+  }
+}
+
 const administrationRouteOptions = [
   "Injeksi (parenteral)",
   "Obat oral (tablet, kapsul)",
@@ -551,10 +566,33 @@ const filteredMedicines = computed(() => {
     });
   }
 
-  // Always sort alphabetically by name (A-Z)
-  result.sort((a, b) =>
-    (a.name || "").localeCompare(b.name || "", "id", { sensitivity: "base" })
-  );
+  // Sort
+  if (sortBy.value) {
+    result.sort((a, b) => {
+      let valA = a[sortBy.value];
+      let valB = b[sortBy.value];
+
+      if (valA === undefined || valA === null) valA = "";
+      if (valB === undefined || valB === null) valB = "";
+
+      if (typeof valA === "string") valA = valA.trim().toLowerCase();
+      if (typeof valB === "string") valB = valB.trim().toLowerCase();
+
+      let comparison = 0;
+      if (typeof valA === "number" && typeof valB === "number") {
+        comparison = valA - valB;
+      } else {
+        comparison = String(valA).localeCompare(String(valB), "id", { sensitivity: "base" });
+      }
+
+      return sortOrder.value === "asc" ? comparison : -comparison;
+    });
+  } else {
+    // Fallback: Always sort alphabetically by name (A-Z)
+    result.sort((a, b) =>
+      (a.name || "").trim().localeCompare((b.name || "").trim(), "id", { sensitivity: "base" })
+    );
+  }
 
   return result;
 });
@@ -598,7 +636,8 @@ async function fetchData() {
 async function submitForm() {
   saving.value = true;
   try {
-    if (!form.name) {
+    const trimmedName = (form.name || "").trim();
+    if (!trimmedName) {
       throw new Error("Nama obat wajib diisi");
     }
 
@@ -608,7 +647,7 @@ async function submitForm() {
         : form.administrationRoute;
 
     const payload = {
-      name: form.name,
+      name: trimmedName,
       category: form.category || undefined,
       administrationRoute: finalRoute || undefined,
       stock: parseInt(form.stock) || 0,

@@ -513,6 +513,7 @@ clinicRoute.post(
     const data = c.req.valid("json");
     await db.insert(medicines).values({
       ...data,
+      name: data.name.trim(),
       price: data.price ? String(data.price) : "0",
       expiryDate: data.expiryDate ? new Date(data.expiryDate) : undefined,
     });
@@ -532,6 +533,7 @@ clinicRoute.put(
       .update(medicines)
       .set({
         ...data,
+        name: data.name ? data.name.trim() : undefined,
         price: data.price ? String(data.price) : "0",
         expiryDate: data.expiryDate ? new Date(data.expiryDate) : undefined,
       })
@@ -756,16 +758,17 @@ clinicRoute.post(
             }
           }
 
-          if (!item.name) throw new Error("Nama Obat wajib diisi");
+          const nameTrimmed = String(item.name || "").trim();
+          if (!nameTrimmed) throw new Error("Nama Obat wajib diisi");
 
           // Check duplicate by Name
           const existing = await db.query.medicines.findFirst({
-            where: eq(medicines.name, item.name),
+            where: eq(medicines.name, nameTrimmed),
           });
 
           // Formatting
           const finalData = {
-            name: item.name,
+            name: nameTrimmed,
             category: item.category,
             stock: parseInt(item.stock) || 0,
             minStock: parseInt(item.minStock) || 10,

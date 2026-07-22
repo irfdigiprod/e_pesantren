@@ -85,6 +85,13 @@
       <template #cell-actions="{ item }">
         <div class="flex justify-end gap-2">
           <button
+            @click="viewDetail(item)"
+            class="p-2 text-slate-400 hover:text-[#602515] hover:bg-amber-50 rounded-lg transition"
+            title="Detail & Riwayat Medis"
+          >
+            <Icon icon="solar:eye-linear" class="text-lg" />
+          </button>
+          <button
             v-if="item.status === 'discharged'"
             @click="printDischargeLetter(item)"
             class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition"
@@ -115,11 +122,19 @@
           class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 hover:shadow-md transition relative overflow-hidden group h-full"
         >
           <div
-            class="absolute top-0 right-0 p-2 opacity-0 group-hover:opacity-100 transition z-10"
+            class="absolute top-0 right-0 p-2 opacity-0 group-hover:opacity-100 transition z-10 flex gap-1 bg-white/90 backdrop-blur rounded-lg p-0.5 border border-slate-100 shadow-sm"
           >
             <button
+              @click="viewDetail(item)"
+              class="p-1 text-slate-400 hover:text-[#602515]"
+              title="Detail & Riwayat Medis"
+            >
+              <Icon icon="solar:eye-linear" />
+            </button>
+            <button
               @click="openEdit(item)"
-              class="p-1.5 bg-white border rounded shadow-sm hover:bg-slate-50 text-slate-500"
+              class="p-1 text-slate-400 hover:text-blue-600"
+              title="Edit"
             >
               <Icon icon="solar:pen-new-square-linear" />
             </button>
@@ -344,6 +359,281 @@
       </div>
     </Teleport>
 
+    <!-- Inpatient Details & Medical History Modal -->
+    <Teleport to="body">
+      <div
+        v-if="detailModal.show"
+        class="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+      >
+        <div
+          class="absolute inset-0 bg-black/40 backdrop-blur-sm"
+          @click="detailModal.show = false"
+        ></div>
+        <div
+          class="bg-white w-full max-w-3xl rounded-2xl shadow-xl overflow-hidden animate-fade-in-up relative z-10 flex flex-col max-h-[90vh]"
+        >
+          <!-- Header -->
+          <div
+            class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50"
+          >
+            <div class="flex items-center gap-3">
+              <div class="p-2.5 bg-amber-50 text-amber-600 rounded-xl">
+                <Icon icon="solar:hospital-bold-duotone" class="text-2xl animate-pulse" />
+              </div>
+              <div>
+                <h3 class="font-bold text-slate-800">Detail Pasien & Riwayat Medis</h3>
+                <p class="text-xs text-slate-500 mt-0.5">
+                  {{ detailModal.inpatient?.student?.fullName || detailModal.inpatient?.patientName }} • 
+                  {{ detailModal.inpatient?.roomName || "No Room" }} - Bed {{ detailModal.inpatient?.bedNumber }}
+                </p>
+              </div>
+            </div>
+            <button
+              @click="detailModal.show = false"
+              class="text-slate-400 hover:text-slate-600 transition"
+            >
+              <Icon icon="solar:close-circle-bold" class="text-xl" />
+            </button>
+          </div>
+
+          <!-- Tabs Navigation -->
+          <div class="flex border-b border-slate-100 px-6 bg-slate-50/20">
+            <button
+              @click="detailModal.activeTab = 'details'"
+              class="py-3 px-4 text-sm font-semibold border-b-2 -mb-px transition-colors"
+              :class="
+                detailModal.activeTab === 'details'
+                  ? 'border-[#602515] text-[#602515]'
+                  : 'border-transparent text-slate-500 hover:text-slate-800'
+              "
+            >
+              Rincian Rawat Inap
+            </button>
+            <button
+              @click="detailModal.activeTab = 'history'"
+              class="py-3 px-4 text-sm font-semibold border-b-2 -mb-px transition-colors"
+              :class="
+                detailModal.activeTab === 'history'
+                  ? 'border-[#602515] text-[#602515]'
+                  : 'border-transparent text-slate-500 hover:text-slate-800'
+              "
+            >
+              Riwayat Medis / Pemeriksaan
+            </button>
+          </div>
+
+          <!-- Content -->
+          <div class="p-6 overflow-y-auto flex-1 bg-slate-50/30">
+            
+            <!-- TAB 1: DETAILS -->
+            <div v-if="detailModal.activeTab === 'details'" class="space-y-6">
+              <!-- Summary Cards -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm space-y-3">
+                  <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Status Rawat Inap</h4>
+                  <div class="flex items-center justify-between">
+                    <span
+                      class="px-2.5 py-1 rounded-lg text-xs font-bold border uppercase"
+                      :class="{
+                        'bg-amber-50 text-amber-700 border-amber-100': detailModal.inpatient?.status === 'admitted',
+                        'bg-slate-100 text-slate-600 border-slate-200': detailModal.inpatient?.status === 'discharged',
+                        'bg-blue-50 text-blue-700 border-blue-100': detailModal.inpatient?.status === 'transferred',
+                      }"
+                    >
+                      {{
+                        detailModal.inpatient?.status === 'admitted'
+                          ? 'Dalam Perawatan'
+                          : detailModal.inpatient?.status === 'discharged'
+                            ? 'Sudah Pulang'
+                            : detailModal.inpatient?.status
+                      }}
+                    </span>
+                  </div>
+                  <div class="text-xs text-slate-500 space-y-1">
+                    <div class="flex justify-between">
+                      <span>Tgl Masuk:</span>
+                      <span class="font-semibold text-slate-700">{{ formatDate(detailModal.inpatient?.admissionDate) }} ({{ detailModal.inpatient?.admissionTime || '-' }})</span>
+                    </div>
+                    <div v-if="detailModal.inpatient?.dischargeDate" class="flex justify-between">
+                      <span>Tgl Keluar:</span>
+                      <span class="font-semibold text-slate-700">{{ formatDate(detailModal.inpatient?.dischargeDate) }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm space-y-3">
+                  <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Lokasi Kamar & Bed</h4>
+                  <div class="flex items-center gap-2 text-slate-700 font-bold">
+                    <Icon icon="solar:bed-bold-duotone" class="text-amber-600 text-lg" />
+                    <span>{{ detailModal.inpatient?.roomName || 'No Room' }}</span>
+                  </div>
+                  <div class="text-xs text-slate-500 space-y-1">
+                    <div class="flex justify-between">
+                      <span>Nomor Bed:</span>
+                      <span class="font-semibold text-slate-700">Bed {{ detailModal.inpatient?.bedNumber || '-' }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                      <span>Tipe Pasien:</span>
+                      <span class="font-semibold text-slate-700 capitalize">{{ detailModal.inpatient?.patientType === 'student' ? 'Santri' : detailModal.inpatient?.patientType === 'teacher' ? 'Guru' : 'Umum' }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Diagnosis Card -->
+              <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm space-y-2">
+                <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <Icon icon="solar:notes-bold-duotone" class="text-slate-400 text-sm" />
+                  Diagnosa Awal
+                </h4>
+                <p class="text-sm text-slate-700 leading-relaxed bg-slate-50/50 p-3 rounded-lg border border-slate-100">
+                  {{ detailModal.inpatient?.diagnosis || "Tidak ada diagnosa awal tercatat" }}
+                </p>
+              </div>
+
+              <!-- Notes Card -->
+              <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm space-y-2">
+                <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <Icon icon="solar:document-text-bold-duotone" class="text-slate-400 text-sm" />
+                  Catatan Medis & Tindak Lanjut
+                </h4>
+                <p class="text-sm text-slate-700 leading-relaxed bg-slate-50/50 p-3 rounded-lg border border-slate-100 min-h-[4rem]">
+                  {{ detailModal.inpatient?.notes || "Tidak ada catatan tambahan" }}
+                </p>
+              </div>
+            </div>
+
+            <!-- TAB 2: MEDICAL HISTORY -->
+            <div v-else-if="detailModal.activeTab === 'history'" class="space-y-4">
+              <!-- Loading State -->
+              <div v-if="detailModal.loading" class="flex flex-col items-center justify-center py-12 gap-3">
+                <div class="w-10 h-10 border-4 border-[#602515] border-t-transparent rounded-full animate-spin"></div>
+                <p class="text-sm text-slate-500 font-medium">Memuat riwayat medis...</p>
+              </div>
+
+              <!-- Empty State -->
+              <div
+                v-else-if="detailModal.examinations.length === 0"
+                class="text-center text-slate-500 py-12 bg-white rounded-2xl border border-dashed border-slate-200"
+              >
+                <Icon
+                  icon="solar:folder-with-files-bold-duotone"
+                  class="text-6xl text-slate-200 mb-4 mx-auto"
+                />
+                <h5 class="font-bold text-slate-700 mb-1">Belum Ada Riwayat</h5>
+                <p class="text-xs text-slate-400 max-w-sm mx-auto">
+                  Pasien ini belum memiliki catatan pemeriksaan medis atau checkup di klinik.
+                </p>
+              </div>
+
+              <!-- History List -->
+              <div v-else class="space-y-4">
+                <div
+                  v-for="(exam, i) in detailModal.examinations"
+                  :key="i"
+                  class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden"
+                >
+                  <!-- Examination Card Header -->
+                  <div class="p-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-start gap-4">
+                    <div>
+                      <h5 class="font-bold text-slate-800 text-sm">
+                        {{ exam.diagnosis || "Pemeriksaan Umum" }}
+                      </h5>
+                      <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-[11px] text-slate-500">
+                        <span class="flex items-center gap-1">
+                          <Icon icon="solar:calendar-date-bold-duotone" class="text-slate-400 text-xs" />
+                          {{ formatDate(exam.date || exam.examinationDate) }}
+                        </span>
+                        <span v-if="exam.examinerName" class="flex items-center gap-1 border-l border-slate-200 pl-3">
+                          <Icon icon="solar:user-bold-duotone" class="text-slate-400 text-xs" />
+                          Pemeriksa: {{ exam.examinerName }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Examination Details Content -->
+                  <div class="p-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div class="space-y-3">
+                      <div v-if="exam.complaint || exam.symptoms" class="text-[11px]">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Keluhan / Gejala</p>
+                        <p class="text-slate-700 leading-relaxed bg-slate-50 p-2 rounded-lg border border-slate-100">
+                          {{ exam.complaint || exam.symptoms }}
+                        </p>
+                      </div>
+                      
+                      <div v-if="exam.treatment" class="text-[11px]">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Tindakan Medis</p>
+                        <p class="text-slate-700 leading-relaxed bg-slate-50 p-2 rounded-lg border border-slate-100">
+                          {{ exam.treatment }}
+                        </p>
+                      </div>
+
+                      <div v-if="exam.prescribedMedicines" class="text-[11px]">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Resep Obat</p>
+                        <p class="text-slate-700 leading-relaxed bg-emerald-50/30 p-2 rounded-lg border border-emerald-100 text-emerald-800">
+                          {{ exam.prescribedMedicines }}
+                        </p>
+                      </div>
+                    </div>
+
+                    <!-- Vitals Card inside history -->
+                    <div
+                      v-if="
+                        exam.temperature ||
+                        exam.bloodPressure ||
+                        exam.weight ||
+                        exam.height ||
+                        exam.heartRate ||
+                        exam.respiratoryRate
+                      "
+                      class="bg-slate-50/50 p-3 rounded-xl border border-slate-100 self-start"
+                    >
+                      <p class="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                        <Icon icon="solar:heart-pulse-bold-duotone" class="text-slate-400" />
+                        Tanda Vital & Fisik
+                      </p>
+                      <div class="grid grid-cols-2 gap-2 text-xs">
+                        <div v-if="exam.temperature" class="bg-white p-1.5 rounded-lg border border-slate-100">
+                          <span class="text-[9px] text-slate-400 block">Suhu</span>
+                          <span class="font-bold text-slate-700">{{ exam.temperature }} °C</span>
+                        </div>
+                        <div v-if="exam.bloodPressure" class="bg-white p-1.5 rounded-lg border border-slate-100">
+                          <span class="text-[9px] text-slate-400 block">TD</span>
+                          <span class="font-bold text-slate-700">{{ exam.bloodPressure }}</span>
+                        </div>
+                        <div v-if="exam.heartRate" class="bg-white p-1.5 rounded-lg border border-slate-100">
+                          <span class="text-[9px] text-slate-400 block">Nadi</span>
+                          <span class="font-bold text-slate-700">{{ exam.heartRate }} bpm</span>
+                        </div>
+                        <div v-if="exam.weight" class="bg-white p-1.5 rounded-lg border border-slate-100">
+                          <span class="text-[9px] text-slate-400 block">Berat</span>
+                          <span class="font-bold text-slate-700">{{ exam.weight }} kg</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Footer -->
+          <div
+            class="p-4 border-t border-slate-100 bg-slate-50/50 flex justify-end"
+          >
+            <button
+              @click="detailModal.show = false"
+              class="px-5 py-2.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-white hover:border-slate-300 transition text-sm font-medium"
+            >
+              Tutup
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
     <!-- Confirm Modal -->
     <ConfirmModal
       :isOpen="confirm.show"
@@ -450,6 +740,32 @@ const statusModal = reactive({
 });
 const confirm = reactive({ show: false, item: null });
 const printData = ref(null);
+
+const detailModal = reactive({
+  show: false,
+  activeTab: "details",
+  loading: false,
+  inpatient: null,
+  examinations: [],
+});
+
+async function viewDetail(item) {
+  detailModal.inpatient = item;
+  detailModal.activeTab = "details";
+  detailModal.show = true;
+  detailModal.loading = true;
+  detailModal.examinations = [];
+  try {
+    const res = await clinicApi.getExaminations({
+      clinicPatientId: item.clinicPatientId,
+    });
+    detailModal.examinations = res?.data || [];
+  } catch (e) {
+    console.error(e);
+  } finally {
+    detailModal.loading = false;
+  }
+}
 
 const form = reactive({
   id: null,
