@@ -245,7 +245,7 @@
       <div class="space-y-6">
         <!-- Bed Status -->
         <div
-          class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden"
+          class="bg-white rounded-xl shadow-sm border border-slate-100"
         >
           <div class="p-4 border-b border-slate-100">
             <h3 class="font-semibold text-slate-800">Status Rawat Inap</h3>
