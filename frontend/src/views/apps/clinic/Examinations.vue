@@ -64,6 +64,13 @@
       <template #cell-actions="{ item }">
         <div class="flex justify-end gap-2">
           <button
+            @click="viewPatientHistory(item)"
+            class="p-2 text-slate-400 hover:text-[#602515] hover:bg-amber-50 rounded-lg transition"
+            title="Riwayat Medis"
+          >
+            <Icon icon="solar:medical-kit-linear" class="text-lg" />
+          </button>
+          <button
             @click="printPrescription(item)"
             class="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition"
             title="Cetak Resep"
@@ -150,17 +157,30 @@
             class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition flex gap-1 bg-white/90 backdrop-blur rounded-lg p-1 shadow-sm border border-slate-100"
           >
             <button
+              @click="viewPatientHistory(item)"
+              class="p-1.5 hover:text-[#602515]"
+              title="Riwayat Medis"
+            >
+              <Icon icon="solar:medical-kit-linear" />
+            </button>
+            <button
               @click="printPrescription(item)"
               class="p-1.5 hover:text-emerald-600"
+              title="Cetak Resep"
             >
               <Icon icon="solar:printer-linear" />
             </button>
-            <button @click="openEdit(item)" class="p-1.5 hover:text-blue-600">
+            <button
+              @click="openEdit(item)"
+              class="p-1.5 hover:text-blue-600"
+              title="Edit"
+            >
               <Icon icon="solar:pen-new-square-linear" />
             </button>
             <button
               @click="confirmDelete(item)"
               class="p-1.5 hover:text-red-600"
+              title="Hapus"
             >
               <Icon icon="solar:trash-bin-trash-linear" />
             </button>
@@ -799,6 +819,7 @@
                     </h4>
                   </div>
                   <button
+                    v-if="modal.show"
                     @click="applyPastExam(historyModal.selectedExamDetail)"
                     class="px-3.5 py-1.5 bg-[#602515] text-white text-xs font-medium rounded-lg hover:bg-[#4a1d10] transition flex items-center gap-1.5 shadow-sm"
                   >
@@ -911,11 +932,11 @@
               @click="cancelAutoFill"
               class="px-4 py-2 text-xs font-medium text-slate-600 hover:text-slate-800 border border-slate-200 bg-white rounded-lg transition"
             >
-              Tutup & Input Data Baru
+              {{ modal.show ? "Tutup & Input Data Baru" : "Tutup" }}
             </button>
 
             <button
-              v-if="historyModal.selectedExamDetail"
+              v-if="modal.show && historyModal.selectedExamDetail"
               @click="applyPastExam(historyModal.selectedExamDetail)"
               class="px-5 py-2 bg-[#602515] text-white text-xs font-medium rounded-lg hover:bg-[#4a1d10] transition flex items-center gap-1.5 shadow-md shadow-[#602515]/20"
             >
@@ -1618,6 +1639,55 @@ function viewHistoryDetails() {
 function cancelAutoFill() {
   historyModal.showConfirm = false;
   historyModal.showDetail = false;
+}
+
+async function viewPatientHistory(item) {
+  const val = {
+    name: item.patientName || item.student?.fullName || item.studentId,
+    refId: item.patientId || item.refId,
+    clinicPatientId: item.clinicPatientId,
+    type: item.patientType || 'student',
+  };
+  
+  historyModal.showConfirm = false;
+  historyModal.showDetail = false;
+  historyModal.historyList = [];
+  historyModal.latestExam = null;
+  historyModal.selectedExamDetail = null;
+  historyModal.patientName = val.name;
+
+  try {
+    const params = {};
+    if (val.clinicPatientId) params.clinicPatientId = val.clinicPatientId;
+    else if (val.refId) {
+      params.patientType = val.type;
+      params.refId = val.refId;
+    } else if (val.name) {
+      params.name = val.name;
+    }
+    const res = await clinicApi.getExaminations(params);
+    const matches = res?.data || [];
+    
+    if (matches && matches.length > 0) {
+      matches.sort(
+        (a, b) =>
+          new Date(b.date || b.examinationDate) -
+          new Date(a.date || a.examinationDate)
+      );
+
+      historyModal.historyList = matches;
+      historyModal.latestExam = matches[0];
+      historyModal.selectedExamDetail = matches[0];
+      historyModal.showDetail = true;
+    } else {
+      historyModal.historyList = [];
+      historyModal.latestExam = null;
+      historyModal.selectedExamDetail = null;
+      historyModal.showDetail = true;
+    }
+  } catch (e) {
+    console.error("Failed to load patient history", e);
+  }
 }
 
 function openCreate() {
