@@ -128,6 +128,7 @@ const availableRoutes = [
   },
   { path: "/apps/clinic/patients", label: "Data Pasien", category: "Klinik" },
   { path: "/apps/clinic/medicines", label: "Obat-obatan", category: "Klinik" },
+  { path: "/apps/clinic/pharmacies", label: "Manajemen Apotik", category: "Klinik" },
   { path: "/apps/clinic/reports", label: "Laporan Klinik", category: "Klinik" },
   { path: "/apps/clinic/inpatients", label: "Rawat Inap", category: "Klinik" },
   { path: "/apps/clinic/rooms", label: "Manajemen Kamar", category: "Klinik" },

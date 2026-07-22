@@ -1195,25 +1195,29 @@ clinicRoute.get("/examinations", async (c) => {
       }
     }
 
-    const usages = await db.query.medicineUsages.findMany({
-      where: eq(medicineUsages.examinationId, l.id),
-      with: {
-        medicine: {
+    const usages = await db
+      .select()
+      .from(medicineUsages)
+      .where(eq(medicineUsages.examinationId, l.id));
+
+    const consumedMedicines = await Promise.all(
+      usages.map(async (u) => {
+        const med = await db.query.medicines.findFirst({
+          where: eq(medicines.id, u.medicineId),
           with: {
             pharmacy: true,
           },
-        },
-      },
-    });
-
-    const consumedMedicines = usages.map((u) => ({
-      id: u.medicineId,
-      name: u.medicine?.name || "Obat",
-      quantity: u.quantity,
-      unit: u.medicine?.unit || "pcs",
-      isManual: false,
-      pharmacyName: u.medicine?.pharmacy?.name || null,
-    }));
+        });
+        return {
+          id: u.medicineId,
+          name: med?.name || "Obat",
+          quantity: u.quantity,
+          unit: med?.unit || "pcs",
+          isManual: false,
+          pharmacyName: med?.pharmacy?.name || null,
+        };
+      })
+    );
 
     return {
       ...l,
@@ -1815,7 +1819,7 @@ clinicRoute.get("/pharmacies/:id", async (c) => {
 // Create pharmacy
 clinicRoute.post(
   "/pharmacies",
-  requirePermission("/apps/clinic/medicines"),
+  requirePermission("/apps/clinic/pharmacies"),
   zValidator("json", createPharmacySchema),
   async (c) => {
     try {
@@ -1839,7 +1843,7 @@ clinicRoute.post(
 // Update pharmacy
 clinicRoute.put(
   "/pharmacies/:id",
-  requirePermission("/apps/clinic/medicines"),
+  requirePermission("/apps/clinic/pharmacies"),
   zValidator("json", updatePharmacySchema),
   async (c) => {
     try {
@@ -1874,7 +1878,7 @@ clinicRoute.put(
 // Delete pharmacy
 clinicRoute.delete(
   "/pharmacies/:id",
-  requirePermission("/apps/clinic/medicines"),
+  requirePermission("/apps/clinic/pharmacies"),
   async (c) => {
     try {
       const id = parseInt(c.req.param("id"));
@@ -1946,7 +1950,7 @@ clinicRoute.get("/pharmacies/:id/pharmacists", async (c) => {
 // Add pharmacist to pharmacy
 clinicRoute.post(
   "/pharmacies/:id/pharmacists",
-  requirePermission("/apps/clinic/medicines"),
+  requirePermission("/apps/clinic/pharmacies"),
   async (c) => {
     try {
       const pharmacyId = parseInt(c.req.param("id"));
@@ -1988,7 +1992,7 @@ clinicRoute.post(
 // Remove pharmacist from pharmacy
 clinicRoute.delete(
   "/pharmacies/:id/pharmacists/:teacherId",
-  requirePermission("/apps/clinic/medicines"),
+  requirePermission("/apps/clinic/pharmacies"),
   async (c) => {
     try {
       const pharmacyId = parseInt(c.req.param("id"));
