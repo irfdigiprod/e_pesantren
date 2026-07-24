@@ -14,7 +14,7 @@ watch(
   () => route.path,
   () => {
     resetLayout();
-  }
+  },
 );
 
 // Bottom Navigation Items
@@ -44,11 +44,11 @@ const navItems = [
     icon: "solar:book-bookmark-line-duotone",
     route: "/mobile-dashboard/tahfidz-input", // Or regular tahfidz dashboard? user said 'tahfidz'
   },
-  {
-    label: "Tentang",
-    icon: "solar:info-circle-line-duotone",
-    route: "/mobile-dashboard/about",
-  },
+  // {
+  //   label: "Tentang",
+  //   icon: "solar:info-circle-line-duotone",
+  //   route: "/mobile-dashboard/about",
+  // },
 ];
 
 const isActive = (path) => {
