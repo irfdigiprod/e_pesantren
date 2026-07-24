@@ -1142,7 +1142,8 @@ clinicRoute.get("/examinations", async (c) => {
     .leftJoin(
       clinicPatients,
       eq(healthExaminations.clinicPatientId, clinicPatients.id),
-    );
+    )
+    .$dynamic();
 
   if (conditions.length > 0) {
     query = query.where(and(...conditions));
