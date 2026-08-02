@@ -1062,7 +1062,7 @@
           <div class="text-center w-40">
             <p class="mb-16 text-xs text-slate-500">Pemeriksa,</p>
             <p class="text-sm font-bold underline">
-              {{ user?.name || "Dokter Pemeriksa" }}
+              {{ printData.examinerName && printData.examinerName !== '-' ? printData.examinerName : (user?.name || "Dokter Pemeriksa") }}
             </p>
           </div>
         </div>
@@ -1196,7 +1196,7 @@
             <p class="mb-1 text-sm">Purwakarta, {{ formatDate(new Date()) }}</p>
             <p class="text-xs text-slate-500 mb-20">Dokter Pemeriksa,</p>
             <p class="font-bold underline decoration-slate-400">
-              {{ user?.name || "Dr. Pemeriksa" }}
+              {{ printData.examinerName && printData.examinerName !== '-' ? printData.examinerName : (user?.name || "Dr. Pemeriksa") }}
             </p>
             <p class="text-xs text-slate-400">SIP: -</p>
           </div>
@@ -1332,6 +1332,7 @@ const columns = [
   { label: "Kelas/Rombel", field: "class", sortable: true },
   { label: "Grup Halaqah", field: "halaqah", sortable: true },
   { label: "Kamar", field: "room", sortable: true },
+  { label: "Pemeriksa", field: "examinerName", sortable: true },
   { label: "Keluhan", field: "complaint", sortable: true },
   { label: "Diagnosa", field: "diagnosis", sortable: true },
   { label: "Penanganan", field: "treatment", sortable: true },
@@ -1383,6 +1384,9 @@ const filteredExaminations = computed(() => {
       } else if (sortBy.value === 'room') {
         valA = a.room?.name || '';
         valB = b.room?.name || '';
+      } else if (sortBy.value === 'examinerName') {
+        valA = a.examinerName || '';
+        valB = b.examinerName || '';
       } else if (sortBy.value === 'date') {
         valA = a.date || a.examinationDate || '';
         valB = b.date || b.examinationDate || '';

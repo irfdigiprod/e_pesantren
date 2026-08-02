@@ -19,6 +19,7 @@ import { halaqahMembers, halaqahGroups, halaqahMentors } from "../db/schema/hala
 import { tahfidzDeposits } from "../db/schema/tahfidz";
 import { rooms } from "../db/schema/rooms";
 import { classes } from "../db/schema/academic";
+import { users } from "../db/schema/users";
 import { authMiddleware, requirePermission } from "../middleware/auth";
 import {
   createMedicineSchema,
@@ -1131,6 +1132,7 @@ clinicRoute.get("/examinations", async (c) => {
       patientVillage: clinicPatients.village,
       patientAddressDetail: clinicPatients.addressDetail,
       patientPostalCode: clinicPatients.postalCode,
+      examinerName: users.name,
       hasSickLeave: sql<boolean>`EXISTS (
         SELECT 1 FROM student_attendances 
         WHERE student_attendances.student_id = ${healthExaminations.patientId} 
@@ -1142,6 +1144,10 @@ clinicRoute.get("/examinations", async (c) => {
     .leftJoin(
       clinicPatients,
       eq(healthExaminations.clinicPatientId, clinicPatients.id),
+    )
+    .leftJoin(
+      users,
+      eq(healthExaminations.examiner, users.id),
     )
     .$dynamic();
 
@@ -1234,6 +1240,7 @@ clinicRoute.get("/examinations", async (c) => {
       halaqah: halaqah ? { id: halaqah.id, name: halaqah.name } : null,
       inpatient: inpatientData,
       consumedMedicines,
+      examinerName: l.examinerName || "-",
     };
   }));
 
@@ -1513,6 +1520,7 @@ clinicRoute.put(
             progressNotes: body.progressNotes,
             followUpInstructions: body.followUpInstructions,
             prescribedMedicines: body.prescribedMedicinesText,
+            examiner: user.userId,
           })
           .where(eq(healthExaminations.id, id));
 
