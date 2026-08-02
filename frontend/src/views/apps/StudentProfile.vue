@@ -916,10 +916,16 @@
                         {{ exam.diagnosis || "Pemeriksaan Umum" }}
                       </p>
                       <p
-                        class="text-xs text-slate-500 mt-1 flex items-center gap-1"
+                        class="text-xs text-slate-500 mt-1 flex flex-wrap items-center gap-x-3 gap-y-1"
                       >
-                        <Icon icon="solar:calendar-date-bold-duotone" />
-                        {{ formatDate(exam.date || exam.createdAt) }}
+                        <span class="flex items-center gap-1">
+                          <Icon icon="solar:calendar-date-bold-duotone" />
+                          {{ formatDate(exam.date || exam.createdAt) }}
+                        </span>
+                        <span v-if="exam.examinerName && exam.examinerName !== '-'" class="flex items-center gap-1 border-l border-slate-200 pl-3">
+                          <Icon icon="solar:user-bold-duotone" class="text-slate-400" />
+                          Pemeriksa: {{ exam.examinerName }}
+                        </span>
                       </p>
                     </div>
                     <span

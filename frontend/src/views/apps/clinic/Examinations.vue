@@ -116,7 +116,7 @@
             </div>
           </div>
           <div
-            v-if="item.class || item.room || item.halaqah"
+            v-if="item.class || item.room || item.halaqah || item.examinerName"
             class="grid grid-cols-2 gap-y-1 gap-x-2 text-[11px] text-slate-500 bg-slate-50 p-2 rounded-lg border border-slate-100 mb-2"
           >
             <div v-if="item.class" class="flex items-center gap-1.5">
@@ -139,6 +139,16 @@
                 class="text-slate-400"
               />
               <span class="truncate">{{ item.halaqah.name }}</span>
+            </div>
+            <div
+              v-if="item.examinerName && item.examinerName !== '-'"
+              class="col-span-2 flex items-center gap-1.5 border-t border-slate-200/60 pt-1 mt-0.5"
+            >
+              <Icon
+                icon="solar:user-bold-duotone"
+                class="text-slate-400"
+              />
+              <span class="truncate">Pemeriksa: {{ item.examinerName }}</span>
             </div>
           </div>
           <div class="space-y-2 mt-4 text-xs text-slate-600">
