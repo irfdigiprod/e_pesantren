@@ -4,7 +4,7 @@
       title="Pemeriksaan"
       description="Riwayat pemeriksaan dan cetak resep."
       icon="solar:stethoscope-bold-duotone"
-      :items="filteredExaminations"
+      :items="paginatedExaminations"
       :columns="columns"
       :loading="loading"
       :viewMode="viewMode"
@@ -14,6 +14,9 @@
       :sortBy="sortBy"
       :sortOrder="sortOrder"
       @sort="handleSort"
+      :pagination="pagination"
+      @page-change="onPageChange"
+      @update:limit="onLimitChange"
     >
       <template #header-actions>
         <button
@@ -1204,7 +1207,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from "vue";
+import { ref, reactive, onMounted, computed, watch } from "vue";
 import { useRoute } from "vue-router";
 import { Icon } from "@iconify/vue";
 import { clinicApi, settingsApi } from "@/services/api.js";
@@ -1223,6 +1226,13 @@ const saving = ref(false);
 const search = ref("");
 const user = ref(null);
 const viewMode = ref("table");
+
+const pagination = reactive({
+  page: 1,
+  limit: 10,
+  total: 0,
+  totalPages: 0,
+});
 
 const printData = ref(null);
 
@@ -1365,14 +1375,14 @@ const filteredExaminations = computed(() => {
         valA = a.student?.fullName || a.patientName || '';
         valB = b.student?.fullName || b.patientName || '';
       } else if (sortBy.value === 'class') {
-        valA = a.student?.class?.name || '';
-        valB = b.student?.class?.name || '';
+        valA = a.class?.name || '';
+        valB = b.class?.name || '';
       } else if (sortBy.value === 'halaqah') {
-        valA = a.student?.halaqah?.name || '';
-        valB = b.student?.halaqah?.name || '';
+        valA = a.halaqah?.name || '';
+        valB = b.halaqah?.name || '';
       } else if (sortBy.value === 'room') {
-        valA = a.student?.roomNumber || '';
-        valB = b.student?.roomNumber || '';
+        valA = a.room?.name || '';
+        valB = b.room?.name || '';
       } else if (sortBy.value === 'date') {
         valA = a.date || a.examinationDate || '';
         valB = b.date || b.examinationDate || '';
@@ -1397,6 +1407,31 @@ const filteredExaminations = computed(() => {
 
   return result;
 });
+
+const paginatedExaminations = computed(() => {
+  const start = (pagination.page - 1) * pagination.limit;
+  const end = start + pagination.limit;
+  return filteredExaminations.value.slice(start, end);
+});
+
+// Update pagination total when filter changes
+watch(filteredExaminations, (newVal) => {
+  pagination.total = newVal.length;
+  pagination.totalPages = Math.ceil(newVal.length / pagination.limit);
+  // Reset to page 1 if current page is out of bounds
+  if (pagination.page > pagination.totalPages && pagination.totalPages > 0) {
+    pagination.page = 1;
+  }
+});
+
+function onPageChange(page) {
+  pagination.page = page;
+}
+
+function onLimitChange(limit) {
+  pagination.limit = limit;
+  pagination.totalPages = Math.ceil(pagination.total / pagination.limit);
+}
 
 const availableBeds = computed(() => {
   if (!form.roomId) return [];
@@ -1434,6 +1469,8 @@ async function fetchData() {
   try {
     const res = await clinicApi.getExaminations();
     examinations.value = Array.isArray(res?.data) ? res.data : [];
+    pagination.total = examinations.value.length;
+    pagination.totalPages = Math.ceil(examinations.value.length / pagination.limit);
 
     const roomRes = await clinicApi.getRooms();
     rooms.value = Array.isArray(roomRes?.data) ? roomRes.data : [];
