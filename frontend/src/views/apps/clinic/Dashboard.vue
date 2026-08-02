@@ -226,7 +226,13 @@
             >
               <div>
                 <div class="font-medium text-slate-800">{{ med.name }}</div>
-                <div class="text-xs text-slate-500">{{ med.category }}</div>
+                <div class="text-[11px] text-slate-500 flex items-center gap-1.5 mt-0.5">
+                  <span>{{ med.category || "Umum" }}</span>
+                  <span v-if="med.pharmacyName" class="inline-flex items-center gap-1 text-[10px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded border border-emerald-100 font-semibold">
+                    <Icon icon="solar:shop-2-bold-duotone" class="text-xs" />
+                    {{ med.pharmacyName }}
+                  </span>
+                </div>
               </div>
               <div class="text-right">
                 <div class="font-bold text-red-600">
