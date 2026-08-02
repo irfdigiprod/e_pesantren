@@ -4,7 +4,7 @@
       title="Obat-obatan"
       description="Kelola inventaris dan stok obat klinik."
       icon="solar:medical-kit-bold-duotone"
-      :items="filteredMedicines"
+      :items="paginatedMedicines"
       :columns="columns"
       :loading="loading"
       :viewMode="viewMode"
@@ -15,6 +15,9 @@
       :sortBy="sortBy"
       :sortOrder="sortOrder"
       @sort="handleSort"
+      :pagination="pagination"
+      @page-change="onPageChange"
+      @update:limit="onLimitChange"
     >
       <template #header-actions>
         <div class="flex gap-2">
@@ -484,7 +487,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from "vue";
+import { ref, reactive, onMounted, computed, watch } from "vue";
 import { Icon } from "@iconify/vue";
 import DataTable from "@/components/ui/DataTable.vue";
 import ConfirmModal from "@/components/ui/ConfirmModal.vue";
@@ -498,6 +501,13 @@ const saving = ref(false);
 const search = ref("");
 const viewMode = ref("table");
 const filterStatus = ref("all");
+
+const pagination = reactive({
+  page: 1,
+  limit: 10,
+  total: 0,
+  totalPages: 0,
+});
 
 const modal = reactive({ show: false, mode: "create" });
 const importModal = reactive({ show: false });
@@ -629,6 +639,31 @@ const filteredMedicines = computed(() => {
   return result;
 });
 
+const paginatedMedicines = computed(() => {
+  const start = (pagination.page - 1) * pagination.limit;
+  const end = start + pagination.limit;
+  return filteredMedicines.value.slice(start, end);
+});
+
+// Update pagination total when filter changes
+watch(filteredMedicines, (newVal) => {
+  pagination.total = newVal.length;
+  pagination.totalPages = Math.ceil(newVal.length / pagination.limit);
+  // Reset to page 1 if current page is out of bounds
+  if (pagination.page > pagination.totalPages && pagination.totalPages > 0) {
+    pagination.page = 1;
+  }
+});
+
+function onPageChange(page) {
+  pagination.page = page;
+}
+
+function onLimitChange(limit) {
+  pagination.limit = limit;
+  pagination.totalPages = Math.ceil(pagination.total / pagination.limit);
+}
+
 function showStatus(type, title, message) {
   statusModal.type = type;
   statusModal.title = title;
@@ -669,6 +704,8 @@ async function fetchData() {
   try {
     const res = await clinicApi.getMedicines();
     medicines.value = Array.isArray(res?.data) ? res.data : [];
+    pagination.total = medicines.value.length;
+    pagination.totalPages = Math.ceil(medicines.value.length / pagination.limit);
   } catch (e) {
     showStatus("error", "Gagal", e.message || "Gagal memuat data");
   } finally {
