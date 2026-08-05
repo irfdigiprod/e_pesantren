@@ -22,3 +22,4 @@ export * from "./student-leaves";
 export * from "./information-board";
 export * from "./push-subscriptions";
 export * from "./savings";
+export * from "./long-term-foundation";
