@@ -120,7 +120,12 @@
 import { reactive, ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { Icon } from "@iconify/vue";
-import { authApi, settingsApi } from "@/services/api.js";
+import {
+  authApi,
+  settingsApi,
+  setStoredUser,
+  setStoredPermissions,
+} from "@/services/api.js";
 
 const router = useRouter();
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
@@ -242,19 +247,15 @@ async function handleLogin() {
       if (userRes?.data) {
         userRole = userRes.data.role || "admin";
 
-        // Store in appropriate storage based on rememberMe
-        const storage = rememberMe.value ? localStorage : sessionStorage;
-        storage.setItem("user", JSON.stringify(userRes.data));
-
-        // Also store in localStorage for compatibility
-        localStorage.setItem("user", JSON.stringify(userRes.data));
+        // Store user consistently with token persistence mode
+        setStoredUser(userRes.data, rememberMe.value);
 
         // Fetch user permissions
         try {
           const { rolesApi } = await import("@/services/api.js");
           const permRes = await rolesApi.getMyPermissions();
           if (permRes?.success) {
-            localStorage.setItem("permissions", JSON.stringify(permRes.data || []));
+            setStoredPermissions(permRes.data || [], rememberMe.value);
           }
         } catch (pe) {
           console.warn("Failed to fetch permissions on login:", pe);

@@ -1,7 +1,12 @@
 // src/router/index.js
 import { createRouter, createWebHistory } from "vue-router";
-import { useLocalStorage } from "@vueuse/core";
-import { rolesApi } from "@/services/api";
+import {
+  rolesApi,
+  getToken,
+  getStoredUser,
+  getStoredPermissions,
+  setStoredPermissions,
+} from "@/services/api";
 
 // Layout utama untuk user yang sudah login
 import Layout from "@/components/Layout.vue";
@@ -863,7 +868,7 @@ const router = createRouter({
 // ======================
 //
 router.beforeEach(async (to, from, next) => {
-  const token = useLocalStorage("token", null).value;
+  const token = getToken() || null;
   const isAuthPage = to.path === "/login" || to.path === "/register";
 
   // Guest
@@ -881,13 +886,12 @@ router.beforeEach(async (to, from, next) => {
   if (token && isAuthPage) {
     let userRole = "admin";
     try {
-      const userStr = localStorage.getItem("user");
-      if (userStr) {
-        const user = JSON.parse(userStr);
+      const user = getStoredUser();
+      if (user) {
         userRole = user.role || "admin";
       }
     } catch (e) {
-      console.error("Failed to parse user from localStorage", e);
+      console.error("Failed to read stored user", e);
     }
 
     if (userRole === "parent" || userRole === "student") {
@@ -900,31 +904,22 @@ router.beforeEach(async (to, from, next) => {
 
   // Get user details
   let user = null;
-  const userStr = localStorage.getItem("user");
-  if (userStr) {
-    try {
-      user = JSON.parse(userStr);
-    } catch (e) {
-      console.error("Failed to parse user from localStorage", e);
-    }
+  try {
+    user = getStoredUser();
+  } catch (e) {
+    console.error("Failed to read stored user", e);
   }
 
   // Fetch permissions if not in localStorage but token is present
   let permissions = [];
   if (token) {
-    const permStr = localStorage.getItem("permissions");
-    if (permStr) {
-      try {
-        permissions = JSON.parse(permStr);
-      } catch (e) {
-        console.error("Failed to parse permissions", e);
-      }
-    } else {
+    permissions = getStoredPermissions();
+    if (!permissions.length) {
       try {
         const res = await rolesApi.getMyPermissions();
         if (res.success) {
           permissions = res.data || [];
-          localStorage.setItem("permissions", JSON.stringify(permissions));
+          setStoredPermissions(permissions, !!sessionStorage.getItem("token") ? false : true);
         }
       } catch (e) {
         console.error("Failed to fetch permissions in router guard", e);
