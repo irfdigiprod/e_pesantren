@@ -12,11 +12,53 @@ const getBaseUrl = () => {
 
 const BASE_URL = getBaseUrl();
 
+function getAuthStorage() {
+  if (localStorage.getItem("token")) return localStorage;
+  if (sessionStorage.getItem("token")) return sessionStorage;
+  return localStorage;
+}
+
 /**
  * Get auth token from storage (check both localStorage and sessionStorage)
  */
 function getToken() {
   return localStorage.getItem("token") || sessionStorage.getItem("token") || "";
+}
+
+function getStoredUser() {
+  const raw = localStorage.getItem("user") || sessionStorage.getItem("user");
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+function setStoredUser(user, remember = true) {
+  const target = remember ? localStorage : sessionStorage;
+  const other = remember ? sessionStorage : localStorage;
+  target.setItem("user", JSON.stringify(user));
+  other.removeItem("user");
+}
+
+function getStoredPermissions() {
+  const raw =
+    localStorage.getItem("permissions") || sessionStorage.getItem("permissions");
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function setStoredPermissions(permissions, remember = true) {
+  const target = remember ? localStorage : sessionStorage;
+  const other = remember ? sessionStorage : localStorage;
+  target.setItem("permissions", JSON.stringify(permissions || []));
+  other.removeItem("permissions");
 }
 
 /**
@@ -45,6 +87,7 @@ function removeToken() {
   localStorage.removeItem("permissions");
   sessionStorage.removeItem("token");
   sessionStorage.removeItem("user");
+  sessionStorage.removeItem("permissions");
 }
 
 /**
@@ -362,6 +405,10 @@ export const studentsApi = {
 
   async getById(id) {
     return request(`/api/students/${id}`);
+  },
+
+  async getTimeline(id) {
+    return request(`/api/students/${id}/timeline`);
   },
 
   async create(data) {
@@ -1456,7 +1503,17 @@ export const utilsApi = {
 };
 
 // Export utilities
-export { getToken, setToken, removeToken, BASE_URL };
+export {
+  getToken,
+  setToken,
+  removeToken,
+  BASE_URL,
+  getAuthStorage,
+  getStoredUser,
+  setStoredUser,
+  getStoredPermissions,
+  setStoredPermissions,
+};
 // ============================================
 // NOTIFICATIONS API
 // ============================================

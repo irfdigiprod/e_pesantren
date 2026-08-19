@@ -916,16 +916,10 @@
                         {{ exam.diagnosis || "Pemeriksaan Umum" }}
                       </p>
                       <p
-                        class="text-xs text-slate-500 mt-1 flex flex-wrap items-center gap-x-3 gap-y-1"
+                        class="text-xs text-slate-500 mt-1 flex items-center gap-1"
                       >
-                        <span class="flex items-center gap-1">
-                          <Icon icon="solar:calendar-date-bold-duotone" />
-                          {{ formatDate(exam.date || exam.createdAt) }}
-                        </span>
-                        <span v-if="exam.examinerName && exam.examinerName !== '-'" class="flex items-center gap-1 border-l border-slate-200 pl-3">
-                          <Icon icon="solar:user-bold-duotone" class="text-slate-400" />
-                          Pemeriksa: {{ exam.examinerName }}
-                        </span>
+                        <Icon icon="solar:calendar-date-bold-duotone" />
+                        {{ formatDate(exam.date || exam.createdAt) }}
                       </p>
                     </div>
                     <span
@@ -1103,6 +1097,270 @@
                 </div>
               </div>
             </div>
+          </div>
+
+          <!-- TIMELINE HISTORIKAL -->
+          <div v-if="activeTab === 'timeline'" class="space-y-6">
+            <div class="flex items-center gap-3 mb-2 px-2">
+              <Icon
+                icon="solar:history-bold-duotone"
+                class="text-2xl text-[#602515]"
+              />
+              <div>
+                <h2 class="text-xl font-bold text-slate-800">
+                  Timeline Historikal Santri
+                </h2>
+                <p class="text-sm text-slate-500">
+                  Riwayat akademik, tahfidz, asrama, halaqah, klinik, dan kedisiplinan lintas tahun.
+                </p>
+              </div>
+            </div>
+
+            <div v-if="timelineData.loading" class="flex justify-center py-12">
+              <Icon
+                icon="line-md:loading-loop"
+                class="text-4xl text-[#602515]"
+              />
+            </div>
+
+            <div
+              v-else-if="timelineData.error"
+              class="bg-red-50 border border-red-100 rounded-3xl p-6 text-red-700"
+            >
+              <div class="flex items-start gap-3">
+                <Icon icon="solar:danger-triangle-bold" class="text-2xl shrink-0" />
+                <div>
+                  <p class="font-bold">Gagal memuat timeline</p>
+                  <p class="text-sm mt-1">{{ timelineData.error }}</p>
+                  <button
+                    @click="fetchTimeline"
+                    class="mt-4 px-4 py-2 bg-red-600 text-white rounded-xl text-sm font-semibold hover:bg-red-700"
+                  >
+                    Coba Lagi
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <template v-else-if="timelineData.data">
+              <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <div
+                  v-for="card in timelineSummaryCards"
+                  :key="card.label"
+                  class="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm"
+                >
+                  <div class="flex items-center justify-between gap-3">
+                    <div>
+                      <p class="text-xs text-slate-400 font-bold uppercase tracking-wide">
+                        {{ card.label }}
+                      </p>
+                      <p class="text-2xl font-black text-slate-800 mt-1">
+                        {{ card.value }}
+                      </p>
+                    </div>
+                    <div
+                      class="w-10 h-10 rounded-xl flex items-center justify-center"
+                      :class="card.bg"
+                    >
+                      <Icon :icon="card.icon" class="text-xl" :class="card.color" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-5">
+                  <p class="text-xs text-slate-400 font-bold uppercase tracking-wider mb-2">
+                    Kelas Saat Ini
+                  </p>
+                  <p class="text-lg font-bold text-slate-800">
+                    {{ timelineData.data.summary?.currentClass?.name || student.class?.name || '-' }}
+                  </p>
+                  <p class="text-sm text-slate-500 mt-1">
+                    {{ timelineData.data.summary?.currentClass?.academicYear || 'Tahun ajaran belum tercatat' }}
+                  </p>
+                </div>
+                <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-5">
+                  <p class="text-xs text-slate-400 font-bold uppercase tracking-wider mb-2">
+                    Halaqah Saat Ini
+                  </p>
+                  <p class="text-lg font-bold text-slate-800">
+                    {{ timelineData.data.summary?.currentHalaqah?.name || student.halaqah?.name || '-' }}
+                  </p>
+                  <p class="text-sm text-slate-500 mt-1">Riwayat perpindahan ditarik dari membership halaqah.</p>
+                </div>
+                <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-5">
+                  <p class="text-xs text-slate-400 font-bold uppercase tracking-wider mb-2">
+                    Kamar Saat Ini
+                  </p>
+                  <p class="text-lg font-bold text-slate-800">
+                    {{ timelineData.data.summary?.currentRoom?.name || student.room?.name || '-' }}
+                  </p>
+                  <p class="text-sm text-slate-500 mt-1">
+                    {{ timelineData.data.summary?.currentRoom?.building || 'Gedung/asrama belum tercatat' }}
+                  </p>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                <section class="bg-white rounded-3xl shadow-sm border border-slate-100 p-6">
+                  <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-bold text-slate-800 flex items-center gap-2">
+                      <Icon icon="solar:diploma-bold-duotone" class="text-[#602515]" />
+                      Ringkasan Akademik per Periode
+                    </h3>
+                    <span class="text-xs text-slate-400 font-semibold">
+                      {{ timelineData.data.academic?.gradePeriods?.length || 0 }} periode
+                    </span>
+                  </div>
+                  <div
+                    v-if="!timelineData.data.academic?.gradePeriods?.length"
+                    class="text-center text-slate-400 py-8"
+                  >
+                    Belum ada nilai historikal.
+                  </div>
+                  <div v-else class="space-y-3 max-h-[360px] overflow-y-auto pr-1">
+                    <div
+                      v-for="period in timelineData.data.academic.gradePeriods"
+                      :key="`${period.academicYear}-${period.semester}`"
+                      class="p-4 rounded-2xl bg-slate-50 border border-slate-100"
+                    >
+                      <div class="flex items-center justify-between gap-3">
+                        <div>
+                          <p class="font-bold text-slate-800">{{ period.label }}</p>
+                          <p class="text-xs text-slate-500 mt-1">
+                            {{ period.grades?.length || 0 }} nilai mapel tersimpan
+                          </p>
+                        </div>
+                        <div class="text-right">
+                          <p class="text-xs text-slate-400">Rata-rata</p>
+                          <p class="text-xl font-black text-[#602515]">
+                            {{ period.averageScore || '-' }}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="bg-white rounded-3xl shadow-sm border border-slate-100 p-6">
+                  <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-bold text-slate-800 flex items-center gap-2">
+                      <Icon icon="solar:home-smile-bold-duotone" class="text-[#602515]" />
+                      Riwayat Penempatan
+                    </h3>
+                    <span class="text-xs text-slate-400 font-semibold">Dipisah per kategori</span>
+                  </div>
+
+                  <div class="space-y-4 max-h-[420px] overflow-y-auto pr-1">
+                    <section
+                      v-for="group in placementGroups"
+                      :key="group.key"
+                      class="rounded-2xl border border-slate-100 bg-slate-50/70 p-4"
+                    >
+                      <div class="flex items-center justify-between gap-3 mb-3">
+                        <h4 class="font-bold text-slate-800 flex items-center gap-2">
+                          <span
+                            class="w-8 h-8 rounded-xl flex items-center justify-center"
+                            :class="getTimelineCategory(group.category).bg"
+                          >
+                            <Icon
+                              :icon="getTimelineCategory(group.category).icon"
+                              :class="getTimelineCategory(group.category).color"
+                            />
+                          </span>
+                          {{ group.label }}
+                        </h4>
+                        <span class="text-xs text-slate-400 font-semibold">
+                          {{ group.items.length }} data
+                        </span>
+                      </div>
+
+                      <div v-if="group.items.length" class="space-y-2">
+                        <div
+                          v-for="item in group.items"
+                          :key="`${item.kind}-${item.id}`"
+                          class="p-3 rounded-xl bg-white border border-slate-100 flex gap-3"
+                        >
+                          <div
+                            class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+                            :class="getTimelineCategory(item.category).bg"
+                          >
+                            <Icon
+                              :icon="getTimelineCategory(item.category).icon"
+                              :class="getTimelineCategory(item.category).color"
+                            />
+                          </div>
+                          <div class="min-w-0">
+                            <p class="font-bold text-slate-800">{{ item.title }}</p>
+                            <p class="text-xs text-slate-500 mt-1">{{ item.subtitle || '-' }}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div v-else class="text-center text-slate-400 py-5 text-sm">
+                        Belum ada {{ group.emptyLabel }}.
+                      </div>
+                    </section>
+                  </div>
+                </section>
+              </div>
+
+              <section class="bg-white rounded-3xl shadow-sm border border-slate-100 p-6">
+                <div class="flex items-center justify-between mb-5">
+                  <h3 class="font-bold text-slate-800 flex items-center gap-2">
+                    <Icon icon="solar:timeline-bold-duotone" class="text-[#602515]" />
+                    Semua Riwayat
+                  </h3>
+                  <span class="text-xs text-slate-400 font-semibold">
+                    {{ timelineData.data.timeline?.length || 0 }} event
+                  </span>
+                </div>
+
+                <div
+                  v-if="!timelineData.data.timeline?.length"
+                  class="text-center text-slate-400 py-10"
+                >
+                  <Icon icon="solar:folder-with-files-bold-duotone" class="text-6xl text-slate-200 mb-3 mx-auto" />
+                  <p>Belum ada event historikal.</p>
+                </div>
+
+                <div v-else class="relative pl-5 space-y-5 before:absolute before:left-[18px] before:top-2 before:bottom-2 before:w-px before:bg-slate-200">
+                  <article
+                    v-for="(event, index) in timelineData.data.timeline"
+                    :key="`${event.category}-${event.date}-${index}`"
+                    class="relative pl-8"
+                  >
+                    <div
+                      class="absolute left-[-2px] top-1 w-4 h-4 rounded-full ring-4 ring-white border"
+                      :class="getTimelineCategory(event.category).dot"
+                    ></div>
+                    <div class="p-4 rounded-2xl border border-slate-100 bg-slate-50 hover:bg-white hover:shadow-sm transition-all">
+                      <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                        <div>
+                          <div class="flex flex-wrap items-center gap-2 mb-1">
+                            <span
+                              class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wide"
+                              :class="getTimelineCategory(event.category).badge"
+                            >
+                              <Icon :icon="getTimelineCategory(event.category).icon" />
+                              {{ getTimelineCategory(event.category).label }}
+                            </span>
+                            <span class="text-xs text-slate-400 font-semibold">
+                              {{ formatDate(event.date) }}
+                            </span>
+                          </div>
+                          <h4 class="font-bold text-slate-800">{{ event.title }}</h4>
+                          <p v-if="event.description" class="text-sm text-slate-600 mt-1 leading-relaxed">
+                            {{ event.description }}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </article>
+                </div>
+              </section>
+            </template>
           </div>
 
           <!-- Actions Card -->
@@ -1576,6 +1834,11 @@ const tabs = [
   { id: "dormitory", label: "Asrama", icon: "solar:home-smile-bold-duotone" },
   { id: "health", label: "Kesehatan", icon: "solar:heart-pulse-bold-duotone" },
   {
+    id: "timeline",
+    label: "Timeline Historikal",
+    icon: "solar:history-bold-duotone",
+  },
+  {
     id: "actions",
     label: "Pengaturan & Aksi",
     icon: "solar:settings-bold-duotone",
@@ -1592,6 +1855,7 @@ const disciplineData = ref({
 });
 const tahfidzData = ref({ deposits: [], loaded: false, loading: false });
 const healthData = ref({ examinations: [], loaded: false, loading: false });
+const timelineData = ref({ data: null, loaded: false, loading: false, error: "" });
 const surahList = ref([]);
 
 watch(activeTab, (newTab) => {
@@ -1599,6 +1863,7 @@ watch(activeTab, (newTab) => {
     fetchDiscipline();
   if (newTab === "tahfidz" && !tahfidzData.value.loaded) fetchTahfidz();
   if (newTab === "health" && !healthData.value.loaded) fetchHealth();
+  if (newTab === "timeline" && !timelineData.value.loaded) fetchTimeline();
 });
 
 function getSurahName(number) {
@@ -1675,6 +1940,26 @@ async function fetchHealth() {
     console.error("Health fetch error:", e);
   } finally {
     healthData.value.loading = false;
+  }
+}
+
+async function fetchTimeline() {
+  if (!student.value?.id) return;
+  timelineData.value.loading = true;
+  timelineData.value.error = "";
+  try {
+    const res = await studentsApi.getTimeline(student.value.id);
+    if (res?.success && res?.data) {
+      timelineData.value.data = res.data;
+      timelineData.value.loaded = true;
+    } else {
+      throw new Error(res?.message || "Gagal memuat timeline historikal");
+    }
+  } catch (e) {
+    console.error("Timeline fetch error:", e);
+    timelineData.value.error = e.message || "Gagal memuat timeline historikal";
+  } finally {
+    timelineData.value.loading = false;
   }
 }
 
@@ -1900,6 +2185,193 @@ function formatDateForInput(dateStr) {
   if (isNaN(date.getTime())) return "";
   return date.toISOString().split("T")[0];
 }
+
+const timelineCategoryMap = {
+  identity: {
+    label: "Identitas",
+    icon: "solar:user-id-bold-duotone",
+    bg: "bg-slate-100",
+    color: "text-slate-600",
+    badge: "bg-slate-100 text-slate-700",
+    dot: "bg-slate-500 border-slate-200",
+  },
+  academic: {
+    label: "Akademik",
+    icon: "solar:diploma-bold-duotone",
+    bg: "bg-blue-100",
+    color: "text-blue-600",
+    badge: "bg-blue-100 text-blue-700",
+    dot: "bg-blue-500 border-blue-200",
+  },
+  tahfidz: {
+    label: "Tahfidz",
+    icon: "solar:book-bookmark-bold-duotone",
+    bg: "bg-emerald-100",
+    color: "text-emerald-600",
+    badge: "bg-emerald-100 text-emerald-700",
+    dot: "bg-emerald-500 border-emerald-200",
+  },
+  dormitory: {
+    label: "Asrama",
+    icon: "solar:home-smile-bold-duotone",
+    bg: "bg-amber-100",
+    color: "text-amber-700",
+    badge: "bg-amber-100 text-amber-700",
+    dot: "bg-amber-500 border-amber-200",
+  },
+  halaqah: {
+    label: "Halaqah",
+    icon: "solar:users-group-rounded-bold-duotone",
+    bg: "bg-purple-100",
+    color: "text-purple-600",
+    badge: "bg-purple-100 text-purple-700",
+    dot: "bg-purple-500 border-purple-200",
+  },
+  health: {
+    label: "Klinik",
+    icon: "solar:heart-pulse-bold-duotone",
+    bg: "bg-rose-100",
+    color: "text-rose-600",
+    badge: "bg-rose-100 text-rose-700",
+    dot: "bg-rose-500 border-rose-200",
+  },
+  discipline: {
+    label: "Kedisiplinan",
+    icon: "solar:shield-warning-bold-duotone",
+    bg: "bg-red-100",
+    color: "text-red-600",
+    badge: "bg-red-100 text-red-700",
+    dot: "bg-red-500 border-red-200",
+  },
+  reward: {
+    label: "Prestasi",
+    icon: "solar:cup-star-bold-duotone",
+    bg: "bg-yellow-100",
+    color: "text-yellow-700",
+    badge: "bg-yellow-100 text-yellow-700",
+    dot: "bg-yellow-500 border-yellow-200",
+  },
+  status: {
+    label: "Status",
+    icon: "solar:check-circle-bold-duotone",
+    bg: "bg-cyan-100",
+    color: "text-cyan-700",
+    badge: "bg-cyan-100 text-cyan-700",
+    dot: "bg-cyan-500 border-cyan-200",
+  },
+  snapshot: {
+    label: "Snapshot",
+    icon: "solar:archive-bold-duotone",
+    bg: "bg-indigo-100",
+    color: "text-indigo-600",
+    badge: "bg-indigo-100 text-indigo-700",
+    dot: "bg-indigo-500 border-indigo-200",
+  },
+};
+
+function getTimelineCategory(category) {
+  return timelineCategoryMap[category] || timelineCategoryMap.identity;
+}
+
+const timelineSummaryCards = computed(() => {
+  const totals = timelineData.value.data?.summary?.totals || {};
+  return [
+    {
+      label: "Event",
+      value: totals.timeline || 0,
+      icon: "solar:timeline-bold-duotone",
+      bg: "bg-indigo-100",
+      color: "text-indigo-600",
+    },
+    {
+      label: "Nilai",
+      value: totals.grades || 0,
+      icon: "solar:diploma-bold-duotone",
+      bg: "bg-blue-100",
+      color: "text-blue-600",
+    },
+    {
+      label: "Setoran",
+      value: totals.tahfidzDeposits || 0,
+      icon: "solar:book-bookmark-bold-duotone",
+      bg: "bg-emerald-100",
+      color: "text-emerald-600",
+    },
+    {
+      label: "Klinik",
+      value: totals.healthExaminations || 0,
+      icon: "solar:heart-pulse-bold-duotone",
+      bg: "bg-rose-100",
+      color: "text-rose-600",
+    },
+  ];
+});
+
+function sortPlacementItems(items) {
+  return items.sort((a, b) => {
+    const aTime = a.date ? new Date(a.date).getTime() : 0;
+    const bTime = b.date ? new Date(b.date).getTime() : 0;
+    return bTime - aTime;
+  });
+}
+
+const placementGroups = computed(() => {
+  const data = timelineData.value.data;
+  const classItems = (data?.academic?.classHistory || []).map((item) => ({
+    id: item.id,
+    kind: "class",
+    category: "academic",
+    title: `Kelas ${item.class?.name || "-"}`,
+    subtitle: [item.academicYear, item.semester ? `Semester ${item.semester}` : null, item.status]
+      .filter(Boolean)
+      .join(" • "),
+    date: item.effectiveFrom || item.createdAt,
+  }));
+  const halaqahItems = (data?.halaqah?.memberships || []).map((item) => ({
+    id: item.id,
+    kind: "halaqah",
+    category: "halaqah",
+    title: `Halaqah ${item.halaqah?.name || "-"}`,
+    subtitle: [item.joinedAt ? formatDate(item.joinedAt) : null, item.status]
+      .filter(Boolean)
+      .join(" • "),
+    date: item.joinedAt || item.createdAt,
+  }));
+  const roomItems = (data?.dormitory?.roomHistory || []).map((item) => ({
+    id: item.id,
+    kind: "room",
+    category: "dormitory",
+    title: `Kamar ${item.room?.name || "-"}`,
+    subtitle: [item.academicYear, item.bedLabel ? `Bed ${item.bedLabel}` : null, item.reason]
+      .filter(Boolean)
+      .join(" • "),
+    date: item.effectiveFrom || item.createdAt,
+  }));
+
+  return [
+    {
+      key: "class",
+      label: "Riwayat Kelas",
+      emptyLabel: "riwayat kelas",
+      category: "academic",
+      items: sortPlacementItems(classItems),
+    },
+    {
+      key: "halaqah",
+      label: "Riwayat Halaqah",
+      emptyLabel: "riwayat halaqah",
+      category: "halaqah",
+      items: sortPlacementItems(halaqahItems),
+    },
+    {
+      key: "room",
+      label: "Riwayat Kamar",
+      emptyLabel: "riwayat kamar",
+      category: "dormitory",
+      items: sortPlacementItems(roomItems),
+    },
+  ];
+});
 
 // Helper to safely parse JSON or return value
 function safeParse(val) {

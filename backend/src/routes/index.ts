@@ -8,6 +8,7 @@ import rewardsRoute from "./rewards";
 import punishmentsRoute from "./punishments";
 import clinicRoute from "./clinic";
 import academicRoute from "./academic";
+import academicPeriodsRoute from "./academic-periods";
 import halaqahRoute from "./halaqah";
 import roomsRoute from "./rooms";
 import chatRoute from "./chat";
@@ -48,6 +49,7 @@ export {
   punishmentsRoute,
   clinicRoute,
   academicRoute,
+  academicPeriodsRoute,
   halaqahRoute,
   roomsRoute,
   chatRoute,
