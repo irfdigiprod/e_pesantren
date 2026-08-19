@@ -25,6 +25,23 @@
           v-model="filters.endDate"
           class="text-sm border-none focus:ring-0 text-slate-600"
         />
+        <select
+          v-model="filters.patientType"
+          class="text-sm border-none focus:ring-0 text-slate-600 bg-transparent"
+        >
+          <option value="">Semua Tipe</option>
+          <option value="student">Santri</option>
+          <option value="teacher">Guru</option>
+          <option value="external">Umum</option>
+        </select>
+        <select
+          v-model="filters.gender"
+          class="text-sm border-none focus:ring-0 text-slate-600 bg-transparent"
+        >
+          <option value="">Semua JK</option>
+          <option value="L">Laki-laki</option>
+          <option value="P">Perempuan</option>
+        </select>
         <button
           @click="fetchReports"
           class="px-3 py-1.5 bg-[#602515] text-white rounded text-sm hover:bg-[#4a1d10] transition"
@@ -209,6 +226,8 @@ const filters = reactive({
     .toISOString()
     .split("T")[0],
   endDate: new Date().toISOString().split("T")[0],
+  patientType: "", // "" | student | teacher | external
+  gender: "", // "" | L | P
 });
 
 const statusModal = reactive({
