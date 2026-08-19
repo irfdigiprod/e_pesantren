@@ -12,6 +12,7 @@ import {
 } from "drizzle-orm/mysql-core";
 import { teachers } from "./teachers";
 import { students } from "./students";
+import { users } from "./users";
 
 // Kelas
 export const classes = mysqlTable("classes", {
@@ -56,6 +57,13 @@ export const studentClasses = mysqlTable("student_classes", {
     "graduated",
     "dropped",
   ]).default("active"),
+  semester: int("semester"), // Optional for backward compatibility; 1 or 2 when available
+  effectiveFrom: date("effective_from"),
+  effectiveTo: date("effective_to"),
+  isCurrent: boolean("is_current").default(true),
+  promotionStatus: varchar("promotion_status", { length: 50 }),
+  reason: text("reason"),
+  createdBy: int("created_by").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
 });
