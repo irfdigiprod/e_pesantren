@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, or, sql, desc } from "drizzle-orm";
 import { db } from "../db";
 import { students, parents } from "../db/schema/students";
 import { studentParents } from "../db/schema/student-parents";
@@ -13,12 +13,80 @@ import {
 } from "../validators/students";
 import { halaqahMembers, halaqahGroups } from "../db/schema/halaqah";
 import { rooms } from "../db/schema/rooms";
-import { classes } from "../db/schema/academic";
+import {
+  classes,
+  grades,
+  reports,
+  subjects,
+  studentClasses,
+  homeroomNotes,
+} from "../db/schema/academic";
+import {
+  reportSnapshots,
+  studentRoomHistory,
+  studentStatusHistory,
+} from "../db/schema/long-term-foundation";
+import {
+  tahfidzDeposits,
+  tahfidzExams,
+  tahfidzReportCards,
+} from "../db/schema/tahfidz";
+import {
+  clinicPatients,
+  healthExaminations,
+  inpatients,
+} from "../db/schema/clinic";
+import { studentAttendances } from "../db/schema/attendance";
+import {
+  rewardsPunishments,
+  studentWarnings,
+} from "../db/schema/rewards-punishments";
+import { teachers } from "../db/schema/teachers";
 
 const studentsRoute = new Hono();
 
 // Apply auth to all routes
 studentsRoute.use("*", authMiddleware);
+
+function toDateKey(value: unknown): string | null {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value as any);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toISOString().slice(0, 10);
+}
+
+function resolveEventDate(...values: unknown[]): string {
+  for (const value of values) {
+    const key = toDateKey(value);
+    if (key) return key;
+  }
+  return new Date(0).toISOString().slice(0, 10);
+}
+
+function semesterLabel(semester: number | string | null | undefined) {
+  if (!semester) return null;
+  const raw = String(semester).toLowerCase();
+  if (raw === "ganjil" || raw === "1") return "Semester 1";
+  if (raw === "genap" || raw === "2") return "Semester 2";
+  return `Semester ${semester}`;
+}
+
+function makeTimelineEvent(params: {
+  date?: unknown;
+  fallbackDate?: unknown;
+  category: string;
+  title: string;
+  description?: string | null;
+  meta?: Record<string, unknown>;
+}) {
+  return {
+    date: resolveEventDate(params.date, params.fallbackDate),
+    category: params.category,
+    title: params.title,
+    description: params.description || null,
+    meta: params.meta || {},
+  };
+}
 
 // ============ STUDENTS ============
 
@@ -760,6 +828,502 @@ studentsRoute.post("/import", requirePermission("/apps/students"), async (c) => 
         success: false,
         message: "Failed to import students",
         error: error?.message,
+      },
+      500,
+    );
+  }
+});
+
+// Get longitudinal student timeline/profile history
+studentsRoute.get("/:id/timeline", async (c) => {
+  try {
+    const id = parseInt(c.req.param("id"));
+    const student = await db.query.students.findFirst({
+      where: eq(students.id, id),
+    });
+
+    if (!student) {
+      return c.json({ success: false, message: "Student not found" }, 404);
+    }
+
+    const [
+      currentClass,
+      currentRoom,
+      classAssignments,
+      roomAssignments,
+      statusHistory,
+      halaqahAssignments,
+      academicGrades,
+      academicReports,
+      snapshots,
+      notes,
+      attendances,
+      deposits,
+      exams,
+      tahfidzCards,
+      clinicPatient,
+      rewardsAndPunishments,
+      warnings,
+    ] = await Promise.all([
+      student.classId
+        ? db.query.classes.findFirst({ where: eq(classes.id, student.classId) })
+        : Promise.resolve(null),
+      student.roomId
+        ? db.query.rooms.findFirst({ where: eq(rooms.id, student.roomId) })
+        : Promise.resolve(null),
+      db.query.studentClasses.findMany({
+        where: eq(studentClasses.studentId, id),
+        orderBy: [desc(studentClasses.academicYear), desc(studentClasses.semester)],
+      }),
+      db.query.studentRoomHistory.findMany({
+        where: eq(studentRoomHistory.studentId, id),
+        orderBy: [desc(studentRoomHistory.effectiveFrom)],
+      }),
+      db.query.studentStatusHistory.findMany({
+        where: eq(studentStatusHistory.studentId, id),
+        orderBy: [desc(studentStatusHistory.effectiveFrom)],
+      }),
+      db.query.halaqahMembers.findMany({
+        where: eq(halaqahMembers.studentId, id),
+        orderBy: [desc(halaqahMembers.joinedAt)],
+      }),
+      db.query.grades.findMany({
+        where: eq(grades.studentId, id),
+        orderBy: [desc(grades.academicYear), desc(grades.semester)],
+      }),
+      db.query.reports.findMany({
+        where: eq(reports.studentId, id),
+        orderBy: [desc(reports.academicYear), desc(reports.semester)],
+      }),
+      db.query.reportSnapshots.findMany({
+        where: eq(reportSnapshots.studentId, id),
+        orderBy: [desc(reportSnapshots.academicYear), desc(reportSnapshots.semester)],
+      }),
+      db.query.homeroomNotes.findMany({
+        where: eq(homeroomNotes.studentId, id),
+        orderBy: [desc(homeroomNotes.academicYear), desc(homeroomNotes.semester)],
+      }),
+      db.query.studentAttendances.findMany({
+        where: eq(studentAttendances.studentId, id),
+        orderBy: [desc(studentAttendances.date)],
+      }),
+      db.query.tahfidzDeposits.findMany({
+        where: eq(tahfidzDeposits.studentId, id),
+        orderBy: [desc(tahfidzDeposits.depositDate)],
+      }),
+      db.query.tahfidzExams.findMany({
+        where: eq(tahfidzExams.studentId, id),
+        orderBy: [desc(tahfidzExams.examDate)],
+      }),
+      db.query.tahfidzReportCards.findMany({
+        where: eq(tahfidzReportCards.studentId, id),
+        orderBy: [desc(tahfidzReportCards.academicYear), desc(tahfidzReportCards.semester)],
+      }),
+      db.query.clinicPatients.findFirst({
+        where: and(eq(clinicPatients.type, "student"), eq(clinicPatients.refId, id)),
+      }),
+      db.query.rewardsPunishments.findMany({
+        where: eq(rewardsPunishments.studentId, id),
+        orderBy: [desc(rewardsPunishments.date)],
+      }),
+      db.query.studentWarnings.findMany({
+        where: eq(studentWarnings.studentId, id),
+        orderBy: [desc(studentWarnings.issueDate)],
+      }),
+    ]);
+
+    const classIds = Array.from(
+      new Set(
+        [
+          ...classAssignments.map((item) => item.classId),
+          ...academicGrades.map((item) => item.classId),
+          ...academicReports.map((item) => item.classId),
+        ].filter(Boolean) as number[],
+      ),
+    );
+    const roomIds = Array.from(
+      new Set(roomAssignments.map((item) => item.roomId).filter(Boolean) as number[]),
+    );
+    const halaqahIds = Array.from(
+      new Set(halaqahAssignments.map((item) => item.halaqahId).filter(Boolean) as number[]),
+    );
+    const subjectIds = Array.from(
+      new Set(academicGrades.map((item) => item.subjectId).filter(Boolean) as number[]),
+    );
+    const teacherIds = Array.from(
+      new Set(
+        [
+          ...deposits.map((item) => item.teacherId),
+          ...exams.map((item) => item.examinerId),
+        ].filter(Boolean) as number[],
+      ),
+    );
+
+    const [classRows, roomRows, halaqahRows, subjectRows, teacherRows] =
+      await Promise.all([
+        classIds.length
+          ? Promise.all(
+              classIds.map((classId) =>
+                db.query.classes.findFirst({ where: eq(classes.id, classId) }),
+              ),
+            )
+          : Promise.resolve([]),
+        roomIds.length
+          ? Promise.all(
+              roomIds.map((roomId) =>
+                db.query.rooms.findFirst({ where: eq(rooms.id, roomId) }),
+              ),
+            )
+          : Promise.resolve([]),
+        halaqahIds.length
+          ? Promise.all(
+              halaqahIds.map((halaqahId) =>
+                db.query.halaqahGroups.findFirst({
+                  where: eq(halaqahGroups.id, halaqahId),
+                }),
+              ),
+            )
+          : Promise.resolve([]),
+        subjectIds.length
+          ? Promise.all(
+              subjectIds.map((subjectId) =>
+                db.query.subjects.findFirst({ where: eq(subjects.id, subjectId) }),
+              ),
+            )
+          : Promise.resolve([]),
+        teacherIds.length
+          ? Promise.all(
+              teacherIds.map((teacherId) =>
+                db.query.teachers.findFirst({ where: eq(teachers.id, teacherId) }),
+              ),
+            )
+          : Promise.resolve([]),
+      ]);
+
+    const classById = new Map(classRows.filter(Boolean).map((row: any) => [row.id, row]));
+    const roomById = new Map(roomRows.filter(Boolean).map((row: any) => [row.id, row]));
+    const halaqahById = new Map(halaqahRows.filter(Boolean).map((row: any) => [row.id, row]));
+    const subjectById = new Map(subjectRows.filter(Boolean).map((row: any) => [row.id, row]));
+    const teacherById = new Map(teacherRows.filter(Boolean).map((row: any) => [row.id, row]));
+
+    const clinicConditions = clinicPatient
+      ? or(
+          eq(healthExaminations.clinicPatientId, clinicPatient.id),
+          and(
+            eq(healthExaminations.patientType, "student"),
+            eq(healthExaminations.patientId, id),
+          ),
+        )
+      : and(
+          eq(healthExaminations.patientType, "student"),
+          eq(healthExaminations.patientId, id),
+        );
+
+    const inpatientConditions = clinicPatient
+      ? or(
+          eq(inpatients.clinicPatientId, clinicPatient.id),
+          and(eq(inpatients.patientType, "student"), eq(inpatients.patientId, id)),
+        )
+      : and(eq(inpatients.patientType, "student"), eq(inpatients.patientId, id));
+
+    const [healthRows, inpatientRows] = await Promise.all([
+      db.query.healthExaminations.findMany({
+        where: clinicConditions,
+        orderBy: [desc(healthExaminations.examinationDate)],
+      }),
+      db.query.inpatients.findMany({
+        where: inpatientConditions,
+        orderBy: [desc(inpatients.admissionDate)],
+      }),
+    ]);
+
+    const enrichedClassHistory = classAssignments.map((assignment) => ({
+      ...assignment,
+      class: assignment.classId ? classById.get(assignment.classId) || null : null,
+    }));
+
+    const enrichedRoomHistory = roomAssignments.map((assignment) => ({
+      ...assignment,
+      room: assignment.roomId ? roomById.get(assignment.roomId) || null : null,
+    }));
+
+    const enrichedHalaqahHistory = halaqahAssignments.map((assignment) => ({
+      ...assignment,
+      halaqah: assignment.halaqahId
+        ? halaqahById.get(assignment.halaqahId) || null
+        : null,
+    }));
+
+    const enrichedGrades = academicGrades.map((grade) => ({
+      ...grade,
+      subject: grade.subjectId ? subjectById.get(grade.subjectId) || null : null,
+      class: grade.classId ? classById.get(grade.classId) || null : null,
+    }));
+
+    const enrichedReports = academicReports.map((report) => ({
+      ...report,
+      class: report.classId ? classById.get(report.classId) || null : null,
+    }));
+
+    const enrichedDeposits = deposits.map((deposit) => ({
+      ...deposit,
+      teacher: deposit.teacherId ? teacherById.get(deposit.teacherId) || null : null,
+    }));
+
+    const enrichedExams = exams.map((exam) => ({
+      ...exam,
+      examiner: exam.examinerId ? teacherById.get(exam.examinerId) || null : null,
+    }));
+
+    const attendanceSummary = attendances.reduce<Record<string, number>>(
+      (acc, item) => {
+        acc[item.status] = (acc[item.status] || 0) + 1;
+        return acc;
+      },
+      {},
+    );
+
+    const gradePeriods = new Map<string, any>();
+    for (const grade of enrichedGrades) {
+      const key = `${grade.academicYear || "-"}__${grade.semester || "-"}`;
+      if (!gradePeriods.has(key)) {
+        gradePeriods.set(key, {
+          academicYear: grade.academicYear,
+          semester: grade.semester,
+          label: [grade.academicYear, semesterLabel(grade.semester)]
+            .filter(Boolean)
+            .join(" • "),
+          grades: [],
+          averageScore: null,
+        });
+      }
+      gradePeriods.get(key).grades.push(grade);
+    }
+    for (const period of gradePeriods.values()) {
+      const scores = period.grades
+        .map((grade: any) => Number(grade.averageScore || grade.finalScore || 0))
+        .filter((score: number) => score > 0);
+      period.averageScore = scores.length
+        ? Number((scores.reduce((sum: number, score: number) => sum + score, 0) / scores.length).toFixed(2))
+        : null;
+    }
+
+    const timeline = [
+      makeTimelineEvent({
+        date: student.enrollmentDate,
+        fallbackDate: student.createdAt,
+        category: "identity",
+        title: "Santri terdaftar",
+        description: `${student.fullName} mulai tercatat sebagai santri.`,
+        meta: { status: student.status, nis: student.nis },
+      }),
+      ...enrichedClassHistory.map((item) =>
+        makeTimelineEvent({
+          date: item.effectiveFrom,
+          fallbackDate: item.createdAt,
+          category: "academic",
+          title: `Masuk kelas ${item.class?.name || `#${item.classId}`}`,
+          description: [item.academicYear, semesterLabel(item.semester), item.status]
+            .filter(Boolean)
+            .join(" • "),
+          meta: item,
+        }),
+      ),
+      ...enrichedRoomHistory.map((item) =>
+        makeTimelineEvent({
+          date: item.effectiveFrom,
+          fallbackDate: item.createdAt,
+          category: "dormitory",
+          title: `Penempatan kamar ${item.room?.name || `#${item.roomId}`}`,
+          description: [item.academicYear, item.bedLabel ? `Bed ${item.bedLabel}` : null, item.reason]
+            .filter(Boolean)
+            .join(" • "),
+          meta: item,
+        }),
+      ),
+      ...statusHistory.map((item) =>
+        makeTimelineEvent({
+          date: item.effectiveFrom,
+          fallbackDate: item.createdAt,
+          category: "status",
+          title: `Status santri: ${item.status}`,
+          description: item.reason,
+          meta: item,
+        }),
+      ),
+      ...enrichedHalaqahHistory.map((item) =>
+        makeTimelineEvent({
+          date: item.joinedAt,
+          fallbackDate: item.createdAt,
+          category: "halaqah",
+          title: `Masuk halaqah ${item.halaqah?.name || `#${item.halaqahId}`}`,
+          description: item.status,
+          meta: item,
+        }),
+      ),
+      ...enrichedReports.map((item) =>
+        makeTimelineEvent({
+          date: item.publishedAt,
+          fallbackDate: item.generatedAt,
+          category: "academic",
+          title: `Rapor akademik ${item.academicYear} ${semesterLabel(item.semester) || ""}`.trim(),
+          description: `Rata-rata ${item.averageScore || "-"}, ranking ${item.ranking || "-"}`,
+          meta: item,
+        }),
+      ),
+      ...snapshots.map((item) =>
+        makeTimelineEvent({
+          date: item.publishedAt,
+          fallbackDate: item.createdAt,
+          category: "snapshot",
+          title: `Snapshot rapor ${item.reportType}`,
+          description: `${item.academicYear} • ${semesterLabel(item.semester)} • ${item.status}`,
+          meta: item,
+        }),
+      ),
+      ...enrichedDeposits.map((item) =>
+        makeTimelineEvent({
+          date: item.depositDate,
+          category: "tahfidz",
+          title: `Setoran tahfidz ${item.type}`,
+          description: [
+            item.surahName,
+            item.totalPages ? `${item.totalPages} halaman` : null,
+            item.fluency,
+            item.teacher?.fullName ? `Musyrif: ${item.teacher.fullName}` : null,
+          ]
+            .filter(Boolean)
+            .join(" • "),
+          meta: item,
+        }),
+      ),
+      ...enrichedExams.map((item) =>
+        makeTimelineEvent({
+          date: item.examDate,
+          category: "tahfidz",
+          title: `Ujian tahfidz ${item.examType}`,
+          description: `${item.examCategory || "Ujian"} • Nilai ${item.finalScore} • ${item.verdict}`,
+          meta: item,
+        }),
+      ),
+      ...healthRows.map((item) =>
+        makeTimelineEvent({
+          date: item.examinationDate,
+          fallbackDate: item.createdAt,
+          category: "health",
+          title: item.diagnosis || "Pemeriksaan klinik",
+          description: [item.symptoms, item.treatment].filter(Boolean).join(" • "),
+          meta: item,
+        }),
+      ),
+      ...inpatientRows.map((item) =>
+        makeTimelineEvent({
+          date: item.admissionDate,
+          fallbackDate: item.createdAt,
+          category: "health",
+          title: "Rawat inap",
+          description: [item.diagnosis, item.roomNumber, item.status].filter(Boolean).join(" • "),
+          meta: item,
+        }),
+      ),
+      ...rewardsAndPunishments.map((item) =>
+        makeTimelineEvent({
+          date: item.date,
+          fallbackDate: item.createdAt,
+          category: item.type === "reward" ? "reward" : "discipline",
+          title: item.title,
+          description: `${item.category} • ${item.points || 0} poin`,
+          meta: item,
+        }),
+      ),
+      ...warnings.map((item) =>
+        makeTimelineEvent({
+          date: item.issueDate,
+          fallbackDate: item.createdAt,
+          category: "discipline",
+          title: `Surat peringatan level ${item.spLevel}`,
+          description: item.reason,
+          meta: item,
+        }),
+      ),
+    ].sort((a, b) => b.date.localeCompare(a.date));
+
+    return c.json({
+      success: true,
+      data: {
+        student: {
+          ...student,
+          class: currentClass ? { id: currentClass.id, name: currentClass.name } : null,
+          room: currentRoom ? { id: currentRoom.id, name: currentRoom.name } : null,
+        },
+        summary: {
+          currentClass: currentClass
+            ? { id: currentClass.id, name: currentClass.name, academicYear: currentClass.academicYear }
+            : null,
+          currentRoom: currentRoom
+            ? { id: currentRoom.id, name: currentRoom.name, building: currentRoom.building }
+            : null,
+          currentHalaqah:
+            enrichedHalaqahHistory.find((item) => item.status === "active")?.halaqah || null,
+          totals: {
+            classHistory: enrichedClassHistory.length,
+            roomHistory: enrichedRoomHistory.length,
+            halaqahHistory: enrichedHalaqahHistory.length,
+            grades: enrichedGrades.length,
+            reports: enrichedReports.length,
+            tahfidzDeposits: enrichedDeposits.length,
+            tahfidzExams: enrichedExams.length,
+            healthExaminations: healthRows.length,
+            inpatients: inpatientRows.length,
+            rewards: rewardsAndPunishments.filter((item) => item.type === "reward").length,
+            punishments: rewardsAndPunishments.filter((item) => item.type === "punishment").length,
+            warnings: warnings.length,
+            timeline: timeline.length,
+          },
+        },
+        academic: {
+          classHistory: enrichedClassHistory,
+          grades: enrichedGrades,
+          gradePeriods: Array.from(gradePeriods.values()),
+          reports: enrichedReports,
+          reportSnapshots: snapshots,
+          homeroomNotes: notes,
+          attendance: {
+            summary: attendanceSummary,
+            records: attendances,
+          },
+        },
+        tahfidz: {
+          deposits: enrichedDeposits,
+          exams: enrichedExams,
+          reportCards: tahfidzCards,
+        },
+        dormitory: {
+          roomHistory: enrichedRoomHistory,
+        },
+        halaqah: {
+          memberships: enrichedHalaqahHistory,
+        },
+        health: {
+          clinicPatient,
+          examinations: healthRows,
+          inpatients: inpatientRows,
+        },
+        discipline: {
+          records: rewardsAndPunishments,
+          warnings,
+        },
+        statusHistory,
+        timeline,
+      },
+    });
+  } catch (error: any) {
+    console.error("Get student timeline error:", error);
+    return c.json(
+      {
+        success: false,
+        message: "Failed to get student timeline",
+        error: error?.message || String(error),
       },
       500,
     );
