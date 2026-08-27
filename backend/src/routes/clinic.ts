@@ -1696,6 +1696,8 @@ clinicRoute.get("/reports/summary", async (c) => {
   try {
     const startDate = c.req.query("startDate");
     const endDate = c.req.query("endDate");
+    const patientTypeFilter = c.req.query("patientType"); // student | teacher | external (optional)
+    const genderFilter = c.req.query("gender"); // L | P (optional)
 
     // Defaults: Last 30 days
     let start = new Date();
@@ -1705,33 +1707,50 @@ clinicRoute.get("/reports/summary", async (c) => {
     if (startDate) start = new Date(startDate);
     if (endDate) end = new Date(endDate);
 
+    // Build optional filter conditions (L2 + L5)
+    const filterConditions = [
+      sql`${healthExaminations.examinationDate} >= ${start}`,
+      sql`${healthExaminations.examinationDate} <= ${end}`,
+    ];
+    if (patientTypeFilter && ["student", "teacher", "external"].includes(patientTypeFilter)) {
+      filterConditions.push(sql`${healthExaminations.patientType} = ${patientTypeFilter}`);
+    }
+    if (genderFilter && ["L", "P"].includes(genderFilter)) {
+      // Join with clinicPatients to filter by gender; LEFT JOIN to keep rows where clinicPatientId is null
+      filterConditions.push(
+        sql`(${healthExaminations.clinicPatientId} IS NULL OR ${clinicPatients.gender} = ${genderFilter})`,
+      );
+    }
+
     // 1. Visits per Date (Line Chart)
-    const visits = await db
+    const visitsQuery = db
       .select({
         date: sql<string>`DATE(${healthExaminations.examinationDate})`,
         count: sql<number>`count(*)`,
       })
-      .from(healthExaminations)
-      .where(
-        and(
-          sql`${healthExaminations.examinationDate} >= ${start}`,
-          sql`${healthExaminations.examinationDate} <= ${end}`,
-        ),
-      )
+      .from(healthExaminations);
+    if (genderFilter && ["L", "P"].includes(genderFilter)) {
+      visitsQuery.leftJoin(clinicPatients, eq(clinicPatients.id, healthExaminations.clinicPatientId));
+    }
+    const visits = await visitsQuery
+      .where(and(...filterConditions))
       .groupBy(sql`DATE(${healthExaminations.examinationDate})`)
       .orderBy(sql`DATE(${healthExaminations.examinationDate})`);
 
     // 2. Top Diagnoses (Bar Chart)
-    const diseases = await db
+    const diseasesQuery = db
       .select({
         name: healthExaminations.diagnosis,
         count: sql<number>`count(*)`,
       })
-      .from(healthExaminations)
+      .from(healthExaminations);
+    if (genderFilter && ["L", "P"].includes(genderFilter)) {
+      diseasesQuery.leftJoin(clinicPatients, eq(clinicPatients.id, healthExaminations.clinicPatientId));
+    }
+    const diseases = await diseasesQuery
       .where(
         and(
-          sql`${healthExaminations.examinationDate} >= ${start}`,
-          sql`${healthExaminations.examinationDate} <= ${end}`,
+          ...filterConditions,
           sql`${healthExaminations.diagnosis} IS NOT NULL`,
           sql`${healthExaminations.diagnosis} != ''`,
         ),
@@ -1741,18 +1760,17 @@ clinicRoute.get("/reports/summary", async (c) => {
       .limit(10);
 
     // 3. Patient Type Distribution (Pie Chart)
-    const patientTypes = await db
+    const patientTypesQuery = db
       .select({
         type: healthExaminations.patientType,
         count: sql<number>`count(*)`,
       })
-      .from(healthExaminations)
-      .where(
-        and(
-          sql`${healthExaminations.examinationDate} >= ${start}`,
-          sql`${healthExaminations.examinationDate} <= ${end}`,
-        ),
-      )
+      .from(healthExaminations);
+    if (genderFilter && ["L", "P"].includes(genderFilter)) {
+      patientTypesQuery.leftJoin(clinicPatients, eq(clinicPatients.id, healthExaminations.clinicPatientId));
+    }
+    const patientTypes = await patientTypesQuery
+      .where(and(...filterConditions))
       .groupBy(healthExaminations.patientType);
 
     return c.json({
@@ -1761,6 +1779,12 @@ clinicRoute.get("/reports/summary", async (c) => {
         visits,
         diseases,
         patientTypes,
+        filters: {
+          startDate: start,
+          endDate: end,
+          patientType: patientTypeFilter || null,
+          gender: genderFilter || null,
+        },
       },
     });
   } catch (e) {

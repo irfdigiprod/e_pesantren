@@ -31,3 +31,8 @@ bun-error.log
 
 # Uploads (if any)
 uploads/
+
+# Runtime artifacts (tidak boleh ke-push)
+logs/
+state/
+scripts/
