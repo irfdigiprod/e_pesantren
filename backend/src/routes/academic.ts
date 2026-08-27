@@ -24,6 +24,26 @@ import {
   updateReportSchema,
   bulkGradeSchema,
 } from "../validators/academic";
+import {
+  assertAcademicPeriodWritable,
+  buildAcademicReportSnapshotPayload,
+  createOrUpdateReportSnapshot,
+  writeAuditLog,
+} from "../utils/academic-periods";
+
+function academicPeriodGuardErrorResponse(c: any, error: any) {
+  if (error?.statusCode === 409) {
+    return c.json(
+      {
+        success: false,
+        message: error.message,
+        periodStatus: error.periodStatus,
+      },
+      409,
+    );
+  }
+  return null;
+}
 
 // Helper to check for duplicate subjects with overlapping grades
 // Returns object with isDuplicate boolean and message details if any
@@ -843,6 +863,12 @@ academicRoute.post(
     try {
       const data = c.req.valid("json");
 
+      await assertAcademicPeriodWritable(
+        data.academicYear || "",
+        data.semester,
+        "membuat jadwal",
+      );
+
       // ====== ANTI-CLASH VALIDATION ======
       // Check for Teacher Clash
       const teacherClash = await db.query.schedules.findFirst({
@@ -907,6 +933,8 @@ academicRoute.post(
         data: newSchedule,
       });
     } catch (error) {
+      const guardResponse = academicPeriodGuardErrorResponse(c, error);
+      if (guardResponse) return guardResponse;
       console.error("Create schedule error:", error);
       return c.json(
         { success: false, message: "Failed to create schedule" },
@@ -936,6 +964,12 @@ academicRoute.put(
       }
 
       const mergedData = { ...existingSchedule, ...data };
+
+      await assertAcademicPeriodWritable(
+        mergedData.academicYear || "",
+        mergedData.semester,
+        "mengubah jadwal",
+      );
 
       // ====== ANTI-CLASH VALIDATION ======
       // Check for Teacher Clash
@@ -1012,6 +1046,8 @@ academicRoute.put(
         data: updated,
       });
     } catch (error) {
+      const guardResponse = academicPeriodGuardErrorResponse(c, error);
+      if (guardResponse) return guardResponse;
       console.error("Update schedule error:", error);
       return c.json(
         { success: false, message: "Failed to update schedule" },
@@ -1029,6 +1065,20 @@ academicRoute.delete(
     try {
       const id = parseInt(c.req.param("id"));
 
+      const existingSchedule = await db.query.schedules.findFirst({
+        where: eq(schedules.id, id),
+      });
+
+      if (!existingSchedule) {
+        return c.json({ success: false, message: "Schedule not found" }, 404);
+      }
+
+      await assertAcademicPeriodWritable(
+        existingSchedule.academicYear || "",
+        existingSchedule.semester,
+        "menghapus jadwal",
+      );
+
       await db.delete(schedules).where(eq(schedules.id, id));
 
       return c.json({
@@ -1036,6 +1086,8 @@ academicRoute.delete(
         message: "Schedule deleted successfully",
       });
     } catch (error) {
+      const guardResponse = academicPeriodGuardErrorResponse(c, error);
+      if (guardResponse) return guardResponse;
       console.error("Delete schedule error:", error);
       return c.json(
         { success: false, message: "Failed to delete schedule" },
@@ -1080,6 +1132,12 @@ academicRoute.post(
   async (c) => {
     try {
       const data = c.req.valid("json");
+
+      await assertAcademicPeriodWritable(
+        data.academicYear,
+        data.semester,
+        "menyimpan nilai",
+      );
 
       // Check if grade already exists
       const existing = await db.query.grades.findFirst({
@@ -1191,6 +1249,8 @@ academicRoute.post(
         data: newGrade,
       });
     } catch (error) {
+      const guardResponse = academicPeriodGuardErrorResponse(c, error);
+      if (guardResponse) return guardResponse;
       console.error("Create grade error:", error);
       return c.json({ success: false, message: "Failed to add grade" }, 500);
     }
@@ -1214,6 +1274,12 @@ academicRoute.put(
       if (!existing) {
         return c.json({ success: false, message: "Grade not found" }, 404);
       }
+
+      await assertAcademicPeriodWritable(
+        existing.academicYear,
+        existing.semester,
+        "mengubah nilai",
+      );
 
       // Recalculate average
       const updatedData = { ...existing, ...data };
@@ -1267,6 +1333,8 @@ academicRoute.put(
         data: updated,
       });
     } catch (error) {
+      const guardResponse = academicPeriodGuardErrorResponse(c, error);
+      if (guardResponse) return guardResponse;
       console.error("Update grade error:", error);
       return c.json({ success: false, message: "Failed to update grade" }, 500);
     }
@@ -1457,6 +1525,18 @@ academicRoute.post(
       const items = c.req.valid("json");
       const results = { updated: 0, inserted: 0 };
 
+      const periodKeys = new Set(
+        items.map((item) => `${item.academicYear}::${item.semester}`),
+      );
+      for (const key of periodKeys) {
+        const [academicYear, semester] = key.split("::");
+        await assertAcademicPeriodWritable(
+          academicYear || "",
+          Number(semester),
+          "menyimpan nilai bulk",
+        );
+      }
+
       await db.transaction(async (tx) => {
         for (const item of items) {
           // Determine grade stats
@@ -1569,6 +1649,8 @@ academicRoute.post(
         results,
       });
     } catch (error) {
+      const guardResponse = academicPeriodGuardErrorResponse(c, error);
+      if (guardResponse) return guardResponse;
       console.error("Bulk save grades error:", error);
       return c.json({ success: false, message: "Gagal menyimpan nilai" }, 500);
     }
@@ -1625,6 +1707,12 @@ academicRoute.post(
   async (c) => {
     try {
       const data = c.req.valid("json");
+
+      await assertAcademicPeriodWritable(
+        data.academicYear,
+        data.semester,
+        "generate rapor",
+      );
 
       // Get student grades for this semester
       const studentGrades = await db.query.grades.findMany({
@@ -1699,6 +1787,8 @@ academicRoute.post(
         data: newReport,
       });
     } catch (error) {
+      const guardResponse = academicPeriodGuardErrorResponse(c, error);
+      if (guardResponse) return guardResponse;
       console.error("Generate report error:", error);
       return c.json(
         { success: false, message: "Failed to generate report" },
@@ -1726,6 +1816,12 @@ academicRoute.put(
         return c.json({ success: false, message: "Report not found" }, 404);
       }
 
+      await assertAcademicPeriodWritable(
+        existing.academicYear,
+        existing.semester,
+        data.status === "published" ? "publish rapor" : "mengubah rapor",
+      );
+
       const updateData: any = { ...data };
       if (data.status === "published") {
         updateData.publishedAt = new Date();
@@ -1737,12 +1833,42 @@ academicRoute.put(
         where: eq(reports.id, id),
       });
 
+      let snapshot = null;
+      if (data.status === "published" && updated) {
+        const payload = await buildAcademicReportSnapshotPayload(updated.id);
+        snapshot = await createOrUpdateReportSnapshot({
+          reportType: "academic",
+          studentId: updated.studentId,
+          classId: updated.classId,
+          reportId: updated.id,
+          academicYear: updated.academicYear,
+          semester: updated.semester,
+          status: "published",
+          payload,
+          publishedBy: c.get("user")?.userId || null,
+        });
+
+        await writeAuditLog({
+          actorUserId: c.get("user")?.userId || null,
+          entityType: "report",
+          entityId: updated.id,
+          action: "publish_snapshot",
+          beforeJson: existing,
+          afterJson: { report: updated, snapshot },
+          ipAddress: c.req.header("x-forwarded-for") || null,
+          userAgent: c.req.header("user-agent") || null,
+        });
+      }
+
       return c.json({
         success: true,
         message: "Report updated successfully",
         data: updated,
+        snapshot,
       });
     } catch (error) {
+      const guardResponse = academicPeriodGuardErrorResponse(c, error);
+      if (guardResponse) return guardResponse;
       console.error("Update report error:", error);
       return c.json(
         { success: false, message: "Failed to update report" },
@@ -2189,6 +2315,12 @@ academicRoute.post(
         );
       }
 
+      await assertAcademicPeriodWritable(
+        String(academicYear),
+        Number(semester),
+        "import nilai",
+      );
+
       const XLSX = await import("xlsx");
       const buffer = await file.arrayBuffer();
       const workbook = XLSX.read(buffer, { type: "array" });
@@ -2331,6 +2463,8 @@ academicRoute.post(
 
       return c.json({ success: true, data: results });
     } catch (error: any) {
+      const guardResponse = academicPeriodGuardErrorResponse(c, error);
+      if (guardResponse) return guardResponse;
       console.error("Import grades error:", error);
       return c.json({ success: false, message: error.message }, 500);
     }

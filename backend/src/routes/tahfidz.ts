@@ -34,6 +34,28 @@ import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import { getJuzFromPage, getJuzFromSurah } from "../utils/quran-mapping";
 import { authMiddleware } from "../middleware/auth";
+import {
+  assertAcademicPeriodWritable,
+  assertDateInWritableAcademicPeriod,
+  buildTahfidzReportSnapshotPayload,
+  createOrUpdateReportSnapshot,
+  normalizeSemester,
+  writeAuditLog,
+} from "../utils/academic-periods";
+
+function academicPeriodGuardErrorResponse(c: any, error: any) {
+  if (error?.statusCode === 409) {
+    return c.json(
+      {
+        success: false,
+        message: error.message,
+        periodStatus: error.periodStatus,
+      },
+      409,
+    );
+  }
+  return null;
+}
 
 const app = new Hono();
 
@@ -88,6 +110,16 @@ const examSchema = z.object({
   finalScore: z.number(),
   verdict: z.enum(["pass", "fail", "conditional"]),
   notes: z.string().optional(),
+});
+
+const reportCardPublishSchema = z.object({
+  academicYear: z.string().min(1),
+  semester: z.enum(["1", "2", "ganjil", "genap"]),
+  notes: z.string().optional(),
+  result: z.string().optional(),
+  sickCount: z.number().int().min(0).optional(),
+  permissionCount: z.number().int().min(0).optional(),
+  alphaCount: z.number().int().min(0).optional(),
 });
 
 // --- Routes ---
@@ -318,6 +350,12 @@ app.get("/deposits", async (c) => {
 app.post("/deposits", zValidator("json", depositSchema), async (c) => {
   const body = c.req.valid("json");
   try {
+    const depositDate = body.depositDate ? new Date(body.depositDate) : new Date();
+    await assertDateInWritableAcademicPeriod(
+      depositDate,
+      "mencatat setoran tahfidz",
+    );
+
     await db.insert(tahfidzDeposits).values({
       studentId: body.studentId,
       teacherId: body.teacherId,
@@ -342,10 +380,13 @@ app.post("/deposits", zValidator("json", depositSchema), async (c) => {
       // Other
       fluency: body.fluency ?? null,
       notes: body.notes ?? null,
-      depositDate: body.depositDate ? new Date(body.depositDate) : new Date(),
+      depositDate,
     });
     return c.json({ success: true, message: "Setoran berhasil dicatat" });
   } catch (e: any) {
+    const guardResponse = academicPeriodGuardErrorResponse(c, e);
+    if (guardResponse) return guardResponse;
+
     const isForeignKeyError =
       e.code === "ER_NO_REFERENCED_ROW_2" ||
       e?.cause?.code === "ER_NO_REFERENCED_ROW_2" ||
@@ -374,6 +415,24 @@ app.put("/deposits/:id", zValidator("json", depositSchema), async (c) => {
   const id = parseInt(c.req.param("id"));
   const body = c.req.valid("json");
   try {
+    const existing = await db.query.tahfidzDeposits.findFirst({
+      where: eq(tahfidzDeposits.id, id),
+    });
+
+    if (!existing) {
+      return c.json({ success: false, message: "Data setoran tidak ditemukan" }, 404);
+    }
+
+    await assertDateInWritableAcademicPeriod(
+      existing.depositDate,
+      "mengubah setoran tahfidz",
+    );
+    const depositDate = body.depositDate ? new Date(body.depositDate) : new Date();
+    await assertDateInWritableAcademicPeriod(
+      depositDate,
+      "mengubah setoran tahfidz",
+    );
+
     await db
       .update(tahfidzDeposits)
       .set({
@@ -400,13 +459,16 @@ app.put("/deposits/:id", zValidator("json", depositSchema), async (c) => {
         // Other
         fluency: body.fluency ?? null,
         notes: body.notes ?? null,
-        depositDate: body.depositDate ? new Date(body.depositDate) : new Date(),
+        depositDate,
         updatedAt: new Date(),
       })
       .where(eq(tahfidzDeposits.id, id));
 
     return c.json({ success: true, message: "Setoran berhasil diperbarui" });
   } catch (e: any) {
+    const guardResponse = academicPeriodGuardErrorResponse(c, e);
+    if (guardResponse) return guardResponse;
+
     const isForeignKeyError =
       e.code === "ER_NO_REFERENCED_ROW_2" ||
       e?.cause?.code === "ER_NO_REFERENCED_ROW_2" ||
@@ -434,9 +496,25 @@ app.put("/deposits/:id", zValidator("json", depositSchema), async (c) => {
 app.delete("/deposits/:id", async (c) => {
   const id = parseInt(c.req.param("id"));
   try {
+    const existing = await db.query.tahfidzDeposits.findFirst({
+      where: eq(tahfidzDeposits.id, id),
+    });
+
+    if (!existing) {
+      return c.json({ success: false, message: "Data setoran tidak ditemukan" }, 404);
+    }
+
+    await assertDateInWritableAcademicPeriod(
+      existing.depositDate,
+      "menghapus setoran tahfidz",
+    );
+
     await db.delete(tahfidzDeposits).where(eq(tahfidzDeposits.id, id));
     return c.json({ success: true, message: "Data setoran berhasil dihapus" });
   } catch (e: any) {
+    const guardResponse = academicPeriodGuardErrorResponse(c, e);
+    if (guardResponse) return guardResponse;
+
     return c.json(
       { success: false, message: e.message || "Internal Error" },
       500,
@@ -590,6 +668,19 @@ app.get("/exams", async (c) => {
 app.post("/exams", zValidator("json", examSchema), async (c) => {
   const body = c.req.valid("json");
   try {
+    if (body.academicYear && body.semester) {
+      await assertAcademicPeriodWritable(
+        body.academicYear,
+        body.semester,
+        "menyimpan ujian tahfidz",
+      );
+    } else {
+      await assertDateInWritableAcademicPeriod(
+        body.examDate,
+        "menyimpan ujian tahfidz",
+      );
+    }
+
     // For Suluk and UA, check for duplicate (one per student per semester per academic year)
     if (body.examCategory === "Suluk" || body.examCategory === "UA") {
       const existing = await db.query.tahfidzExams.findFirst({
@@ -620,6 +711,9 @@ app.post("/exams", zValidator("json", examSchema), async (c) => {
     });
     return c.json({ success: true, message: "Nilai ujian berhasil disimpan" });
   } catch (e: any) {
+    const guardResponse = academicPeriodGuardErrorResponse(c, e);
+    if (guardResponse) return guardResponse;
+
     return c.json(
       { success: false, message: e.message || "Internal Error" },
       500,
@@ -632,6 +726,40 @@ app.put("/exams/:id", zValidator("json", examSchema), async (c) => {
   const id = parseInt(c.req.param("id"));
   const body = c.req.valid("json");
   try {
+    const existing = await db.query.tahfidzExams.findFirst({
+      where: eq(tahfidzExams.id, id),
+    });
+
+    if (!existing) {
+      return c.json({ success: false, message: "Data ujian tidak ditemukan" }, 404);
+    }
+
+    if (existing.academicYear && existing.semester) {
+      await assertAcademicPeriodWritable(
+        existing.academicYear,
+        existing.semester,
+        "mengubah ujian tahfidz",
+      );
+    } else {
+      await assertDateInWritableAcademicPeriod(
+        existing.examDate,
+        "mengubah ujian tahfidz",
+      );
+    }
+
+    if (body.academicYear && body.semester) {
+      await assertAcademicPeriodWritable(
+        body.academicYear,
+        body.semester,
+        "mengubah ujian tahfidz",
+      );
+    } else {
+      await assertDateInWritableAcademicPeriod(
+        body.examDate,
+        "mengubah ujian tahfidz",
+      );
+    }
+
     await db
       .update(tahfidzExams)
       .set({
@@ -646,6 +774,9 @@ app.put("/exams/:id", zValidator("json", examSchema), async (c) => {
       message: "Nilai ujian berhasil diperbarui",
     });
   } catch (e: any) {
+    const guardResponse = academicPeriodGuardErrorResponse(c, e);
+    if (guardResponse) return guardResponse;
+
     return c.json(
       { success: false, message: e.message || "Internal Error" },
       500,
@@ -657,9 +788,33 @@ app.put("/exams/:id", zValidator("json", examSchema), async (c) => {
 app.delete("/exams/:id", async (c) => {
   const id = parseInt(c.req.param("id"));
   try {
+    const existing = await db.query.tahfidzExams.findFirst({
+      where: eq(tahfidzExams.id, id),
+    });
+
+    if (!existing) {
+      return c.json({ success: false, message: "Data ujian tidak ditemukan" }, 404);
+    }
+
+    if (existing.academicYear && existing.semester) {
+      await assertAcademicPeriodWritable(
+        existing.academicYear,
+        existing.semester,
+        "menghapus ujian tahfidz",
+      );
+    } else {
+      await assertDateInWritableAcademicPeriod(
+        existing.examDate,
+        "menghapus ujian tahfidz",
+      );
+    }
+
     await db.delete(tahfidzExams).where(eq(tahfidzExams.id, id));
     return c.json({ success: true, message: "Data ujian berhasil dihapus" });
   } catch (e: any) {
+    const guardResponse = academicPeriodGuardErrorResponse(c, e);
+    if (guardResponse) return guardResponse;
+
     return c.json(
       { success: false, message: e.message || "Internal Error" },
       500,
@@ -1593,6 +1748,116 @@ app.get("/report-card/:studentId", async (c) => {
     return c.json({ success: false, message: e.message }, 500);
   }
 });
+
+// POST /report-card/:studentId/publish - freeze tahfidz report card snapshot
+app.post(
+  "/report-card/:studentId/publish",
+  zValidator("json", reportCardPublishSchema),
+  async (c) => {
+    const studentId = parseInt(c.req.param("studentId"));
+    const body = c.req.valid("json");
+    const semester = String(normalizeSemester(body.semester) || 1) as "1" | "2";
+
+    try {
+      const user = c.get("user");
+
+      await assertAcademicPeriodWritable(
+        body.academicYear,
+        semester,
+        "publish rapor tahfidz",
+      );
+
+      const student = await db.query.students.findFirst({
+        where: eq(students.id, studentId),
+      });
+
+      if (!student) {
+        return c.json({ success: false, message: "Santri tidak ditemukan" }, 404);
+      }
+
+      const existing = await db.query.tahfidzReportCards.findFirst({
+        where: and(
+          eq(tahfidzReportCards.studentId, studentId),
+          eq(tahfidzReportCards.academicYear, body.academicYear),
+          eq(tahfidzReportCards.semester, semester),
+        ),
+      });
+
+      const reportPayload = {
+        studentId,
+        academicYear: body.academicYear,
+        semester,
+        notes: body.notes ?? null,
+        result: body.result ?? null,
+        sickCount: body.sickCount ?? 0,
+        permissionCount: body.permissionCount ?? 0,
+        alphaCount: body.alphaCount ?? 0,
+        generatedAt: new Date(),
+      };
+
+      if (existing) {
+        await db
+          .update(tahfidzReportCards)
+          .set(reportPayload)
+          .where(eq(tahfidzReportCards.id, existing.id));
+      } else {
+        await db.insert(tahfidzReportCards).values(reportPayload);
+      }
+
+      const savedReportCard = await db.query.tahfidzReportCards.findFirst({
+        where: and(
+          eq(tahfidzReportCards.studentId, studentId),
+          eq(tahfidzReportCards.academicYear, body.academicYear),
+          eq(tahfidzReportCards.semester, semester),
+        ),
+      });
+
+      const payload = await buildTahfidzReportSnapshotPayload({
+        studentId,
+        academicYear: body.academicYear,
+        semester,
+      });
+
+      const snapshot = await createOrUpdateReportSnapshot({
+        reportType: "tahfidz",
+        studentId,
+        classId: student.classId,
+        reportId: null,
+        academicYear: body.academicYear,
+        semester,
+        status: "published",
+        payload,
+        publishedBy: user?.userId || null,
+      });
+
+      await writeAuditLog({
+        actorUserId: user?.userId || null,
+        entityType: "tahfidz_report_card",
+        entityId: savedReportCard?.id,
+        action: "publish_snapshot",
+        beforeJson: existing,
+        afterJson: { reportCard: savedReportCard, snapshot },
+        ipAddress: c.req.header("x-forwarded-for") || null,
+        userAgent: c.req.header("user-agent") || null,
+      });
+
+      return c.json({
+        success: true,
+        message: "Rapor tahfidz berhasil dipublish dan disnapshot",
+        data: savedReportCard,
+        snapshot,
+      });
+    } catch (e: any) {
+      const guardResponse = academicPeriodGuardErrorResponse(c, e);
+      if (guardResponse) return guardResponse;
+
+      return c.json(
+        { success: false, message: e.message || "Gagal publish rapor tahfidz" },
+        500,
+      );
+    }
+  },
+);
 
 // GET /exams/template - Download Template Import
 app.get("/exams/template", async (c) => {

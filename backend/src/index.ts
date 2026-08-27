@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { logger } from "hono/logger";
 import { prettyJSON } from "hono/pretty-json";
 import { corsConfig } from "./config/cors";
+import { apiMeta, apiSections, buildDocsHtml, buildOpenApiDocument } from "./config/api-docs";
 import {
   authRoute,
   studentsRoute,
@@ -14,6 +15,7 @@ import {
   punishmentsRoute,
   clinicRoute,
   academicRoute,
+  academicPeriodsRoute,
   halaqahRoute,
   roomsRoute,
   chatRoute,
@@ -60,27 +62,16 @@ app.use("*", corsConfig());
 app.get("/", (c) => {
   return c.json({
     success: true,
-    message: "Sistem Informasi Manajemen Pesantren API",
-    version: "1.0.0",
-    endpoints: {
-      auth: "/api/auth",
-      students: "/api/students",
-      parents: "/api/parents",
-      teachers: "/api/teachers",
-      quran: "/api/quran",
-      attendance: "/api/attendance",
-      rewards: "/api/rewards",
-      punishments: "/api/punishments",
-      clinic: "/api/clinic",
-      academic: "/api/academic",
-      halaqah: "/api/halaqah",
-      rooms: "/api/rooms",
-      chat: "/api/chat",
-      uploads: "/api/uploads",
-      utils: "/api/utils",
-      divisions: "/api/divisions",
-      informationBoard: "/api/information-board",
-      savings: "/api/savings",
+    message: apiMeta.name,
+    version: apiMeta.version,
+    docs: {
+      html: "/api/docs",
+      openapi: "/api/openapi.json",
+    },
+    endpoints: Object.fromEntries(
+      apiSections.map((section) => [section.key, section.basePath])
+    ),
+    realtime: {
       websocket: "/ws",
     },
   });
@@ -91,8 +82,22 @@ app.get("/api/health", (c) => {
   return c.json({
     success: true,
     status: "healthy",
+    service: apiMeta.name,
+    version: apiMeta.version,
     timestamp: new Date().toISOString(),
   });
+});
+
+app.get("/api/openapi.json", (c) => {
+  const url = new URL(c.req.url);
+  const baseUrl = `${url.protocol}//${url.host}`;
+  return c.json(buildOpenApiDocument(baseUrl));
+});
+
+app.get("/api/docs", (c) => {
+  const url = new URL(c.req.url);
+  const baseUrl = `${url.protocol}//${url.host}`;
+  return c.html(buildDocsHtml(baseUrl));
 });
 
 // Register routes
@@ -106,6 +111,7 @@ app.route("/api/rewards", rewardsRoute);
 app.route("/api/punishments", punishmentsRoute);
 app.route("/api/clinic", clinicRoute);
 app.route("/api/academic", academicRoute);
+app.route("/api/academic-periods", academicPeriodsRoute);
 app.route("/api/halaqah", halaqahRoute);
 app.route("/api/rooms", roomsRoute);
 app.route("/api/chat", chatRoute);
@@ -152,6 +158,7 @@ app.onError((err, c) => {
     {
       success: false,
       message: err.message || "Internal server error",
+      errorName: err.name || "Error",
     },
     500
   );

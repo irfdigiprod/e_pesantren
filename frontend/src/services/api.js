@@ -407,6 +407,10 @@ export const studentsApi = {
     return request(`/api/students/${id}`);
   },
 
+  async getTimeline(id) {
+    return request(`/api/students/${id}/timeline`);
+  },
+
   async create(data) {
     return request("/api/students", {
       method: "POST",
