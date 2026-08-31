@@ -709,7 +709,7 @@ const settings = ref({
   accuracyTolerance: 50, // Default 50m tolerance for low accuracy GPS
   activityTypes: ["Mengajar", "Piket", "Rapat", "Kegiatan Lainnya"],
   periodStart: 25,
-  periodEnd: 24,
+  periodEnd: 25,
   periodType: "cross_month",
   holidays: [0], // Default Sunday
 });

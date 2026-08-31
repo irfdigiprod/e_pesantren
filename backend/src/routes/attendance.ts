@@ -750,7 +750,7 @@ attendanceRoute.get(
       endDate = new Date(customEnd);
     } else {
       const startDay = parseInt(sMap["attendance_period_start"] || "25");
-      const endDay = parseInt(sMap["attendance_period_end"] || "24");
+      const endDay = parseInt(sMap["attendance_period_end"] || "25");
       const periodType = sMap["attendance_period_type"] || "cross_month";
 
       if (periodType === "same_month") {

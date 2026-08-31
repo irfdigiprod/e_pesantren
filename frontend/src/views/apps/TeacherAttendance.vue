@@ -205,8 +205,13 @@
             <span class="text-xs text-slate-600 font-medium">Masuk</span>
             <span class="text-xs text-slate-400 ml-auto">{{
               todayAttendance?.checkIn && todayAttendance?.checkInLatitude
-                ? calculateDistanceFromCoords(todayAttendance.checkInLatitude, todayAttendance.checkInLongitude)
-                : (distance !== null ? formatDistance(distance) : "...")
+                ? calculateDistanceFromCoords(
+                    todayAttendance.checkInLatitude,
+                    todayAttendance.checkInLongitude,
+                  )
+                : distance !== null
+                  ? formatDistance(distance)
+                  : "..."
             }}</span>
             <Icon
               v-if="isWithinRadius"
@@ -259,8 +264,8 @@
               !selectedActivity
                 ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
                 : isWithinRadius
-                ? 'bg-amber-900 text-white hover:bg-amber-400 shadow-md'
-                : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                  ? 'bg-amber-900 text-white hover:bg-amber-400 shadow-md'
+                  : 'bg-slate-200 text-slate-400 cursor-not-allowed'
             "
           >
             <span
@@ -287,8 +292,13 @@
             <span class="text-xs text-slate-600 font-medium">Pulang</span>
             <span class="text-xs text-slate-400 ml-auto">{{
               todayAttendance?.checkOut && todayAttendance?.checkOutLatitude
-                ? calculateDistanceFromCoords(todayAttendance.checkOutLatitude, todayAttendance.checkOutLongitude)
-                : (distance !== null ? formatDistance(distance) : "...")
+                ? calculateDistanceFromCoords(
+                    todayAttendance.checkOutLatitude,
+                    todayAttendance.checkOutLongitude,
+                  )
+                : distance !== null
+                  ? formatDistance(distance)
+                  : "..."
             }}</span>
             <Icon
               v-if="isWithinRadius"
@@ -323,8 +333,8 @@
               !!todayAttendance?.checkOut
                 ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
                 : isWithinRadius && todayAttendance?.checkIn
-                ? 'bg-amber-900 text-white hover:bg-amber-400 shadow-md'
-                : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                  ? 'bg-amber-900 text-white hover:bg-amber-400 shadow-md'
+                  : 'bg-slate-200 text-slate-400 cursor-not-allowed'
             "
           >
             <Icon
@@ -345,26 +355,60 @@
           <div class="flex items-center gap-2">
             <Icon icon="lucide:calendar" class="w-5 h-5 text-slate-400" />
             <span class="text-sm font-medium text-slate-700">
-              {{
-                showFullHistory ? "Riwayat Absensi Saya" : "Kegiatan hari ini"
-              }}
+              {{ showFullHistory ? "" : "Kegiatan hari ini" }}
               <span v-if="!showFullHistory">, {{ formattedToday }}</span>
             </span>
           </div>
-          <button
-            @click="showFullHistory = !showFullHistory"
-            class="p-1 rounded-lg hover:bg-slate-100 transition-colors"
-            :title="
-              showFullHistory ? 'Tampilan Ringkas' : 'Lihat Semua Riwayat'
-            "
-          >
-            <Icon
-              :icon="
-                showFullHistory ? 'lucide:layout-grid' : 'lucide:calendar-days'
+
+          <div class="flex items-center gap-2">
+            <!-- View Switcher when in Full History Mode -->
+            <div
+              v-if="showFullHistory"
+              class="flex items-center p-1 bg-slate-100 rounded-xl text-xs font-medium text-slate-600 gap-1"
+            >
+              <button
+                @click="historyViewMode = 'calendar'"
+                class="px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5"
+                :class="
+                  historyViewMode === 'calendar'
+                    ? 'bg-amber-600 text-white font-semibold shadow-xs'
+                    : 'text-slate-500 hover:text-slate-800'
+                "
+              >
+                <Icon icon="lucide:calendar-days" class="w-3.5 h-3.5" />
+                <span>Kalender</span>
+              </button>
+              <button
+                @click="historyViewMode = 'table'"
+                class="px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5"
+                :class="
+                  historyViewMode === 'table'
+                    ? 'bg-amber-600 text-white font-semibold shadow-xs'
+                    : 'text-slate-500 hover:text-slate-800'
+                "
+              >
+                <Icon icon="lucide:table" class="w-3.5 h-3.5" />
+                <span>Tabel</span>
+              </button>
+            </div>
+
+            <button
+              @click="showFullHistory = !showFullHistory"
+              class="p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+              :title="
+                showFullHistory ? 'Tampilan Ringkas' : 'Lihat Semua Riwayat'
               "
-              class="w-5 h-5 text-amber-900"
-            />
-          </button>
+            >
+              <Icon
+                :icon="
+                  showFullHistory
+                    ? 'lucide:layout-grid'
+                    : 'lucide:calendar-days'
+                "
+                class="w-5 h-5 text-amber-900"
+              />
+            </button>
+          </div>
         </div>
 
         <!-- Compact View (Today only) -->
@@ -414,7 +458,7 @@
                     {{
                       calculateDistanceFromCoords(
                         item.checkInLatitude,
-                        item.checkInLongitude
+                        item.checkInLongitude,
                       )
                     }}
                   </span>
@@ -423,7 +467,7 @@
                     {{
                       calculateDistanceFromCoords(
                         item.checkOutLatitude,
-                        item.checkOutLongitude
+                        item.checkOutLongitude,
                       )
                     }}
                   </span>
@@ -439,252 +483,618 @@
           </div>
         </div>
 
-        <!-- Full Table View (All user's records) -->
-        <!-- Full Table View -->
+        <!-- Full Period Views -->
         <div v-else>
-          <!-- Mobile: Card View -->
-          <div class="md:hidden divide-y divide-slate-100">
-            <template v-for="date in periodDates" :key="date.toISOString()">
-              <!-- Has Data -->
-              <template v-if="getAttendancesForDate(date).length > 0">
+          <!-- Calendar View -->
+          <div v-if="historyViewMode === 'calendar'" class="p-3 sm:p-5">
+            <!-- Calendar Weekday Headers (7 Columns) -->
+            <div class="grid grid-cols-7 gap-1.5 sm:gap-2.5 mb-3 text-center">
+              <div
+                v-for="day in weekDaysHeader"
+                :key="day.name"
+                class="py-2 px-1 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-colors"
+                :class="
+                  day.isSunday
+                    ? 'bg-rose-50 text-rose-600 border border-rose-100'
+                    : 'bg-slate-50 text-slate-600 border border-slate-100'
+                "
+              >
+                <span class="hidden sm:inline">{{ day.name }}</span>
+                <span class="sm:hidden">{{ day.short }}</span>
+              </div>
+            </div>
+
+            <!-- Calendar Matrix (7 Columns) -->
+            <div class="grid grid-cols-7 gap-1 sm:gap-2">
+              <template
+                v-for="(item, idx) in calendarGrid"
+                :key="item.isPadding ? item.id : item.dateStr || idx"
+              >
+                <!-- Blank Empty Padding Cell -->
                 <div
-                  class="p-4 relative transition-colors"
-                  :class="
-                    settings.holidays?.includes(date.getDay())
-                      ? 'bg-rose-50'
-                      : 'bg-white hover:bg-slate-50'
-                  "
+                  v-if="item.isPadding"
+                  class="min-h-[64px] xs:min-h-[70px] sm:min-h-[92px] rounded-xl sm:rounded-2xl bg-slate-50/40 border border-dashed border-slate-100 pointer-events-none opacity-40"
+                ></div>
+
+                <!-- Interactive Date Cell -->
+                <div
+                  v-else
+                  @click="openDateDetailModal(item)"
+                  class="min-h-[64px] xs:min-h-[70px] sm:min-h-[92px] rounded-xl sm:rounded-2xl p-1 sm:p-2 border transition-all cursor-pointer flex flex-col justify-between group hover:shadow-md relative overflow-hidden"
+                  :class="[
+                    item.isToday
+                      ? 'bg-amber-50/90 border-amber-400 ring-2 ring-amber-400/40'
+                      : item.isSunday || item.isHoliday
+                        ? 'bg-rose-50/40 border-rose-100 hover:border-rose-300'
+                        : item.records.length > 0
+                          ? 'bg-white border-slate-200 hover:border-amber-400 hover:bg-amber-50/20'
+                          : 'bg-slate-50/60 border-slate-100 hover:border-slate-300',
+                  ]"
                 >
-                  <!-- Single Header for Date & Status -->
-                  <div
-                    class="flex items-center justify-between mb-3 border-b border-slate-100 pb-2"
-                  >
-                    <span class="text-sm font-bold text-slate-800">{{
-                      formatDate(getAttendancesForDate(date)[0].date)
-                    }}</span>
+                  <!-- Top Row: Date Number & Month -->
+                  <div class="flex items-center justify-between w-full">
                     <span
-                      class="px-2 py-0.5 rounded-full text-xs font-medium"
-                      :class="
-                        getStatusClass(getAttendancesForDate(date)[0].status)
-                      "
+                      class="text-[11px] sm:text-sm font-black leading-none"
+                      :class="[
+                        item.isToday
+                          ? 'text-amber-800 bg-amber-200/80 px-1 py-0.5 rounded-md'
+                          : item.isSunday || item.isHoliday
+                            ? 'text-rose-600'
+                            : 'text-slate-800',
+                      ]"
                     >
-                      {{
-                        formatAttendanceStatus(
-                          getAttendancesForDate(date)[0].status
-                        )
-                      }}
+                      {{ item.dayNumber }}
+                      <span
+                        v-if="
+                          item.dayNumber === 1 ||
+                          idx === calendarGrid.findIndex((g) => !g.isPadding)
+                        "
+                        class="text-[9px] font-bold text-slate-400 ml-0.5"
+                      >
+                        {{ item.monthShort }}
+                      </span>
+                    </span>
+
+                    <!-- Today Badge -->
+                    <span
+                      v-if="item.isToday"
+                      class="hidden md:inline-block text-[9px] font-bold uppercase tracking-wider text-amber-800 bg-amber-200/80 px-1.5 py-0.5 rounded-full"
+                    >
+                      Hari Ini
                     </span>
                   </div>
 
-                  <!-- List of Sessions for this Date -->
-                  <div class="space-y-3">
-                    <div
-                      v-for="(item, idx) in getAttendancesForDate(date)"
-                      :key="item.id"
-                      class="space-y-1"
-                    >
-                      <div class="flex items-center gap-4 text-sm">
-                        <div class="min-w-[80px]">
-                          <span
-                            class="text-xs text-slate-400 block uppercase tracking-wider"
-                            >Masuk</span
-                          >
-                          <span class="text-emerald-600 font-medium">{{
-                            item.checkIn || "-"
-                          }}</span>
-                        </div>
-                        <div class="min-w-[80px]">
-                          <span
-                            class="text-xs text-slate-400 block uppercase tracking-wider"
-                            >Pulang</span
-                          >
-                          <span class="text-rose-600 font-medium">{{
-                            item.checkOut || "-"
-                          }}</span>
-                        </div>
-                      </div>
-                      <!-- Activity -->
-                      <div
-                        v-if="item.activity"
-                        class="text-xs text-slate-500 italic flex items-center gap-1.5 pt-0.5"
+                  <!-- Middle Content: Attendance Status summary -->
+                  <div
+                    class="my-auto w-full flex flex-col items-center justify-center"
+                  >
+                    <!-- Has Records -->
+                    <template v-if="item.records.length > 0">
+                      <span
+                        class="px-1 py-0.5 text-[9px] xs:text-[10px] sm:text-xs font-extrabold rounded-md leading-tight text-center w-full block tracking-tight"
+                        :class="getCalendarStatusClass(item.records[0])"
                       >
-                        <Icon
-                          icon="lucide:clipboard-list"
-                          class="w-3 h-3 opacity-70"
-                        />
-                        {{ item.activity }}
-                      </div>
+                        {{ formatCalendarStatus(item.records[0]) }}
+                      </span>
+                    </template>
 
-                      <!-- Divider if not last item -->
-                      <div
-                        v-if="idx < getAttendancesForDate(date).length - 1"
-                        class="h-px bg-slate-100 my-2"
-                      ></div>
-                    </div>
+                    <!-- Holiday / Sunday -->
+                    <template v-else-if="item.isSunday || item.isHoliday">
+                      <span
+                        class="text-[9px] sm:text-xs font-bold text-rose-400 block text-center leading-tight"
+                      >
+                        Libur
+                      </span>
+                    </template>
+
+                    <!-- Empty / Past -->
+                    <template v-else>
+                      <span
+                        class="text-[10px] sm:text-xs text-slate-300 group-hover:text-amber-600 transition-colors block text-center leading-tight"
+                      >
+                        -
+                      </span>
+                    </template>
+                  </div>
+
+                  <!-- Bottom hint line -->
+                  <div
+                    class="text-[8px] sm:text-[9px] text-slate-400 flex justify-end opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <Icon icon="lucide:chevron-right" class="w-3 h-3" />
                   </div>
                 </div>
               </template>
-
-              <!-- Empty / Claim -->
-              <div
-                v-else
-                class="p-4 flex items-center justify-between"
-                :class="
-                  settings.holidays?.includes(date.getDay())
-                    ? 'bg-rose-50'
-                    : 'bg-slate-50'
-                "
-              >
-                <span
-                  class="text-sm font-medium text-slate-400"
-                  :class="{
-                    'text-rose-400': settings.holidays?.includes(date.getDay()),
-                  }"
-                  >{{ formatDate(formatDateISO(date)) }}</span
-                >
-                <button
-                  @click="openClaimModal(date)"
-                  class="px-3 py-1 text-xs font-medium bg-white border border-slate-200 text-slate-600 rounded-full hover:bg-amber-50 hover:text-amber-600 transition-colors shadow-sm"
-                >
-                  Klaim Kehadiran
-                </button>
-              </div>
-            </template>
-
-            <div
-              v-if="periodDates.length === 0"
-              class="p-8 text-center text-slate-400 text-sm"
-            >
-              Menyiapkan periode absensi...
             </div>
           </div>
 
-          <!-- Desktop: Table View -->
-          <div class="hidden md:block overflow-x-auto">
-            <table class="w-full text-sm">
-              <thead>
-                <tr
-                  class="text-left text-xs font-semibold text-slate-500 bg-slate-50 uppercase tracking-wider border-b border-slate-100"
+          <!-- Table View -->
+          <div v-else-if="historyViewMode === 'table'">
+            <!-- Mobile: Card View -->
+            <div class="md:hidden divide-y divide-slate-100">
+              <template v-for="date in periodDates" :key="date.toISOString()">
+                <!-- Has Data -->
+                <template v-if="getAttendancesForDate(date).length > 0">
+                  <div
+                    class="p-4 relative transition-colors"
+                    :class="
+                      settings.holidays?.includes(date.getDay())
+                        ? 'bg-rose-50'
+                        : 'bg-white hover:bg-slate-50'
+                    "
+                  >
+                    <!-- Single Header for Date & Status -->
+                    <div
+                      class="flex items-center justify-between mb-3 border-b border-slate-100 pb-2"
+                    >
+                      <span class="text-sm font-bold text-slate-800">{{
+                        formatDate(getAttendancesForDate(date)[0].date)
+                      }}</span>
+                      <span
+                        class="px-2 py-0.5 rounded-full text-xs font-medium"
+                        :class="
+                          getStatusClass(getAttendancesForDate(date)[0].status)
+                        "
+                      >
+                        {{
+                          formatAttendanceStatus(
+                            getAttendancesForDate(date)[0].status,
+                          )
+                        }}
+                      </span>
+                    </div>
+
+                    <!-- List of Sessions for this Date -->
+                    <div class="space-y-3">
+                      <div
+                        v-for="(item, idx) in getAttendancesForDate(date)"
+                        :key="item.id"
+                        class="space-y-1"
+                      >
+                        <div class="flex items-center gap-4 text-sm">
+                          <div class="min-w-[80px]">
+                            <span
+                              class="text-xs text-slate-400 block uppercase tracking-wider"
+                              >Masuk</span
+                            >
+                            <span class="text-emerald-600 font-medium">{{
+                              item.checkIn || "-"
+                            }}</span>
+                          </div>
+                          <div class="min-w-[80px]">
+                            <span
+                              class="text-xs text-slate-400 block uppercase tracking-wider"
+                              >Pulang</span
+                            >
+                            <span class="text-rose-600 font-medium">{{
+                              item.checkOut || "-"
+                            }}</span>
+                          </div>
+                        </div>
+                        <!-- Activity -->
+                        <div
+                          v-if="item.activity"
+                          class="text-xs text-slate-500 italic flex items-center gap-1.5 pt-0.5"
+                        >
+                          <Icon
+                            icon="lucide:clipboard-list"
+                            class="w-3 h-3 opacity-70"
+                          />
+                          {{ item.activity }}
+                        </div>
+
+                        <!-- Divider if not last item -->
+                        <div
+                          v-if="idx < getAttendancesForDate(date).length - 1"
+                          class="h-px bg-slate-100 my-2"
+                        ></div>
+                      </div>
+                    </div>
+                  </div>
+                </template>
+
+                <!-- Empty / Claim -->
+                <div
+                  v-else
+                  class="p-4 flex items-center justify-between"
+                  :class="
+                    settings.holidays?.includes(date.getDay())
+                      ? 'bg-rose-50'
+                      : 'bg-slate-50'
+                  "
                 >
-                  <th class="px-4 py-3">Tanggal</th>
-                  <th class="px-4 py-3">Masuk</th>
-                  <th class="px-4 py-3">Jarak Masuk</th>
-                  <th class="px-4 py-3">Pulang</th>
-                  <th class="px-4 py-3">Jarak Pulang</th>
-                  <th class="px-4 py-3">Status</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-100">
-                <template v-for="date in periodDates" :key="date.toISOString()">
-                  <!-- Check if date has attendances -->
-                  <template v-if="getAttendancesForDate(date).length > 0">
+                  <span
+                    class="text-sm font-medium text-slate-400"
+                    :class="{
+                      'text-rose-400': settings.holidays?.includes(
+                        date.getDay(),
+                      ),
+                    }"
+                    >{{ formatDate(formatDateISO(date)) }}</span
+                  >
+                  <button
+                    @click="openClaimModal(date)"
+                    class="px-3 py-1 text-xs font-medium bg-white border border-slate-200 text-slate-600 rounded-full hover:bg-amber-50 hover:text-amber-600 transition-colors shadow-sm"
+                  >
+                    Klaim Kehadiran
+                  </button>
+                </div>
+              </template>
+
+              <div
+                v-if="periodDates.length === 0"
+                class="p-8 text-center text-slate-400 text-sm"
+              >
+                Menyiapkan periode absensi...
+              </div>
+            </div>
+
+            <!-- Desktop: Table View -->
+            <div class="hidden md:block overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr
+                    class="text-left text-xs font-semibold text-slate-500 bg-slate-50 uppercase tracking-wider border-b border-slate-100"
+                  >
+                    <th class="px-4 py-3">Tanggal</th>
+                    <th class="px-4 py-3">Masuk</th>
+                    <th class="px-4 py-3">Jarak Masuk</th>
+                    <th class="px-4 py-3">Pulang</th>
+                    <th class="px-4 py-3">Jarak Pulang</th>
+                    <th class="px-4 py-3">Status</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                  <template
+                    v-for="date in periodDates"
+                    :key="date.toISOString()"
+                  >
+                    <!-- Check if date has attendances -->
+                    <template v-if="getAttendancesForDate(date).length > 0">
+                      <tr
+                        v-for="(item, idx) in getAttendancesForDate(date)"
+                        :key="item.id"
+                        class="transition-colors"
+                        :class="
+                          settings.holidays?.includes(date.getDay())
+                            ? 'bg-rose-50'
+                            : 'hover:bg-slate-50/50'
+                        "
+                      >
+                        <!-- Date Cell: Only show on first row, span if multiple -->
+                        <td
+                          class="px-4 py-3 font-medium text-slate-900 border-r border-slate-100 align-top"
+                          v-if="idx === 0"
+                          :rowspan="getAttendancesForDate(date).length"
+                        >
+                          {{ formatDate(item.date) }}
+                        </td>
+
+                        <td
+                          class="px-4 py-3 text-emerald-600 font-medium align-top"
+                        >
+                          {{ item.checkIn || "-" }}
+                          <div
+                            v-if="item.activity"
+                            class="text-xs text-slate-400 font-normal mt-0.5 max-w-[150px] truncate"
+                            :title="item.activity"
+                          >
+                            {{ item.activity }}
+                          </div>
+                        </td>
+                        <td class="px-4 py-3 text-slate-500 text-xs align-top">
+                          {{
+                            item.checkInLatitude
+                              ? calculateDistanceFromCoords(
+                                  item.checkInLatitude,
+                                  item.checkInLongitude,
+                                )
+                              : "-"
+                          }}
+                        </td>
+                        <td
+                          class="px-4 py-3 text-rose-600 font-medium align-top"
+                        >
+                          {{ item.checkOut || "-" }}
+                        </td>
+                        <td class="px-4 py-3 text-slate-500 text-xs align-top">
+                          {{
+                            item.checkOutLatitude
+                              ? calculateDistanceFromCoords(
+                                  item.checkOutLatitude,
+                                  item.checkOutLongitude,
+                                )
+                              : "-"
+                          }}
+                        </td>
+                        <td class="px-4 py-3 align-top">
+                          <span
+                            class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium capitalize"
+                            :class="getStatusClass(item.status)"
+                          >
+                            {{ formatAttendanceStatus(item.status) }}
+                            <span
+                              v-if="item.isClaim"
+                              class="ml-1 text-slate-500"
+                              >(Klaim)</span
+                            >
+                          </span>
+                        </td>
+                      </tr>
+                    </template>
+
+                    <!-- Missing Attendance Row -->
                     <tr
-                      v-for="(item, idx) in getAttendancesForDate(date)"
-                      :key="item.id"
+                      v-else
                       class="transition-colors"
                       :class="
                         settings.holidays?.includes(date.getDay())
                           ? 'bg-rose-50'
-                          : 'hover:bg-slate-50/50'
+                          : 'bg-transparent hover:bg-slate-50/50'
                       "
                     >
-                      <!-- Date Cell: Only show on first row, span if multiple -->
                       <td
-                        class="px-4 py-3 font-medium text-slate-900 border-r border-slate-100 align-top"
-                        v-if="idx === 0"
-                        :rowspan="getAttendancesForDate(date).length"
+                        class="px-4 py-3 font-medium text-slate-400 border-r border-slate-100"
                       >
-                        {{ formatDate(item.date) }}
+                        {{ formatDate(formatDateISO(date)) }}
                       </td>
-
                       <td
-                        class="px-4 py-3 text-emerald-600 font-medium align-top"
+                        colspan="4"
+                        class="px-4 py-3 text-center text-slate-300"
                       >
-                        {{ item.checkIn || "-" }}
-                        <div
-                          v-if="item.activity"
-                          class="text-xs text-slate-400 font-normal mt-0.5 max-w-[150px] truncate"
-                          :title="item.activity"
+                        -
+                      </td>
+                      <td class="px-4 py-3">
+                        <button
+                          @click="openClaimModal(date)"
+                          class="px-2 py-1 text-xs font-medium bg-slate-100 text-slate-500 rounded-full hover:bg-slate-200 transition-colors"
                         >
-                          {{ item.activity }}
-                        </div>
-                      </td>
-                      <td class="px-4 py-3 text-slate-500 text-xs align-top">
-                        {{
-                          item.checkInLatitude
-                            ? calculateDistanceFromCoords(
-                                item.checkInLatitude,
-                                item.checkInLongitude
-                              )
-                            : "-"
-                        }}
-                      </td>
-                      <td class="px-4 py-3 text-rose-600 font-medium align-top">
-                        {{ item.checkOut || "-" }}
-                      </td>
-                      <td class="px-4 py-3 text-slate-500 text-xs align-top">
-                        {{
-                          item.checkOutLatitude
-                            ? calculateDistanceFromCoords(
-                                item.checkOutLatitude,
-                                item.checkOutLongitude
-                              )
-                            : "-"
-                        }}
-                      </td>
-                      <td class="px-4 py-3 align-top">
-                        <span
-                          class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium capitalize"
-                          :class="getStatusClass(item.status)"
-                        >
-                          {{ formatAttendanceStatus(item.status) }}
-                          <span v-if="item.isClaim" class="ml-1 text-slate-500"
-                            >(Klaim)</span
-                          >
-                        </span>
+                          Tidak hadir (Klaim)
+                        </button>
                       </td>
                     </tr>
                   </template>
 
-                  <!-- Missing Attendance Row -->
-                  <tr
-                    v-else
-                    class="transition-colors"
-                    :class="
-                      settings.holidays?.includes(date.getDay())
-                        ? 'bg-rose-50'
-                        : 'bg-transparent hover:bg-slate-50/50'
-                    "
-                  >
+                  <tr v-if="periodDates.length === 0">
                     <td
-                      class="px-4 py-3 font-medium text-slate-400 border-r border-slate-100"
+                      colspan="6"
+                      class="px-4 py-8 text-center text-slate-400"
                     >
-                      {{ formatDate(formatDateISO(date)) }}
-                    </td>
-                    <td
-                      colspan="4"
-                      class="px-4 py-3 text-center text-slate-300"
-                    >
-                      -
-                    </td>
-                    <td class="px-4 py-3">
-                      <button
-                        @click="openClaimModal(date)"
-                        class="px-2 py-1 text-xs font-medium bg-slate-100 text-slate-500 rounded-full hover:bg-slate-200 transition-colors"
-                      >
-                        Tidak hadir (Klaim)
-                      </button>
+                      Menyiapkan periode absensi...
                     </td>
                   </tr>
-                </template>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
 
-                <tr v-if="periodDates.length === 0">
-                  <td colspan="6" class="px-4 py-8 text-center text-slate-400">
-                    Menyiapkan periode absensi...
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+      <!-- Date Detail Modal -->
+      <div
+        v-if="dateDetailModal.open"
+        class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 transition-opacity"
+      >
+        <div
+          class="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden transform transition-all border border-slate-100 flex flex-col max-h-[85vh]"
+        >
+          <!-- Modal Header -->
+          <div
+            class="px-6 py-4 bg-gradient-to-r from-amber-600 to-amber-700 text-white flex items-center justify-between shrink-0"
+          >
+            <div class="flex items-center gap-3">
+              <div
+                class="p-2 rounded-xl bg-white/10 backdrop-blur-md text-white"
+              >
+                <Icon icon="lucide:calendar-days" class="w-5 h-5" />
+              </div>
+              <div>
+                <h3 class="text-base font-bold leading-tight">
+                  Detail Kehadiran
+                </h3>
+                <p class="text-xs text-amber-100 font-medium mt-0.5">
+                  {{
+                    dateDetailModal.date
+                      ? formatDate(dateDetailModal.dateStr)
+                      : ""
+                  }}
+                </p>
+              </div>
+            </div>
+            <button
+              @click="dateDetailModal.open = false"
+              class="p-1.5 rounded-full hover:bg-white/20 text-white/80 hover:text-white transition-colors"
+            >
+              <Icon icon="lucide:x" class="w-5 h-5" />
+            </button>
+          </div>
+
+          <!-- Modal Body -->
+          <div class="p-6 space-y-5 overflow-y-auto flex-1 custom-scrollbar">
+            <!-- Day Status Summary Banner -->
+            <div
+              class="p-4 rounded-2xl flex items-center justify-between border"
+              :class="
+                dateDetailModal.records.length > 0
+                  ? getCalendarStatusClass(dateDetailModal.records[0])
+                  : dateDetailModal.isSunday || dateDetailModal.isHoliday
+                    ? 'bg-rose-50 border-rose-200 text-rose-800'
+                    : 'bg-slate-50 border-slate-200 text-slate-700'
+              "
+            >
+              <div class="flex items-center gap-3">
+                <div class="p-2.5 rounded-xl bg-white/70 shadow-xs">
+                  <Icon
+                    :icon="
+                      dateDetailModal.records.length > 0
+                        ? 'lucide:check-circle-2'
+                        : dateDetailModal.isSunday || dateDetailModal.isHoliday
+                          ? 'lucide:calendar-off'
+                          : 'lucide:help-circle'
+                    "
+                    class="w-5 h-5"
+                  />
+                </div>
+                <div>
+                  <div
+                    class="text-[10px] font-bold uppercase tracking-wider opacity-80"
+                  >
+                    Status Kehadiran
+                  </div>
+                  <div class="text-sm font-bold leading-tight mt-0.5">
+                    <template v-if="dateDetailModal.records.length > 0">
+                      {{
+                        formatAttendanceStatus(
+                          dateDetailModal.records[0].status,
+                        )
+                      }}
+                      <span
+                        v-if="dateDetailModal.records[0].isClaim"
+                        class="text-xs font-normal"
+                      >
+                        (Klaim)
+                      </span>
+                    </template>
+                    <template
+                      v-else-if="
+                        dateDetailModal.isSunday || dateDetailModal.isHoliday
+                      "
+                    >
+                      Libur / Hari Libur
+                    </template>
+                    <template v-else> Belum Ada Catatan Absensi </template>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Attendance Records List -->
+            <div v-if="dateDetailModal.records.length > 0" class="space-y-3">
+              <h4
+                class="text-xs font-bold uppercase tracking-wider text-slate-400"
+              >
+                Sesi Absensi ({{ dateDetailModal.records.length }})
+              </h4>
+              <div
+                v-for="(rec, idx) in dateDetailModal.records"
+                :key="rec.id || idx"
+                class="p-4 rounded-2xl border border-slate-100 bg-slate-50/50 space-y-3"
+              >
+                <!-- Times -->
+                <div
+                  class="grid grid-cols-2 gap-3 pb-3 border-b border-slate-200/60"
+                >
+                  <div class="bg-white p-3 rounded-xl border border-slate-100">
+                    <span
+                      class="text-[11px] font-bold text-slate-400 block uppercase tracking-wider mb-1"
+                    >
+                      Masuk
+                    </span>
+                    <span
+                      class="text-base font-mono font-bold text-emerald-600"
+                    >
+                      {{ rec.checkIn || "-" }}
+                    </span>
+                    <div
+                      v-if="rec.checkInLatitude"
+                      class="text-[11px] text-slate-400 mt-1 flex items-center gap-1"
+                    >
+                      <Icon icon="lucide:map-pin" class="w-3 h-3" />
+                      {{
+                        calculateDistanceFromCoords(
+                          rec.checkInLatitude,
+                          rec.checkInLongitude,
+                        )
+                      }}
+                    </div>
+                  </div>
+
+                  <div class="bg-white p-3 rounded-xl border border-slate-100">
+                    <span
+                      class="text-[11px] font-bold text-slate-400 block uppercase tracking-wider mb-1"
+                    >
+                      Pulang
+                    </span>
+                    <span class="text-base font-mono font-bold text-rose-600">
+                      {{ rec.checkOut || "-" }}
+                    </span>
+                    <div
+                      v-if="rec.checkOutLatitude"
+                      class="text-[11px] text-slate-400 mt-1 flex items-center gap-1"
+                    >
+                      <Icon icon="lucide:map-pin" class="w-3 h-3" />
+                      {{
+                        calculateDistanceFromCoords(
+                          rec.checkOutLatitude,
+                          rec.checkOutLongitude,
+                        )
+                      }}
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Activity -->
+                <div v-if="rec.activity" class="text-xs text-slate-700">
+                  <span class="font-bold text-slate-500 block mb-0.5"
+                    >Kegiatan:</span
+                  >
+                  <p
+                    class="bg-white p-2.5 rounded-xl border border-slate-100 font-medium text-slate-800"
+                  >
+                    {{ rec.activity }}
+                  </p>
+                </div>
+
+                <!-- Notes -->
+                <div v-if="rec.notes" class="text-xs text-slate-700">
+                  <span class="font-bold text-slate-500 block mb-0.5"
+                    >Catatan:</span
+                  >
+                  <p
+                    class="bg-white p-2.5 rounded-xl border border-slate-100 italic text-slate-600"
+                  >
+                    {{ rec.notes }}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Empty State / Claim Trigger -->
+            <div
+              v-else
+              class="text-center py-6 px-4 bg-slate-50 rounded-2xl border border-dashed border-slate-200"
+            >
+              <Icon
+                icon="lucide:calendar-x"
+                class="w-10 h-10 text-slate-300 mx-auto mb-2"
+              />
+              <p class="text-sm font-medium text-slate-600 mb-1">
+                Tidak ada data absensi untuk tanggal ini
+              </p>
+              <p class="text-xs text-slate-400 mb-4">
+                Jika Anda hadir pada tanggal tersebut, Anda dapat mengajukan
+                klaim kehadiran.
+              </p>
+              <button
+                @click="triggerClaimFromDetail(dateDetailModal.date)"
+                class="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-full text-xs font-semibold transition-colors inline-flex items-center gap-2 shadow-sm"
+              >
+                <Icon icon="lucide:file-plus" class="w-4 h-4" />
+                Klaim Kehadiran Tanggal Ini
+              </button>
+            </div>
+          </div>
+
+          <!-- Footer -->
+          <div
+            class="px-6 py-3 bg-slate-50 border-t border-slate-100 flex justify-end shrink-0"
+          >
+            <button
+              @click="dateDetailModal.open = false"
+              class="px-5 py-2 bg-white border border-slate-200 text-slate-700 text-xs font-semibold rounded-full hover:bg-slate-100 transition-colors shadow-xs"
+            >
+              Tutup
+            </button>
           </div>
         </div>
       </div>
@@ -878,8 +1288,19 @@ const accessStatus = ref("loading");
 const currentTime = useDateFormat(now, "HH:mm:ss");
 
 const showFullHistory = ref(false);
+const historyViewMode = ref("calendar");
 const selectedActivity = ref("");
 const newShiftAllowed = ref(false);
+
+const weekDaysHeader = [
+  { name: "Ahad", short: "Ahd", isSunday: true },
+  { name: "Senin", short: "Sen", isSunday: false },
+  { name: "Selasa", short: "Sel", isSunday: false },
+  { name: "Rabu", short: "Rab", isSunday: false },
+  { name: "Kamis", short: "Kam", isSunday: false },
+  { name: "Jumat", short: "Jum", isSunday: false },
+  { name: "Sabtu", short: "Sab", isSunday: false },
+];
 
 // Settings
 const settings = ref({
@@ -888,8 +1309,8 @@ const settings = ref({
   radius: 100,
   accuracyTolerance: 50, // Max GPS accuracy tolerance in meters
   activityTypes: [],
-  periodStart: 25, // Default cutoff
-  periodEnd: 24,
+  periodStart: 25, // Default cutoff: 25th
+  periodEnd: 25, // Default cutoff: 25th
   holidays: [],
 });
 
@@ -998,7 +1419,7 @@ const periodDates = computed(() => {
     const startDate = new Date(
       startYear,
       startMonth,
-      settings.value.periodStart
+      settings.value.periodStart,
     );
 
     // For cross-month, the end date is in the NEXT month
@@ -1021,6 +1442,102 @@ const periodDates = computed(() => {
 
   return dates;
 });
+
+// Computed: Calendar Grid matrix for current periodDates
+const calendarGrid = computed(() => {
+  if (!periodDates.value || periodDates.value.length === 0) return [];
+
+  const items = [];
+  const firstDate = periodDates.value[0];
+  const startDayOfWeek = firstDate.getDay();
+
+  // Blank padding cells before period start
+  for (let i = 0; i < startDayOfWeek; i++) {
+    items.push({
+      isPadding: true,
+      id: `pad-prev-${i}`,
+    });
+  }
+
+  const todayStr = formatDateISO(new Date());
+
+  periodDates.value.forEach((dateObj) => {
+    const dateStr = formatDateISO(dateObj);
+    const dayRecords = getAttendancesForDate(dateObj);
+    const dayOfWeek = dateObj.getDay();
+    const isToday = dateStr === todayStr;
+    const isSunday = dayOfWeek === 0;
+    const isHoliday = settings.value.holidays?.includes(dayOfWeek);
+
+    let mainStatus = null;
+    if (dayRecords.length > 0) {
+      mainStatus = dayRecords[0].status;
+    } else if (isHoliday || isSunday) {
+      mainStatus = "libur";
+    } else {
+      const todayZero = new Date(todayStr);
+      if (dateObj < todayZero) {
+        mainStatus = "absent";
+      }
+    }
+
+    items.push({
+      isPadding: false,
+      date: dateObj,
+      dateStr,
+      dayNumber: dateObj.getDate(),
+      monthShort: dateObj.toLocaleDateString("id-ID", { month: "short" }),
+      records: dayRecords,
+      isToday,
+      isSunday,
+      isHoliday,
+      mainStatus,
+    });
+  });
+
+  // Blank padding cells after period end
+  const remainder = items.length % 7;
+  if (remainder !== 0) {
+    const padCount = 7 - remainder;
+    for (let i = 0; i < padCount; i++) {
+      items.push({
+        isPadding: true,
+        id: `pad-next-${i}`,
+      });
+    }
+  }
+
+  return items;
+});
+
+// Date Detail Modal State
+const dateDetailModal = reactive({
+  open: false,
+  date: null,
+  dateStr: "",
+  records: [],
+  isToday: false,
+  isSunday: false,
+  isHoliday: false,
+  mainStatus: null,
+});
+
+function openDateDetailModal(item) {
+  if (!item || item.isPadding) return;
+  dateDetailModal.date = item.date;
+  dateDetailModal.dateStr = item.dateStr;
+  dateDetailModal.records = getAttendancesForDate(item.date);
+  dateDetailModal.isToday = item.isToday;
+  dateDetailModal.isSunday = item.isSunday;
+  dateDetailModal.isHoliday = item.isHoliday;
+  dateDetailModal.mainStatus = item.mainStatus;
+  dateDetailModal.open = true;
+}
+
+function triggerClaimFromDetail(dateObj) {
+  dateDetailModal.open = false;
+  openClaimModal(dateObj);
+}
 
 // Helper to get attendances for a specific date (returns Array)
 function getAttendancesForDate(dateObj) {
@@ -1084,10 +1601,10 @@ async function submitClaim() {
         "Missing teacherId. Current User:",
         currentUser.value,
         "Current Teacher:",
-        currentTeacher.value
+        currentTeacher.value,
       );
       throw new Error(
-        "Data guru tidak ditemukan. Pastikan akun terhubung dengan data guru."
+        "Data guru tidak ditemukan. Pastikan akun terhubung dengan data guru.",
       );
     }
 
@@ -1102,7 +1619,7 @@ async function submitClaim() {
 
     // Remove undefined keys to play nice with Zod optional
     Object.keys(payload).forEach(
-      (key) => payload[key] === undefined && delete payload[key]
+      (key) => payload[key] === undefined && delete payload[key],
     );
 
     // console.log("Submitting Claim Payload:", JSON.stringify(payload, null, 2));
@@ -1150,11 +1667,11 @@ async function fetchSettings() {
         settings.value.radius = parseInt(res.data.attendance_radius);
       if (res.data.attendance_accuracy_tolerance)
         settings.value.accuracyTolerance = parseInt(
-          res.data.attendance_accuracy_tolerance
+          res.data.attendance_accuracy_tolerance,
         );
       if (res.data.attendance_activities)
         settings.value.activityTypes = JSON.parse(
-          res.data.attendance_activities
+          res.data.attendance_activities,
         );
       if (res.data.attendance_period_start)
         settings.value.periodStart = parseInt(res.data.attendance_period_start);
@@ -1185,15 +1702,22 @@ const isUpdatingLocation = ref(false); // Lock to prevent concurrent requests
 
 // Determine the active attendance location (custom division or global)
 const activeLocation = computed(() => {
-  if (currentTeacher.value && currentTeacher.value.divisions && currentTeacher.value.divisions.length > 0) {
+  if (
+    currentTeacher.value &&
+    currentTeacher.value.divisions &&
+    currentTeacher.value.divisions.length > 0
+  ) {
     const customDiv = currentTeacher.value.divisions.find(
-      (d) => d.latitude != null && d.longitude != null
+      (d) => d.latitude != null && d.longitude != null,
     );
     if (customDiv) {
       return {
         latitude: parseFloat(customDiv.latitude),
         longitude: parseFloat(customDiv.longitude),
-        radius: customDiv.radius != null ? parseInt(customDiv.radius) : settings.value.radius,
+        radius:
+          customDiv.radius != null
+            ? parseInt(customDiv.radius)
+            : settings.value.radius,
         isCustom: true,
         divisionName: customDiv.name,
       };
@@ -1231,7 +1755,7 @@ const isWithinRadius = computed(() => {
     // Apply tolerance: use minimum possible distance (capped at configured tolerance)
     const tolerance = Math.min(
       gpsAccuracy.value,
-      settings.value.accuracyTolerance
+      settings.value.accuracyTolerance,
     );
     effectiveDistance = Math.max(0, distance.value - tolerance);
   }
@@ -1337,7 +1861,7 @@ function calculateDistanceFromCoords(lat, lng) {
     Number(lat),
     Number(lng),
     activeLocation.value.latitude,
-    activeLocation.value.longitude
+    activeLocation.value.longitude,
   );
   return formatDistance(dist);
 }
@@ -1419,6 +1943,110 @@ function formatAttendanceStatus(status, type = "text") {
   }
 }
 
+function formatCalendarStatus(recordOrStatus) {
+  if (!recordOrStatus) return "";
+
+  let status = recordOrStatus;
+  let isClaim = false;
+
+  if (typeof recordOrStatus === "object" && recordOrStatus !== null) {
+    isClaim = recordOrStatus.isClaim;
+    status = recordOrStatus.status;
+  }
+
+  // If created via claim
+  if (isClaim) {
+    return "Klaim";
+  }
+
+  switch (status) {
+    case "present":
+      return "Hadir";
+    case "late":
+      return "Telat";
+    case "absent":
+      return "Alpha";
+    case "permit_deduct":
+    case "permit_no_deduct":
+    case "permitted":
+      return "Izin";
+    case "sick_deduct":
+    case "sick_no_deduct":
+    case "sick":
+    case "leave":
+    case "leave_deduct":
+    case "leave_no_deduct":
+    case "cuti":
+      return "Cuti";
+    case "libur":
+      return "Libur";
+    default:
+      return status || "-";
+  }
+}
+
+function getCalendarStatusClass(recordOrStatus) {
+  if (!recordOrStatus)
+    return "bg-slate-100 text-slate-700 border border-slate-200/60";
+
+  let status = recordOrStatus;
+  let isClaim = false;
+
+  if (typeof recordOrStatus === "object" && recordOrStatus !== null) {
+    isClaim = recordOrStatus.isClaim;
+    status = recordOrStatus.status;
+  }
+
+  // Claim -> Amber badge
+  if (isClaim) {
+    return "bg-amber-100 text-amber-800 border border-amber-200/80";
+  }
+
+  // Deduct status (Izin & Cuti kena potong) or Absent/Alpha -> RED
+  if (
+    [
+      "permit_deduct",
+      "sick_deduct",
+      "leave_deduct",
+      "cuti_deduct",
+      "absent",
+    ].includes(status)
+  ) {
+    return "bg-rose-100 text-rose-800 border border-rose-200/80";
+  }
+
+  // Non-deduct status (Izin & Cuti tidak kena potong) -> BLUE
+  if (
+    [
+      "permit_no_deduct",
+      "sick_no_deduct",
+      "permitted",
+      "sick",
+      "leave",
+      "leave_no_deduct",
+      "cuti",
+    ].includes(status)
+  ) {
+    return "bg-blue-100 text-blue-800 border border-blue-200/80";
+  }
+
+  // Normal Present -> GREEN
+  if (status === "present") {
+    return "bg-emerald-100 text-emerald-800 border border-emerald-200/80";
+  }
+
+  // Late -> AMBER
+  if (status === "late") {
+    return "bg-amber-100 text-amber-800 border border-amber-200/80";
+  }
+
+  if (status === "libur") {
+    return "bg-slate-100 text-slate-500 border border-slate-200/60";
+  }
+
+  return "bg-slate-100 text-slate-700 border border-slate-200/60";
+}
+
 // Today attendance (latest)
 const todayAttendance = computed(() => {
   if (todayRecords.value.length === 0) return null;
@@ -1487,17 +2115,17 @@ function getCurrentPosition() {
       (err) => {
         console.debug(
           "High accuracy location failed, retrying with low accuracy...",
-          err.message
+          err.message,
         );
         // Fallback: Low accuracy (Network/WiFi) - Faster, more reliable indoors
         // Allow cached positions up to 2 minutes old
         navigator.geolocation.getCurrentPosition(
           (pos) => resolve(pos),
           (err2) => reject(err2),
-          { enableHighAccuracy: false, timeout: 10000, maximumAge: 120000 }
+          { enableHighAccuracy: false, timeout: 10000, maximumAge: 120000 },
         );
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 10000 }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 10000 },
     );
   });
 }
@@ -1509,7 +2137,9 @@ async function getGeoErrorMessage(err) {
     // Some Android browsers report code=1 even when location services are off at OS level
     if (navigator.permissions) {
       try {
-        const result = await navigator.permissions.query({ name: "geolocation" });
+        const result = await navigator.permissions.query({
+          name: "geolocation",
+        });
         if (result.state === "granted") {
           // Browser has permission, but OS denied → location services off
           return "Layanan lokasi HP dimatikan. Aktifkan GPS di Pengaturan HP Anda.";
@@ -1568,7 +2198,7 @@ async function handleCheckIn() {
       lat,
       lng,
       activeLocation.value.latitude,
-      activeLocation.value.longitude
+      activeLocation.value.longitude,
     );
 
     distance.value = dist; // Update UI distance
@@ -1582,8 +2212,8 @@ async function handleCheckIn() {
     if (accuracy > configuredTolerance) {
       throw new Error(
         `Akurasi GPS terlalu rendah (±${Math.round(
-          accuracy
-        )}m). Maksimum: ±${configuredTolerance}m. Coba pindah ke area terbuka.`
+          accuracy,
+        )}m). Maksimum: ±${configuredTolerance}m. Coba pindah ke area terbuka.`,
       );
     }
 
@@ -1592,7 +2222,7 @@ async function handleCheckIn() {
 
     if (effectiveDistance > activeLocation.value.radius) {
       throw new Error(
-        `Anda berada di luar radius absensi (${formatDistance(dist)})`
+        `Anda berada di luar radius absensi (${formatDistance(dist)})`,
       );
     }
 
@@ -1643,7 +2273,7 @@ async function handleCheckOut() {
       lat,
       lng,
       activeLocation.value.latitude,
-      activeLocation.value.longitude
+      activeLocation.value.longitude,
     );
 
     distance.value = dist;
@@ -1657,8 +2287,8 @@ async function handleCheckOut() {
     if (accuracy > configuredTolerance) {
       throw new Error(
         `Akurasi GPS terlalu rendah (±${Math.round(
-          accuracy
-        )}m). Maksimum: ±${configuredTolerance}m. Coba pindah ke area terbuka.`
+          accuracy,
+        )}m). Maksimum: ±${configuredTolerance}m. Coba pindah ke area terbuka.`,
       );
     }
 
@@ -1667,7 +2297,7 @@ async function handleCheckOut() {
 
     if (effectiveDistance > activeLocation.value.radius) {
       throw new Error(
-        `Anda berada di luar radius absensi (${formatDistance(dist)})`
+        `Anda berada di luar radius absensi (${formatDistance(dist)})`,
       );
     }
 
@@ -1727,7 +2357,7 @@ async function updateLocation() {
         currentPos.value.lat,
         currentPos.value.lng,
         activeLocation.value.latitude,
-        activeLocation.value.longitude
+        activeLocation.value.longitude,
       );
 
       if (calculatedDistance !== null) {
