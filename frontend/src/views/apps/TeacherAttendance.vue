@@ -371,7 +371,7 @@
                 class="px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5"
                 :class="
                   historyViewMode === 'calendar'
-                    ? 'bg-amber-600 text-white font-semibold shadow-xs'
+                    ? 'bg-amber-900 text-white font-semibold shadow-xs'
                     : 'text-slate-500 hover:text-slate-800'
                 "
               >
@@ -383,7 +383,7 @@
                 class="px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5"
                 :class="
                   historyViewMode === 'table'
-                    ? 'bg-amber-600 text-white font-semibold shadow-xs'
+                    ? 'bg-amber-900 text-white font-semibold shadow-xs'
                     : 'text-slate-500 hover:text-slate-800'
                 "
               >
