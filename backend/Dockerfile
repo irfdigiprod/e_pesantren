@@ -1,11 +1,7 @@
-FROM oven/bun:1 as base
+FROM oven/bun:1 AS base
 WORKDIR /app
 
-# Install dependencies
-COPY package.json ./
-RUN bun install --production
-
-# Install Chromium for PDF generation
+# Install Chromium for PDF generation (placed before COPY for Docker layer caching)
 RUN apt-get update && apt-get install -y chromium \
     fonts-liberation \
     fonts-noto \
@@ -51,6 +47,10 @@ ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 # Force use of installed fonts
 ENV LANG=C.UTF-8
+
+# Install dependencies
+COPY package.json ./
+RUN bun install --production
 
 # Copy source code
 COPY . .
