@@ -133,7 +133,38 @@ async function parseResponse(res) {
   try {
     return JSON.parse(text);
   } catch {
+    // Handle Nginx / Web server HTML error pages cleanly
+    if (
+      text.toLowerCase().includes("nginx") ||
+      text.includes("<html") ||
+      text.includes("<!DOCTYPE")
+    ) {
+      if (res.status === 502) {
+        return {
+          errors:
+            "Layanan server sedang tidak tersedia (502 Bad Gateway). Backend sedang dimulai ulang atau tidak aktif.",
+        };
+      }
+      if (res.status === 504) {
+        return {
+          errors:
+            "Permintaan waktu habis (504 Gateway Timeout). Server membutuhkan waktu terlalu lama untuk merespons.",
+        };
+      }
+      if (res.status === 503) {
+        return {
+          errors:
+            "Server sedang dalam pemeliharaan (503 Service Unavailable). Silakan coba beberapa saat lagi.",
+        };
+      }
+      return {
+        errors: `Server tidak dapat merespons permintaan (${res.status} ${res.statusText || "Server Error"}). Silakan coba beberapa saat lagi.`,
+      };
+    }
+
     const stripped = text
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, " ")
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, " ")
       .replace(/<[^>]*>/g, " ")
       .replace(/\s+/g, " ")
       .trim();

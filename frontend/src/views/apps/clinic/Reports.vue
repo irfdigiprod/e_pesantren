@@ -524,6 +524,17 @@ function patientTypeLabel(t) {
 
 function formatDate(dateStr) {
   if (!dateStr) return "-";
+  const str = String(dateStr).split("T")[0];
+  const parts = str.split("-");
+  if (parts.length === 3) {
+    const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+    return d.toLocaleDateString("id-ID", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  }
   return new Date(dateStr).toLocaleDateString("id-ID", {
     weekday: "short",
     day: "numeric",
@@ -534,6 +545,17 @@ function formatDate(dateStr) {
 
 function formatFullDate(dateStr) {
   if (!dateStr) return "-";
+  const str = String(dateStr).split("T")[0];
+  const parts = str.split("-");
+  if (parts.length === 3) {
+    const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+    return d.toLocaleDateString("id-ID", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  }
   return new Date(dateStr).toLocaleDateString("id-ID", {
     weekday: "long",
     day: "numeric",
@@ -573,7 +595,8 @@ async function fetchReports() {
 }
 
 async function openDailyModal(date, count) {
-  dailyModal.date = date;
+  const cleanDate = typeof date === "string" ? date.split("T")[0] : (date ? new Date(date).toISOString().split("T")[0] : "");
+  dailyModal.date = cleanDate;
   dailyModal.count = count;
   dailyModal.search = "";
   dailyModal.items = [];
@@ -582,7 +605,7 @@ async function openDailyModal(date, count) {
 
   try {
     const params = {
-      date: date,
+      date: cleanDate,
       patientType: filters.patientType || undefined,
       gender: filters.gender || undefined,
       limit: "all",
@@ -782,7 +805,7 @@ async function exportDailyExcel() {
 
     const dateStr = dailyModal.date;
     const periodStr = formatFullDate(dateStr);
-    const filenameSuffix = dateStr;
+    const filenameSuffix = String(dateStr || "").replace(/[^0-9\-]/g, "_") || "harian";
     await generateExcelFile(items, filenameSuffix, periodStr);
   } catch (e) {
     console.error("Failed daily export excel", e);

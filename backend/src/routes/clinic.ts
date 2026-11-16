@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import { eq, like, or, and, sql, desc, asc, getTableColumns } from "drizzle-orm";
+import { eq, like, or, and, sql, desc, asc, getTableColumns, inArray } from "drizzle-orm";
 import { db } from "../db";
 import {
   medicines,
@@ -266,38 +266,84 @@ clinicRoute.get("/patients/all", async (c) => {
       limit: 500, // Limit for performance
     });
 
-    const enriched = await Promise.all(all.map(async (p) => {
-      let classInfo = null;
-      let halaqah = null;
-      let room = null;
+    const studentRefIds = [
+      ...new Set(
+        all
+          .filter((p) => p.type === "student" && p.refId)
+          .map((p) => Number(p.refId))
+      ),
+    ];
 
-      if (p.type === 'student' && p.refId) {
-        // Find student
-        const student = await db.query.students.findFirst({
-          where: eq(students.id, p.refId)
-        });
+    const studentMap = new Map<
+      number,
+      {
+        classInfo: { id: number; name: string } | null;
+        room: { id: number; name: string } | null;
+        halaqah: { id: number; name: string } | null;
+      }
+    >();
 
-        if (student) {
-          if (student.classId) {
-            classInfo = await db.query.classes.findFirst({ where: eq(classes.id, student.classId) });
-          }
-          if (student.roomId) {
-            room = await db.query.rooms.findFirst({ where: eq(rooms.id, student.roomId) });
-          }
-          const halaqahMember = await db.query.halaqahMembers.findFirst({ where: eq(halaqahMembers.studentId, student.id) });
-          if (halaqahMember) {
-            halaqah = await db.query.halaqahGroups.findFirst({ where: eq(halaqahGroups.id, halaqahMember.halaqahId) });
-          }
+    if (studentRefIds.length > 0) {
+      const [studentRows, halaqahRows] = await Promise.all([
+        db
+          .select({
+            id: students.id,
+            classId: classes.id,
+            className: classes.name,
+            roomId: rooms.id,
+            roomName: rooms.name,
+          })
+          .from(students)
+          .leftJoin(classes, eq(students.classId, classes.id))
+          .leftJoin(rooms, eq(students.roomId, rooms.id))
+          .where(inArray(students.id, studentRefIds)),
+        db
+          .select({
+            studentId: halaqahMembers.studentId,
+            halaqahId: halaqahGroups.id,
+            halaqahName: halaqahGroups.name,
+          })
+          .from(halaqahMembers)
+          .innerJoin(
+            halaqahGroups,
+            eq(halaqahMembers.halaqahId, halaqahGroups.id)
+          )
+          .where(inArray(halaqahMembers.studentId, studentRefIds)),
+      ]);
+
+      const halaqahMap = new Map<number, { id: number; name: string }>();
+      for (const h of halaqahRows) {
+        if (h.studentId && h.halaqahId) {
+          halaqahMap.set(h.studentId, {
+            id: h.halaqahId,
+            name: h.halaqahName,
+          });
         }
       }
 
+      for (const s of studentRows) {
+        studentMap.set(s.id, {
+          classInfo: s.classId
+            ? { id: s.classId, name: s.className || "" }
+            : null,
+          room: s.roomId ? { id: s.roomId, name: s.roomName || "" } : null,
+          halaqah: halaqahMap.get(s.id) || null,
+        });
+      }
+    }
+
+    const enriched = all.map((p) => {
+      const info =
+        p.type === "student" && p.refId
+          ? studentMap.get(Number(p.refId))
+          : null;
       return {
         ...p,
-        class: classInfo ? { id: classInfo.id, name: classInfo.name } : null,
-        room: room ? { id: room.id, name: room.name } : null,
-        halaqah: halaqah ? { id: halaqah.id, name: halaqah.name } : null,
+        class: info?.classInfo || null,
+        room: info?.room || null,
+        halaqah: info?.halaqah || null,
       };
-    }));
+    });
 
     return c.json({ success: true, data: enriched });
   } catch (e) {
@@ -893,7 +939,7 @@ clinicRoute.get("/inpatients", async (c) => {
     // So we fetch and map, or use db.select().from().innerJoin()
 
     // Let's use db.select for better join control
-    const query = db
+    let query = db
       .select({
         id: inpatients.id,
         clinicPatientId: inpatients.clinicPatientId,
@@ -920,7 +966,7 @@ clinicRoute.get("/inpatients", async (c) => {
         eq(inpatients.clinicPatientId, clinicPatients.id),
       )
       .leftJoin(clinicRooms, eq(inpatients.roomId, clinicRooms.id))
-      .orderBy(desc(inpatients.admissionDate));
+      .$dynamic();
 
     const inpatientUser = c.get("user");
     const inpatientGenderScope = await getStudentGenderScope(inpatientUser.userId, inpatientUser.role);
@@ -930,11 +976,10 @@ clinicRoute.get("/inpatients", async (c) => {
     const inpatientGenderSql = clinicStudentGenderSql(inpatientGenderScope);
     if (inpatientGenderSql) inpatientConditions.push(inpatientGenderSql);
     if (inpatientConditions.length > 0) {
-      // @ts-ignore
-      query.where(and(...inpatientConditions));
+      query = query.where(and(...inpatientConditions));
     }
 
-    const results = await query;
+    const results = await query.orderBy(desc(inpatients.admissionDate));
 
     // Remap for frontend compatibility
     const mapped = results.map((r) => ({
@@ -1109,7 +1154,8 @@ clinicRoute.delete(
 // ============ EXAMINATIONS (Updated) ============
 
 clinicRoute.get("/examinations", async (c) => {
-  const { clinicPatientId, patientId, refId, name, patientType, startDate, endDate, date, gender, limit } = c.req.query();
+  try {
+    const { clinicPatientId, patientId, refId, name, patientType, startDate, endDate, date, gender, limit } = c.req.query();
 
   const conditions = [];
 
@@ -1133,13 +1179,16 @@ clinicRoute.get("/examinations", async (c) => {
   }
 
   if (date) {
-    conditions.push(sql`DATE(${healthExaminations.examinationDate}) = ${date}`);
+    const cleanDate = String(date).split("T")[0];
+    conditions.push(sql`DATE(${healthExaminations.examinationDate}) = ${cleanDate}`);
   } else {
     if (startDate) {
-      conditions.push(sql`DATE(${healthExaminations.examinationDate}) >= ${startDate}`);
+      const cleanStart = String(startDate).split("T")[0];
+      conditions.push(sql`DATE(${healthExaminations.examinationDate}) >= ${cleanStart}`);
     }
     if (endDate) {
-      conditions.push(sql`DATE(${healthExaminations.examinationDate}) <= ${endDate}`);
+      const cleanEnd = String(endDate).split("T")[0];
+      conditions.push(sql`DATE(${healthExaminations.examinationDate}) <= ${cleanEnd}`);
     }
   }
 
@@ -1203,92 +1252,207 @@ clinicRoute.get("/examinations", async (c) => {
     ? await queryWithOrder
     : await queryWithOrder.limit(parsedLimit);
 
-  const mapped = await Promise.all(list.map(async (l) => {
-    let classInfo = null;
-    let halaqah = null;
-    let room = null;
-
-    if (l.patientType === 'student' && l.patientId) {
-      const student = await db.query.students.findFirst({
-        where: eq(students.id, l.patientId)
-      });
-      if (student) {
-        if (student.classId) {
-          classInfo = await db.query.classes.findFirst({ where: eq(classes.id, student.classId) });
-        }
-        if (student.roomId) {
-          room = await db.query.rooms.findFirst({ where: eq(rooms.id, student.roomId) });
-        }
-        const halaqahMember = await db.query.halaqahMembers.findFirst({ where: eq(halaqahMembers.studentId, student.id) });
-        if (halaqahMember) {
-          halaqah = await db.query.halaqahGroups.findFirst({ where: eq(halaqahGroups.id, halaqahMember.halaqahId) });
-        }
-      }
+    if (list.length === 0) {
+      return c.json({ success: true, data: [] });
     }
 
-    let inpatientData = null;
-    if (l.isInpatient && l.inpatientId) {
-      const inpatientInfo = await db.query.inpatients.findFirst({
-        where: eq(inpatients.id, l.inpatientId)
-      });
-      if (inpatientInfo) {
-        let clinicRoomName = "-";
-        if (inpatientInfo.roomId) {
-          const r = await db.query.clinicRooms.findFirst({ where: eq(clinicRooms.id, inpatientInfo.roomId) });
-          if (r) clinicRoomName = r.name;
-        }
-        inpatientData = {
-          roomName: clinicRoomName,
-          bedNumber: inpatientInfo.bedNumber,
-          admissionDate: inpatientInfo.admissionDate,
-          dischargeDate: inpatientInfo.dischargeDate,
-        };
+    // 1. Batch fetch student academic & halaqah info
+    const studentIds = [
+      ...new Set(
+        list
+          .filter((l) => l.patientType === "student" && l.patientId)
+          .map((l) => Number(l.patientId))
+      ),
+    ];
+
+    const studentMap = new Map<
+      number,
+      {
+        classInfo: { id: number; name: string } | null;
+        room: { id: number; name: string } | null;
+        halaqah: { id: number; name: string } | null;
       }
-    }
+    >();
 
-    const usages = await db
-      .select()
-      .from(medicineUsages)
-      .where(eq(medicineUsages.examinationId, l.id));
+    if (studentIds.length > 0) {
+      const [studentRows, halaqahRows] = await Promise.all([
+        db
+          .select({
+            id: students.id,
+            classId: classes.id,
+            className: classes.name,
+            roomId: rooms.id,
+            roomName: rooms.name,
+          })
+          .from(students)
+          .leftJoin(classes, eq(students.classId, classes.id))
+          .leftJoin(rooms, eq(students.roomId, rooms.id))
+          .where(inArray(students.id, studentIds)),
+        db
+          .select({
+            studentId: halaqahMembers.studentId,
+            halaqahId: halaqahGroups.id,
+            halaqahName: halaqahGroups.name,
+          })
+          .from(halaqahMembers)
+          .innerJoin(
+            halaqahGroups,
+            eq(halaqahMembers.halaqahId, halaqahGroups.id)
+          )
+          .where(inArray(halaqahMembers.studentId, studentIds)),
+      ]);
 
-    const consumedMedicines = await Promise.all(
-      usages.map(async (u) => {
-        const med = await db.query.medicines.findFirst({
-          where: eq(medicines.id, u.medicineId),
-          with: {
-            pharmacy: true,
-          },
+      const halaqahMap = new Map<number, { id: number; name: string }>();
+      for (const h of halaqahRows) {
+        if (h.studentId && h.halaqahId) {
+          halaqahMap.set(h.studentId, {
+            id: h.halaqahId,
+            name: h.halaqahName,
+          });
+        }
+      }
+
+      for (const s of studentRows) {
+        studentMap.set(s.id, {
+          classInfo: s.classId
+            ? { id: s.classId, name: s.className || "" }
+            : null,
+          room: s.roomId ? { id: s.roomId, name: s.roomName || "" } : null,
+          halaqah: halaqahMap.get(s.id) || null,
         });
-        return {
+      }
+    }
+
+    // 2. Batch fetch inpatient details
+    const inpatientIds = [
+      ...new Set(
+        list
+          .filter((l) => l.isInpatient && l.inpatientId)
+          .map((l) => Number(l.inpatientId))
+      ),
+    ];
+
+    const inpatientMap = new Map<
+      number,
+      {
+        roomName: string;
+        bedNumber: string | null;
+        admissionDate: Date | null;
+        dischargeDate: Date | null;
+      }
+    >();
+
+    if (inpatientIds.length > 0) {
+      const inpatientRows = await db
+        .select({
+          id: inpatients.id,
+          bedNumber: inpatients.bedNumber,
+          admissionDate: inpatients.admissionDate,
+          dischargeDate: inpatients.dischargeDate,
+          roomName: clinicRooms.name,
+        })
+        .from(inpatients)
+        .leftJoin(clinicRooms, eq(inpatients.roomId, clinicRooms.id))
+        .where(inArray(inpatients.id, inpatientIds));
+
+      for (const inp of inpatientRows) {
+        inpatientMap.set(inp.id, {
+          roomName: inp.roomName || "-",
+          bedNumber: inp.bedNumber || null,
+          admissionDate: inp.admissionDate ? new Date(inp.admissionDate) : null,
+          dischargeDate: inp.dischargeDate ? new Date(inp.dischargeDate) : null,
+        });
+      }
+    }
+
+    // 3. Batch fetch medicine usages and medicine info
+    const examIds = list.map((l) => l.id);
+    const medicinesByExam = new Map<
+      number,
+      {
+        id: number;
+        name: string;
+        quantity: number;
+        unit: string;
+        isManual: boolean;
+        pharmacyName: string | null;
+      }[]
+    >();
+
+    if (examIds.length > 0) {
+      const usageRows = await db
+        .select({
+          examinationId: medicineUsages.examinationId,
+          medicineId: medicineUsages.medicineId,
+          quantity: medicineUsages.quantity,
+          name: medicines.name,
+          unit: medicines.unit,
+          pharmacyName: pharmacies.name,
+        })
+        .from(medicineUsages)
+        .leftJoin(medicines, eq(medicineUsages.medicineId, medicines.id))
+        .leftJoin(pharmacies, eq(medicines.pharmacyId, pharmacies.id))
+        .where(inArray(medicineUsages.examinationId, examIds));
+
+      for (const u of usageRows) {
+        if (!u.examinationId) continue;
+        const arr = medicinesByExam.get(u.examinationId) || [];
+        arr.push({
           id: u.medicineId,
-          name: med?.name || "Obat",
+          name: u.name || "Obat",
           quantity: u.quantity,
-          unit: med?.unit || "pcs",
+          unit: u.unit || "pcs",
           isManual: false,
-          pharmacyName: med?.pharmacy?.name || null,
-        };
-      })
-    );
+          pharmacyName: u.pharmacyName || null,
+        });
+        medicinesByExam.set(u.examinationId, arr);
+      }
+    }
 
-    return {
-      ...l,
-      student: { fullName: l.patientName }, // Compat
-      studentId: l.patientId || "-", // Reverting to safe default
-      refId: l.patientId, // Reverting
+    // 4. Map in memory (zero async / zero N+1 queries)
+    const mapped = list.map((l) => {
+      const studentInfo =
+        l.patientType === "student" && l.patientId
+          ? studentMap.get(Number(l.patientId))
+          : null;
 
-      date: l.examinationDate,
-      complaint: l.symptoms,
-      hasSickLeave: Boolean(l.hasSickLeave),
-      class: classInfo ? { id: classInfo.id, name: classInfo.name } : null,
-      room: room ? { id: room.id, name: room.name } : null,
-      halaqah: halaqah ? { id: halaqah.id, name: halaqah.name } : null,
-      inpatient: inpatientData,
-      consumedMedicines,
-      examinerName: l.examinerName || "-",
-    };
-  }));
+      const inpatientData =
+        l.isInpatient && l.inpatientId
+          ? inpatientMap.get(Number(l.inpatientId)) || null
+          : null;
+
+      const consumedMedicines = medicinesByExam.get(l.id) || [];
+
+      return {
+        ...l,
+        student: { fullName: l.patientName }, // Compat
+        studentId: l.patientId || "-", // Reverting to safe default
+        refId: l.patientId, // Reverting
+
+        date: l.examinationDate,
+        complaint: l.symptoms,
+        hasSickLeave: Boolean(l.hasSickLeave),
+        class: studentInfo?.classInfo || null,
+        room: studentInfo?.room || null,
+        halaqah: studentInfo?.halaqah || null,
+        inpatient: inpatientData,
+        consumedMedicines,
+        examinerName: l.examinerName || "-",
+      };
+    });
 
   return c.json({ success: true, data: mapped });
+} catch (error: any) {
+  console.error("Get examinations error:", error);
+  return c.json(
+    {
+      success: false,
+      message: "Gagal memuat data pemeriksaan",
+      error: error?.message,
+    },
+    500
+  );
+}
 });
 
 clinicRoute.post(
@@ -1744,17 +1908,18 @@ clinicRoute.get("/reports/summary", async (c) => {
     const genderFilter = c.req.query("gender"); // L | P (optional)
 
     // Defaults: Last 30 days
-    let start = new Date();
-    start.setDate(start.getDate() - 30);
-    let end = new Date();
+    let defaultStart = new Date();
+    defaultStart.setDate(defaultStart.getDate() - 30);
+    const defaultStartStr = defaultStart.toISOString().split("T")[0];
+    const defaultEndStr = new Date().toISOString().split("T")[0];
 
-    if (startDate) start = new Date(startDate);
-    if (endDate) end = new Date(endDate);
+    const cleanStart = startDate ? String(startDate).split("T")[0] : defaultStartStr;
+    const cleanEnd = endDate ? String(endDate).split("T")[0] : defaultEndStr;
 
     // Build optional filter conditions (L2 + L5)
     const filterConditions = [
-      sql`${healthExaminations.examinationDate} >= ${start}`,
-      sql`${healthExaminations.examinationDate} <= ${end}`,
+      sql`DATE(${healthExaminations.examinationDate}) >= ${cleanStart}`,
+      sql`DATE(${healthExaminations.examinationDate}) <= ${cleanEnd}`,
     ];
     if (patientTypeFilter && ["student", "teacher", "external"].includes(patientTypeFilter)) {
       filterConditions.push(sql`${healthExaminations.patientType} = ${patientTypeFilter}`);
@@ -1769,7 +1934,7 @@ clinicRoute.get("/reports/summary", async (c) => {
     // 1. Visits per Date (Line Chart)
     const visitsQuery = db
       .select({
-        date: sql<string>`DATE(${healthExaminations.examinationDate})`,
+        date: sql<string>`DATE_FORMAT(${healthExaminations.examinationDate}, '%Y-%m-%d')`,
         count: sql<number>`count(*)`,
       })
       .from(healthExaminations);
@@ -1778,8 +1943,8 @@ clinicRoute.get("/reports/summary", async (c) => {
     }
     const visits = await visitsQuery
       .where(and(...filterConditions))
-      .groupBy(sql`DATE(${healthExaminations.examinationDate})`)
-      .orderBy(sql`DATE(${healthExaminations.examinationDate})`);
+      .groupBy(sql`DATE_FORMAT(${healthExaminations.examinationDate}, '%Y-%m-%d')`)
+      .orderBy(sql`DATE_FORMAT(${healthExaminations.examinationDate}, '%Y-%m-%d')`);
 
     // 2. Top Diagnoses (Bar Chart)
     const diseasesQuery = db
@@ -1824,8 +1989,8 @@ clinicRoute.get("/reports/summary", async (c) => {
         diseases,
         patientTypes,
         filters: {
-          startDate: start,
-          endDate: end,
+          startDate: cleanStart,
+          endDate: cleanEnd,
           patientType: patientTypeFilter || null,
           gender: genderFilter || null,
         },
